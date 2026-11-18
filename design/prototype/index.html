@@ -1,0 +1,766 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- ARTIFACT-START -->
+<title>CIVORA Service Prototype</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: mobile-first app shell — sticky header, single reading column (max 720px), bottom tab bar on phones, wide 2-pane workspace for officers.
+   Tokens mirror design/tokens/civora.tokens.json (v1.0). */
+:root {
+  --bg: #F6F7F8; --surface: #FFFFFF; --sunken: #EDEFF1;
+  --brand: #0F5551; --brand-hover: #0B4341; --brand-subtle: #E8F4F3; --accent-subtle: #FFF6E5; --gold: #F2C25C;
+  --text: #1A1F25; --text-2: #545E69; --on-brand: #FFFFFF; --text-brand: #0F5551; --link: #0F5551;
+  --border: #DCE0E4; --control: #6B7580; --focus: #1D5A9E;
+  --ok: #1C6B3A; --ok-bg: #E8F5EC; --warn: #8A5A00; --warn-bg: #FFF6E5;
+  --danger: #A4211B; --danger-bg: #FDECEA; --info: #1D5A9E; --info-bg: #E8F0FA;
+  --banner-bg: #FCE7B8; --banner-fg: #5A3B00; --mark-tile: #0F5551;
+  --shadow: 0 4px 12px rgba(15, 19, 23, 0.10);
+  --font-ar: "IBM Plex Sans Arabic", "Noto Sans Arabic", Tahoma, sans-serif;
+  --font-lat: "IBM Plex Sans", "Noto Sans", "Segoe UI", Roboto, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --r-sm: 4px; --r-md: 8px; --r-lg: 12px; --r-xl: 16px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0F1317; --surface: #1A1F25; --sunken: #2A3139;
+    --brand: #67B5AE; --brand-hover: #9CD0CB; --brand-subtle: #073230; --accent-subtle: #5A3B00; --gold: #F2C25C;
+    --text: #F6F7F8; --text-2: #C2C8CF; --on-brand: #073230; --text-brand: #67B5AE; --link: #9CD0CB;
+    --border: #3E4751; --control: #9AA3AD; --focus: #8DB6E8;
+    --ok: #7FCB98; --ok-bg: #1A1F25; --warn: #F2C25C; --warn-bg: #1A1F25;
+    --danger: #F19A93; --danger-bg: #1A1F25; --info: #8DB6E8; --info-bg: #1A1F25;
+    --banner-bg: #5A3B00; --banner-fg: #FCE7B8; --mark-tile: #0F5551;
+    --shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0F1317; --surface: #1A1F25; --sunken: #2A3139;
+  --brand: #67B5AE; --brand-hover: #9CD0CB; --brand-subtle: #073230; --accent-subtle: #5A3B00; --gold: #F2C25C;
+  --text: #F6F7F8; --text-2: #C2C8CF; --on-brand: #073230; --text-brand: #67B5AE; --link: #9CD0CB;
+  --border: #3E4751; --control: #9AA3AD; --focus: #8DB6E8;
+  --ok: #7FCB98; --ok-bg: #1A1F25; --warn: #F2C25C; --warn-bg: #1A1F25;
+  --danger: #F19A93; --danger-bg: #1A1F25; --info: #8DB6E8; --info-bg: #1A1F25;
+  --banner-bg: #5A3B00; --banner-fg: #FCE7B8; --mark-tile: #0F5551;
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: var(--font-lat); font-size: 16px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 96px;
+}
+html[lang="ar"] body { font-family: var(--font-ar); line-height: 1.7; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); }
+a { color: var(--link); text-underline-offset: 2px; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: var(--r-sm); }
+h1[tabindex="-1"]:focus { outline: none; }
+h1, h2, h3 { line-height: 1.3; text-wrap: balance; margin: 0; }
+h1 { font-size: 24px; font-weight: 700; }
+h2 { font-size: 20px; font-weight: 600; }
+h3 { font-size: 16px; font-weight: 600; }
+p { margin: 0; }
+.mono, .ref { font-family: var(--font-mono); font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: isolate; }
+.muted { color: var(--text-2); }
+.small { font-size: 14px; }
+.skip { position: absolute; inset-inline-start: 16px; top: -100px; background: var(--surface); padding: 8px 12px; border-radius: var(--r-md); z-index: 50; }
+.skip:focus { top: calc(env(safe-area-inset-top, 0px) + 8px); }
+
+/* Environment banner (non-dismissable) */
+.env-banner {
+  margin-inline: calc(-1 * max(16px, env(safe-area-inset-left, 0px)));
+  padding: 8px max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px));
+  background: var(--banner-bg); color: var(--banner-fg); font-size: 14px; font-weight: 600; text-align: center;
+}
+
+/* Header */
+.header {
+  position: relative; z-index: 20;
+  margin-inline: calc(-1 * max(16px, env(safe-area-inset-left, 0px)));
+  padding: 10px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px));
+  background: var(--surface); border-bottom: 1px solid var(--border);
+}
+.header-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; max-width: 1200px; margin-inline: auto; }
+.brand { display: flex; align-items: center; gap: 8px; font-weight: 700; letter-spacing: 0.12em; color: var(--text-brand); text-decoration: none; font-family: var(--font-lat); }
+.brand svg { width: 32px; height: 32px; flex: none; }
+.spacer { flex: 1; }
+.seg { display: inline-flex; border: 1px solid var(--control); border-radius: var(--r-md); overflow: hidden; }
+.seg button { border: 0; background: transparent; color: var(--text); padding: 8px 12px; min-height: 40px; font: inherit; font-size: 14px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--brand); color: var(--on-brand); font-weight: 600; }
+.lang button { font-size: 14px; }
+.lang button[lang="ar"] { font-family: var(--font-ar); }
+.topnav { display: none; gap: 4px; max-width: 1200px; margin: 8px auto 0; }
+.topnav a { padding: 8px 12px; border-radius: var(--r-md); text-decoration: none; color: var(--text); font-weight: 500; }
+.topnav a[aria-current="page"] { background: var(--brand-subtle); color: var(--text-brand); font-weight: 600; }
+
+/* Mandate banner */
+.mandate { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 12px; padding: 10px 14px; border-radius: var(--r-md); background: var(--info-bg); color: var(--info); border: 2px solid var(--info); font-weight: 600; }
+.mandate .btn { margin-inline-start: auto; }
+
+/* Layout */
+main { max-width: 720px; margin: 20px auto 0; display: grid; gap: 20px; }
+main > *, .stack > * { min-width: 0; }
+main.wide { max-width: 1200px; }
+.stack { display: grid; gap: 12px; }
+.row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 16px; display: grid; gap: 10px; min-width: 0; }
+.card.hl { border: 2px solid var(--warn); background: var(--warn-bg); }
+.hero { background: var(--brand); color: var(--on-brand); border: 0; }
+.hero p { color: var(--on-brand); opacity: 0.92; }
+.hero .btn-light { background: var(--surface); color: var(--text-brand); }
+
+/* Buttons */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 10px 18px; border-radius: var(--r-md); border: 1px solid transparent; font: inherit; font-weight: 600; cursor: pointer; text-decoration: none; }
+.btn-primary { background: var(--brand); color: var(--on-brand); }
+.btn-primary:hover { background: var(--brand-hover); }
+.btn-secondary { background: var(--surface); color: var(--text-brand); border-color: var(--control); }
+.btn-danger { background: var(--surface); color: var(--danger); border-color: var(--danger); }
+.btn-sm { min-height: 40px; padding: 6px 12px; font-size: 14px; }
+.btn[disabled] { opacity: 0.55; cursor: not-allowed; }
+.linkbtn { background: none; border: 0; padding: 0 4px; min-height: 44px; color: var(--link); text-decoration: underline; text-underline-offset: 3px; font: inherit; font-weight: 600; cursor: pointer; }
+
+/* Badges & chips */
+.badge { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; font-size: 14px; font-weight: 600; white-space: nowrap; }
+.b-ok { background: var(--ok-bg); color: var(--ok); border: 1px solid var(--ok); }
+.b-warn { background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn); }
+.b-danger { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger); }
+.b-info { background: var(--info-bg); color: var(--info); border: 1px solid var(--info); }
+.b-neutral { background: var(--sunken); color: var(--text); border: 1px solid var(--border); }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip { border: 1px solid var(--control); background: var(--surface); color: var(--text); border-radius: 999px; padding: 8px 14px; min-height: 44px; font: inherit; font-size: 14px; cursor: pointer; text-align: start; }
+.chip:hover { border-color: var(--brand); color: var(--text-brand); }
+
+/* Lists */
+ol.steps { margin: 0; padding-inline-start: 22px; display: grid; gap: 6px; }
+ul.plain { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.kv { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 6px 16px; }
+.kv dt { color: var(--text-2); }
+.kv dd { margin: 0; }
+
+/* Timeline */
+.timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.timeline li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 12px; padding-bottom: 16px; position: relative; }
+.timeline li::before { content: ""; position: absolute; inset-inline-start: 13px; top: 28px; bottom: 0; width: 2px; background: var(--border); }
+.timeline li:last-child::before { display: none; }
+.dot { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 14px; font-weight: 700; background: var(--sunken); color: var(--text-2); border: 2px solid var(--border); }
+.dot.done { background: var(--ok-bg); color: var(--ok); border-color: var(--ok); }
+.dot.now { background: var(--warn-bg); color: var(--warn); border-color: var(--warn); }
+
+/* Guide */
+.chat { display: grid; gap: 12px; }
+.msg { padding: 12px 14px; border-radius: var(--r-lg); max-width: 92%; white-space: pre-line; min-width: 0; overflow-wrap: anywhere; }
+.msg.user { background: var(--brand-subtle); color: var(--text); justify-self: end; border-end-end-radius: var(--r-sm); }
+.msg.bot { background: var(--surface); border: 1px solid var(--border); justify-self: start; border-end-start-radius: var(--r-sm); display: grid; gap: 10px; white-space: normal; }
+.msg.bot .body { white-space: pre-line; }
+.msg.bot.refusal { border-color: var(--warn); }
+.ai-tag { display: inline-flex; gap: 6px; align-items: center; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: var(--text-brand); }
+.cites { display: grid; gap: 6px; border-top: 1px solid var(--border); padding-top: 8px; font-size: 14px; }
+.cite { display: flex; gap: 8px; align-items: baseline; }
+.cite .n { font-family: var(--font-mono); font-weight: 600; color: var(--text-brand); }
+.composer { display: flex; gap: 8px; }
+.composer input { flex: 1 1 0; width: 100%; min-width: 0; min-height: 48px; padding: 10px 14px; border: 1px solid var(--control); border-radius: var(--r-md); font: inherit; background: var(--surface); color: var(--text); }
+.notice { padding: 10px 14px; border-radius: var(--r-md); background: var(--accent-subtle); color: var(--text); border: 1px solid var(--border); font-size: 14px; }
+
+/* Wallet */
+.cred { border-radius: var(--r-xl); padding: 18px; display: grid; gap: 12px; color: var(--text); background: var(--surface); border: 1px solid var(--border); position: relative; overflow: hidden; }
+.cred::after { content: attr(data-wm); position: absolute; inset-inline-end: -40px; top: 18px; transform: rotate(35deg); background: var(--banner-bg); color: var(--banner-fg); font-size: 11px; font-weight: 700; padding: 4px 48px; letter-spacing: 0.06em; }
+html[dir="rtl"] .cred::after { transform: rotate(-35deg); }
+.cred .issuer { display: flex; align-items: center; gap: 10px; }
+.cred .seal { width: 40px; height: 40px; border-radius: 50%; background: var(--brand-subtle); color: var(--text-brand); display: grid; place-items: center; font-weight: 700; }
+.check { display: flex; gap: 10px; align-items: center; min-height: 44px; }
+.check input { width: 22px; height: 22px; accent-color: var(--brand); }
+canvas#qr { width: 200px; height: 200px; max-width: 100%; image-rendering: pixelated; border-radius: var(--r-md); }
+
+/* Tables (workspace) */
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: start; padding: 10px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+th { color: var(--text-2); font-weight: 600; background: var(--sunken); }
+tr.sel td { background: var(--brand-subtle); }
+tr[data-case] { cursor: pointer; }
+.ws-grid { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 1000px) { .ws-grid { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); align-items: start; } }
+.kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 12px; }
+.kpi b { display: block; font-size: 24px; font-variant-numeric: tabular-nums; }
+select, textarea { font: inherit; min-height: 44px; padding: 8px 12px; border: 1px solid var(--control); border-radius: var(--r-md); background: var(--surface); color: var(--text); width: 100%; }
+
+/* Tab bar (phones) */
+.tabbar {
+  position: fixed; inset: auto 0 0 0; z-index: 30; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+  background: var(--surface); border-top: 1px solid var(--border);
+  padding: 6px max(8px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px));
+}
+.tabbar a { display: grid; justify-items: center; gap: 2px; padding: 6px 2px; min-height: 52px; text-decoration: none; color: var(--text-2); font-size: 12px; font-weight: 600; border-radius: var(--r-md); }
+.tabbar a svg { width: 22px; height: 22px; }
+.tabbar a[aria-current="page"] { color: var(--text-brand); background: var(--brand-subtle); }
+@media (min-width: 760px) { .tabbar { display: none; } .topnav { display: flex; } body { padding-block: 0 48px; } .header { position: sticky; top: env(safe-area-inset-top, 0px); } }
+
+/* Toast */
+.toast { position: fixed; z-index: 40; inset-inline: max(16px, env(safe-area-inset-left, 0px)); bottom: calc(84px + env(safe-area-inset-bottom, 0px)); margin-inline: auto; max-width: 560px; background: var(--text); color: var(--bg); padding: 12px 16px; border-radius: var(--r-md); box-shadow: var(--shadow); font-weight: 500; }
+@media (min-width: 760px) { .toast { bottom: 24px; } }
+footer { max-width: 1200px; margin: 32px auto 0; color: var(--text-2); font-size: 14px; text-align: center; }
+@media (prefers-reduced-motion: no-preference) { .btn, .chip, .seg button { transition: background-color 120ms cubic-bezier(0.2, 0, 0, 1); } }
+</style>
+</head>
+<body>
+<a class="skip" href="#main" id="skip-link">Skip to content</a>
+<div class="env-banner" role="note" id="env-banner"></div>
+<header class="header">
+  <div class="header-row">
+    <a class="brand" href="#home" aria-label="CIVORA">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="var(--mark-tile)"/><path d="M44.5 21.5A15 15 0 1 0 44.5 42.5" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round"/><circle cx="32" cy="32" r="5" fill="#F2C25C"/></svg>
+      <span>CIVORA</span>
+    </a>
+    <div class="seg" role="group" id="mode-group"></div>
+    <span class="spacer"></span>
+    <div class="seg lang" role="group" id="lang-group">
+      <button type="button" lang="ar" data-lang="ar">العربية</button>
+      <button type="button" lang="fr" data-lang="fr">Français</button>
+      <button type="button" lang="en" data-lang="en">English</button>
+    </div>
+  </div>
+  <nav class="topnav" id="topnav"></nav>
+</header>
+<main id="main" tabindex="-1"></main>
+<footer id="footer"></footer>
+<nav class="tabbar" id="tabbar"></nav>
+<div id="live" class="toast" role="status" aria-live="polite" hidden></div>
+<script>
+(function () {
+  "use strict";
+  var I18N = {
+    ar: {
+      dir: "rtl",
+      skip: "انتقل إلى المحتوى",
+      banner: "بيانات تجريبية — نموذج أوّلي مستقلّ، وليس خدمة حكومية رسمية.",
+      footer: "نموذج CIVORA الأوّلي 0.1 · بيانات تجريبية · ليس خدمة حكومية رسمية · المحتوى توضيحي ويُستبدل بالمصادر الرسمية بعد التحقّق.",
+      mode: "طريقة العرض", mode_citizen: "تطبيق المواطن", mode_officer: "فضاء الموظّف", lang: "اللغة",
+      nav_home: "الرئيسية", nav_services: "الخدمات", nav_requests: "مطالبي", nav_wallet: "المحفظة", nav_me: "حسابي", nav_guide: "الدليل",
+      acting_as: "أتصرّف بصفتي", acting_me: "أنا", acting_hedi: "الهادي ب.",
+      mandate_banner: "تتصرّف نيابةً عن الهادي بن صالح (تفويض: استرجاع المصاريف والمواعيد)", switch_back: "العودة إلى حسابي",
+      hello: "مرحباً، أميرة", hello_hedi: "ملفّ الهادي بن صالح",
+      next_steps: "خطواتك القادمة",
+      card_action_title: "إجراء مطلوب: شهادة إقامة", card_action_body: "ينقص ملفّك إثبات العنوان. أضِفه قبل 25/11/2026.",
+      card_review_title: "شهادة إقامة: قيد الدراسة", card_review_body: "يتثبّت موظّف من ملفّك. سنُعلمك عند أيّ تغيير.",
+      card_ready_title: "شهادة الإقامة جاهزة", card_ready_body: "يمكنك تحميل الشهادة (ملف تجريبي).",
+      card_rejected_title: "شهادة إقامة: لم يُقبل المطلب", card_rejected_body: "اطّلع على السبب والخطوة التالية.",
+      card_appt_title: "موعد غداً على الساعة 09:30", card_appt_body: "المكتب البلدي – الوسط (تجريبي). أحضِر بطاقة التعريف.",
+      card_doc_title: "وثيقة تنتهي صلاحيتها قريباً", card_doc_body: "جواز السفر (تاريخ أدخلتَه بنفسك): 02/03/2027. جدّده عبر الخدمة الرسمية.",
+      card_cnam_title: "استرجاع مصاريف علاج (تجريبي)", card_cnam_body: "قيد الدراسة منذ 12/11/2026. ستصل رسالة قصيرة إلى الهادي عند أيّ تغيير.",
+      card_hedi_appt_title: "موعد طبي يوم 22/11/2026", card_hedi_appt_body: "المستوصف المحلّي (تجريبي) على الساعة 10:00.",
+      open: "فتح", view_service: "عرض الخدمة",
+      ask_title: "اسأل الدليل", ask_body: "اسأل بالعربية أو بالدارجة أو بالفرنسية أو بالإنجليزية. كل إجابة مرفقة بمصادرها.", ask_btn: "اطرح سؤالاً",
+      life_events: "مناسبات الحياة", le_birth: "ولادة", le_school: "الدراسة", le_work: "العمل", le_health: "الصحة", le_retire: "التقاعد", le_abroad: "الإقامة بالخارج", le_demo: "في هذا النموذج، تعرض كل المناسبات خدمة واحدة تجريبية.",
+      guide_title: "الدليل — مساعد الإجراءات",
+      guide_notice: "مساعد ذكاء اصطناعي مستقلّ وغير رسمي. قد يخطئ، لذا تثبّت دائماً من المصدر الرسمي.",
+      ai: "مساعد ذكاء اصطناعي", samples: "أسئلة للتجربة", placeholder: "اكتب سؤالك…", input_label: "سؤالك", send: "إرسال",
+      sources: "المصادر", last_verified: "آخر تحقّق", helpful: "هل كانت الإجابة مفيدة؟", yes: "نعم", no: "لا", thanks: "شكراً، تمّ تسجيل رأيك.",
+      demo_only: "في هذا النموذج، يجيب الدليل عن الأسئلة التجريبية فقط. اختر سؤالاً من القائمة.",
+      redacted: "حذفنا المعطيات الشخصية من رسالتك، فلا حاجة إليها هنا.",
+      q1: "ما الوثائق المطلوبة لشهادة الإقامة؟",
+      a1: "للحصول على شهادة إقامة (محتوى تجريبي):\n1. نسخة من بطاقة التعريف الوطنية [1]\n2. فاتورة كهرباء أو ماء حديثة، أو وثيقة تثبت مقرّ السكنى [1]\n3. قدّم المطلب عبر الإنترنت أو في شبّاك البلدية [2]\nمدّة المعالجة المنشورة: إلى 3 أيام عمل (مثال توضيحي) [2].",
+      q2: "شنوّة نستحقّ باش نطلّع شهادة إقامة؟",
+      a2: "باش تطلّع شهادة إقامة (محتوى تجريبي)، يلزمك:\n1. نسخة من بطاقة التعريف [1]\n2. فاتورة ضوّ ولا ماء جديدة، ولا ورقة تثبت وين ساكن [1]\nتنجم تبعث المطلب أونلاين ولا تمشي لشبّاك البلدية [2].",
+      q3: "هل أنا مؤهَّل للمنحة العائلية؟",
+      a3: "يمكنني شرح القواعد المنشورة، لكن لا يمكنني تحديد أهليّتك. وحدها المصلحة المختصّة تقرّر ذلك.\nاطّلع على الشروط المنشورة في الصفحة الرسمية للخدمة أو اتّصل بالمصلحة.",
+      q4: "كم تستغرق المعالجة في مكتب صفاقس؟",
+      a4: "لست متأكّداً من هذه المعلومة. يُرجى الرجوع إلى المصدر الرسمي أو الاتصال بالمصلحة المعنية.",
+      src1: "مصدر تجريبي: صفحة خدمة شهادة الإقامة (يُستبدل بالمرجع الرسمي)", src2: "مصدر تجريبي: دليل الإجراءات الإدارية (يُستبدل بالمرجع الرسمي)",
+      svc_title: "شهادة إقامة", svc_demo: "محتوى تجريبي — يُستبدل بالمعلومات الرسمية بعد التحقّق.",
+      svc_summary: "وثيقة تثبت مكان سكناك، تُطلب في عدّة إجراءات إدارية.",
+      steps: "الخطوات", step1: "جهّز الوثائق المطلوبة.", step2: "قدّم المطلب عبر الإنترنت أو في شبّاك البلدية.", step3: "يتثبّت موظّف من ملفّك.", step4: "تسلّم الشهادة أو حمّلها.",
+      docs: "الوثائق المطلوبة", doc_id: "نسخة من بطاقة التعريف الوطنية", doc_addr: "فاتورة كهرباء أو ماء حديثة (أقلّ من 3 أشهر)",
+      details: "معلومات عملية", fees: "المعاليم", fees_val: "حسب ما تنشره البلدية (غير محدّد في هذا النموذج)", time: "مدّة المعالجة", time_val: "إلى 3 أيام عمل (مثال توضيحي)",
+      where: "أين؟", where_val: "المكتب البلدي – الوسط (تجريبي)، من الاثنين إلى الجمعة 08:00–15:00",
+      start_request: "بدء المطلب", official_service: "الذهاب إلى الخدمة الرسمية", official_disabled: "الرابط الرسمي غير مفعّل في النموذج التجريبي.", ask_guide: "اسأل الدليل عن هذه الخدمة",
+      req_title: "مطلب شهادة إقامة", ref: "المرجع", status: "الوضعية", next_step: "الخطوة التالية", history: "مراحل المطلب",
+      st_submitted: "تمّ الإيداع", st_review: "قيد الدراسة", st_action: "إجراء مطلوب", st_approved: "تمّت الموافقة", st_ready: "جاهزة للتحميل", st_rejected: "مرفوض",
+      ex_submitted: "استلمنا مطلبك.", ex_review: "يتثبّت موظّف من ملفّك. الأجل المنشور: 3 أيام عمل (توضيحي).", ex_action: "نحتاج إلى إثبات العنوان. أضِفه قبل 25/11/2026.", ex_approved: "تمّت الموافقة على مطلبك.", ex_ready: "شهادتك جاهزة. يمكنك تحميلها (ملف تجريبي).", ex_rejected: "لم يُقبل المطلب. السبب: {r}. يمكنك تقديم مطلب جديد أو طلب المساعدة.",
+      checklist: "قائمة الوثائق", present: "موجودة", missing: "ناقصة",
+      upload: "إضافة إثبات العنوان (ملف تجريبي)", uploaded_msg: "أُضيفت الوثيقة. عاد مطلبك إلى الدراسة.", download: "تحميل الشهادة (تجريبي)", download_msg: "في النموذج التجريبي لا يوجد ملف حقيقي للتحميل.",
+      appt: "حجز موعد", appt_office: "المكتب البلدي – الوسط (تجريبي) — غداً", book: "حجز {t}", booked: "تمّ حجز موعدك غداً على الساعة {t}.", booked_label: "موعدك: غداً على الساعة {t}", cancel: "إلغاء الموعد", cancelled: "أُلغي الموعد وأُتيح لغيرك.",
+      wallet_title: "المحفظة الرقمية", wm: "تجريبي — للعرض فقط", cred_title: "شهادة الإجازة", cred_issuer: "الجامعة التجريبية", valid: "صالحة",
+      attr_name: "الاسم", attr_degree: "الشهادة", attr_year: "السنة", attr_birth: "تاريخ الولادة", attr_grade: "الملاحظة",
+      v_name: "أميرة بن صالح", v_degree: "إجازة في الإعلامية", v_year: "2014", v_birth: "14/05/1992", v_grade: "حسن",
+      present_btn: "تقديم الشهادة", choose_share: "اختر ما تريد مشاركته", share_note: "لن يرى المتحقّق إلا المعطيات المحدّدة.", qr_note: "رمز QR تجريبي، غير قابل للمسح.", hide: "إخفاء", shared: "المعطيات المشاركة",
+      reminders: "تنبيهات انتهاء الصلاحية", rem_passport: "جواز السفر — 02/03/2027 (تاريخ أدخلتَه بنفسك)",
+      privacy_title: "مركز الخصوصية", consents: "موافقاتي", revoke: "سحب الموافقة", revoked: "تمّ السحب", revoked_msg: "سُحبت الموافقة فوراً.",
+      c1_title: "إشعارات بالرسائل القصيرة", c1_body: "الغرض: إعلامك بتقدّم مطالبك. المستلم: مزوّد الرسائل (تجريبي). بدون تاريخ انتهاء.",
+      c2_title: "التحقّق من الشهادة", c2_body: "الغرض: تحقّق جهة توظيف من شهادتك. المستلم: شركة تجريبية. تنتهي في 31/12/2026.",
+      log: "سجلّ النفاذ", log_hint: "من اطّلع على معطياتك، ومتى، ولماذا.",
+      le_view: "موظّف — المكتب البلدي – الوسط (تجريبي) اطّلع على مطلب شهادة الإقامة. الغرض: معالجة مطلبك.",
+      le_sms: "النظام أرسل إشعاراً برسالة قصيرة. الغرض: إعلامك بوضعية المطلب.",
+      le_upload: "أُضيفت وثيقة إلى مطلبك من حسابك.",
+      le_decision: "موظّف — المكتب البلدي – الوسط (تجريبي) سجّل قراراً في مطلبك. الغرض: معالجة مطلبك.",
+      le_fix: "موظّف — المكتب البلدي – الوسط (تجريبي) طلب تعديلاً في مطلبك. الغرض: معالجة مطلبك.",
+      le_agent: "أميرة بن صالح (بتفويض) اطّلعت على وضعية استرجاع المصاريف. الغرض: المساعدة بتفويض.",
+      mandates: "التفويضات", m1: "الهادي بن صالح فوّض أميرة بن صالح: استرجاع المصاريف والمواعيد، حتى 18/11/2027.", m_revoke_note: "يمكن للهادي سحب التفويض في أيّ وقت من التطبيق أو في الشبّاك أو بالهاتف.",
+      ws_title: "فضاء الموظّف", ws_office: "المكتب البلدي – الوسط (تجريبي) · الموظّفة: نور ح.",
+      kpi_open: "مطالب مفتوحة", kpi_risk: "أجل قريب أو متأخّر", kpi_median: "متوسّط المعالجة", kpi_days: "{n} أيام",
+      queue: "قائمة الانتظار", col_ref: "المرجع", col_service: "الخدمة", col_applicant: "صاحب المطلب", col_status: "الوضعية", col_sla: "الأجل",
+      sla_ok: "في الأجل", sla_risk: "أجل قريب", sla_late: "متأخّر",
+      svc_res: "شهادة إقامة", svc_sig: "تعريف بالإمضاء", svc_tr: "ترجمة مضمون ولادة",
+      select_case: "اختر مطلباً من القائمة لعرض تفاصيله.", case_detail: "تفاصيل المطلب",
+      approve: "موافقة", request_fix: "طلب تعديل", reject: "رفض", reason: "سبب الرفض", r1: "العنوان خارج المنطقة البلدية", r2: "وثيقة غير مقروءة", r3: "طلب مكرّر",
+      confirm_reject: "تأكيد الرفض",
+      approved_msg: "تمّت الموافقة. أُعلم المواطن.", fix_msg: "أُرسل طلب التعديل إلى المواطن.", rejected_msg: "سُجّل الرفض مع السبب. أُعلم المواطن.",
+      cannot_approve: "لا يمكن الموافقة: وثيقة ناقصة. اطلب تعديلاً.", demo_case: "مطلب تجريبي للعرض فقط.", case_history: "سجلّ القرارات",
+      verified: "تمّ التحقّق", applicant_min: "يُعرض الحدّ الأدنى من المعطيات اللازمة للمعالجة."
+    },
+    fr: {
+      dir: "ltr",
+      skip: "Aller au contenu",
+      banner: "Données fictives — prototype indépendant, pas un service officiel de l'État.",
+      footer: "Prototype CIVORA 0.1 · données fictives · pas un service officiel de l'État · contenu illustratif, à remplacer par les sources officielles vérifiées.",
+      mode: "Vue", mode_citizen: "App citoyen", mode_officer: "Espace agent", lang: "Langue",
+      nav_home: "Accueil", nav_services: "Services", nav_requests: "Mes demandes", nav_wallet: "Portefeuille", nav_me: "Mon compte", nav_guide: "Guide",
+      acting_as: "J'agis en tant que", acting_me: "Moi", acting_hedi: "Hédi B.",
+      mandate_banner: "Vous agissez pour le compte de Hédi Ben Salah (mandat : remboursements et rendez-vous)", switch_back: "Revenir à mon compte",
+      hello: "Bonjour Amira", hello_hedi: "Dossier de Hédi Ben Salah",
+      next_steps: "Vos prochaines étapes",
+      card_action_title: "Action requise : certificat de résidence", card_action_body: "Il manque un justificatif de domicile. Ajoutez-le avant le 25/11/2026.",
+      card_review_title: "Certificat de résidence : en cours d'examen", card_review_body: "Un agent vérifie votre dossier. Nous vous préviendrons de tout changement.",
+      card_ready_title: "Votre certificat de résidence est prêt", card_ready_body: "Vous pouvez le télécharger (fichier fictif).",
+      card_rejected_title: "Certificat de résidence : demande non acceptée", card_rejected_body: "Consultez le motif et l'étape suivante.",
+      card_appt_title: "Rendez-vous demain à 09:30", card_appt_body: "Bureau municipal – Centre (démo). Apportez votre carte d'identité.",
+      card_doc_title: "Document bientôt expiré", card_doc_body: "Passeport (date saisie par vous) : 02/03/2027. Renouvelez-le via le service officiel.",
+      card_cnam_title: "Remboursement de soins (démo)", card_cnam_body: "En cours d'examen depuis le 12/11/2026. Hédi recevra un SMS à chaque changement.",
+      card_hedi_appt_title: "Rendez-vous médical le 22/11/2026", card_hedi_appt_body: "Dispensaire local (démo) à 10:00.",
+      open: "Ouvrir", view_service: "Voir le service",
+      ask_title: "Demandez au Guide", ask_body: "Posez votre question en arabe, en derja, en français ou en anglais. Chaque réponse cite ses sources.", ask_btn: "Poser une question",
+      life_events: "Événements de vie", le_birth: "Naissance", le_school: "Études", le_work: "Travail", le_health: "Santé", le_retire: "Retraite", le_abroad: "Vivre à l'étranger", le_demo: "Dans ce prototype, chaque événement mène au même service de démonstration.",
+      guide_title: "Le Guide — assistant des démarches",
+      guide_notice: "Assistant d'intelligence artificielle indépendant et non officiel. Il peut se tromper : vérifiez toujours la source officielle.",
+      ai: "Assistant IA", samples: "Questions d'exemple", placeholder: "Écrivez votre question…", input_label: "Votre question", send: "Envoyer",
+      sources: "Sources", last_verified: "Dernière vérification", helpful: "Cette réponse vous a-t-elle aidé ?", yes: "Oui", no: "Non", thanks: "Merci, votre avis est enregistré.",
+      demo_only: "Dans ce prototype, le Guide répond uniquement aux questions d'exemple. Choisissez-en une dans la liste.",
+      redacted: "Nous avons retiré les informations personnelles de votre message : elles ne sont pas nécessaires ici.",
+      q1: "Quels documents faut-il pour un certificat de résidence ?",
+      a1: "Pour obtenir un certificat de résidence (contenu de démonstration) :\n1. Une copie de la carte d'identité nationale [1]\n2. Une facture récente d'électricité ou d'eau, ou un justificatif de domicile [1]\n3. Déposez la demande en ligne ou au guichet de la municipalité [2]\nDélai publié : jusqu'à 3 jours ouvrables (exemple illustratif) [2].",
+      q2: "شنوّة نستحقّ باش نطلّع شهادة إقامة؟",
+      a2: "باش تطلّع شهادة إقامة (محتوى تجريبي)، يلزمك:\n1. نسخة من بطاقة التعريف [1]\n2. فاتورة ضوّ ولا ماء جديدة، ولا ورقة تثبت وين ساكن [1]\nتنجم تبعث المطلب أونلاين ولا تمشي لشبّاك البلدية [2].",
+      q3: "Suis-je éligible aux allocations familiales ?",
+      a3: "Je peux expliquer les règles publiées, mais je ne peux pas décider de votre éligibilité. Seul le service compétent le peut.\nConsultez les conditions publiées sur la page officielle du service ou contactez le service.",
+      q4: "Combien de temps faut-il au bureau de Sfax ?",
+      a4: "Je ne suis pas sûr de cette information. Consultez la source officielle ou contactez le service.",
+      src1: "Source de démonstration : page du service « certificat de résidence » (à remplacer par la référence officielle)", src2: "Source de démonstration : guide des démarches administratives (à remplacer par la référence officielle)",
+      svc_title: "Certificat de résidence", svc_demo: "Contenu de démonstration — à remplacer par l'information officielle vérifiée.",
+      svc_summary: "Document qui atteste votre lieu de résidence, demandé dans plusieurs démarches.",
+      steps: "Étapes", step1: "Préparez les documents demandés.", step2: "Déposez la demande en ligne ou au guichet de la municipalité.", step3: "Un agent vérifie votre dossier.", step4: "Retirez ou téléchargez le certificat.",
+      docs: "Documents requis", doc_id: "Copie de la carte d'identité nationale", doc_addr: "Facture récente d'électricité ou d'eau (moins de 3 mois)",
+      details: "Informations pratiques", fees: "Frais", fees_val: "Selon le barème publié par la municipalité (non précisé dans ce prototype)", time: "Délai", time_val: "Jusqu'à 3 jours ouvrables (exemple illustratif)",
+      where: "Où ?", where_val: "Bureau municipal – Centre (démo), du lundi au vendredi, 08:00–15:00",
+      start_request: "Commencer la demande", official_service: "Aller au service officiel", official_disabled: "Le lien officiel est désactivé dans ce prototype.", ask_guide: "Demander au Guide",
+      req_title: "Demande de certificat de résidence", ref: "Référence", status: "Statut", next_step: "Étape suivante", history: "Étapes de la demande",
+      st_submitted: "Déposée", st_review: "En cours d'examen", st_action: "Action requise", st_approved: "Acceptée", st_ready: "Prête au téléchargement", st_rejected: "Refusée",
+      ex_submitted: "Nous avons reçu votre demande.", ex_review: "Un agent vérifie votre dossier. Délai publié : 3 jours ouvrables (illustratif).", ex_action: "Il nous faut un justificatif de domicile. Ajoutez-le avant le 25/11/2026.", ex_approved: "Votre demande est acceptée.", ex_ready: "Votre certificat est prêt. Vous pouvez le télécharger (fichier fictif).", ex_rejected: "Demande non acceptée. Motif : {r}. Vous pouvez faire une nouvelle demande ou demander de l'aide.",
+      checklist: "Liste des documents", present: "Fourni", missing: "Manquant",
+      upload: "Ajouter le justificatif de domicile (fichier fictif)", uploaded_msg: "Document ajouté. Votre demande est de nouveau en cours d'examen.", download: "Télécharger le certificat (démo)", download_msg: "Ce prototype ne contient pas de vrai fichier à télécharger.",
+      appt: "Prendre rendez-vous", appt_office: "Bureau municipal – Centre (démo) — demain", book: "Réserver {t}", booked: "Rendez-vous réservé demain à {t}.", booked_label: "Votre rendez-vous : demain à {t}", cancel: "Annuler le rendez-vous", cancelled: "Rendez-vous annulé ; le créneau est libéré.",
+      wallet_title: "Portefeuille numérique", wm: "DÉMO — FICTIF", cred_title: "Diplôme de licence", cred_issuer: "Université de démonstration", valid: "Valide",
+      attr_name: "Nom", attr_degree: "Diplôme", attr_year: "Année", attr_birth: "Date de naissance", attr_grade: "Mention",
+      v_name: "Amira Ben Salah", v_degree: "Licence en informatique", v_year: "2014", v_birth: "14/05/1992", v_grade: "Bien",
+      present_btn: "Présenter le diplôme", choose_share: "Choisissez ce que vous partagez", share_note: "Le vérificateur ne verra que les informations cochées.", qr_note: "QR de démonstration, non scannable.", hide: "Masquer", shared: "Informations partagées",
+      reminders: "Rappels d'expiration", rem_passport: "Passeport — 02/03/2027 (date saisie par vous)",
+      privacy_title: "Centre de confidentialité", consents: "Mes consentements", revoke: "Retirer le consentement", revoked: "Retiré", revoked_msg: "Consentement retiré immédiatement.",
+      c1_title: "Notifications par SMS", c1_body: "Finalité : vous informer de l'avancement de vos demandes. Destinataire : prestataire SMS (démo). Sans date d'expiration.",
+      c2_title: "Vérification du diplôme", c2_body: "Finalité : vérification de votre diplôme par un employeur. Destinataire : entreprise fictive. Expire le 31/12/2026.",
+      log: "Journal des accès", log_hint: "Qui a consulté vos données, quand et pourquoi.",
+      le_view: "Agent — Bureau municipal – Centre (démo) a consulté votre demande de certificat de résidence. Finalité : traitement de votre demande.",
+      le_sms: "Le système a envoyé une notification SMS. Finalité : vous informer du statut.",
+      le_upload: "Un document a été ajouté à votre demande depuis votre compte.",
+      le_decision: "Agent — Bureau municipal – Centre (démo) a enregistré une décision sur votre demande. Finalité : traitement de votre demande.",
+      le_fix: "Agent — Bureau municipal – Centre (démo) a demandé une correction. Finalité : traitement de votre demande.",
+      le_agent: "Amira Ben Salah (mandataire) a consulté le statut du remboursement. Finalité : aide sous mandat.",
+      mandates: "Mandats", m1: "Hédi Ben Salah a mandaté Amira Ben Salah : remboursements et rendez-vous, jusqu'au 18/11/2027.", m_revoke_note: "Hédi peut retirer ce mandat à tout moment : dans l'app, au guichet ou par téléphone.",
+      ws_title: "Espace agent", ws_office: "Bureau municipal – Centre (démo) · Agente : Nour H.",
+      kpi_open: "Demandes ouvertes", kpi_risk: "Échéance proche ou dépassée", kpi_median: "Délai médian", kpi_days: "{n} jours",
+      queue: "File d'attente", col_ref: "Référence", col_service: "Service", col_applicant: "Demandeur", col_status: "Statut", col_sla: "Échéance",
+      sla_ok: "Dans les délais", sla_risk: "Échéance proche", sla_late: "En retard",
+      svc_res: "Certificat de résidence", svc_sig: "Légalisation de signature", svc_tr: "Traduction d'extrait de naissance",
+      select_case: "Sélectionnez une demande dans la file pour voir le détail.", case_detail: "Détail de la demande",
+      approve: "Accepter", request_fix: "Demander une correction", reject: "Refuser", reason: "Motif du refus", r1: "Adresse hors du territoire municipal", r2: "Document illisible", r3: "Demande en double",
+      confirm_reject: "Confirmer le refus",
+      approved_msg: "Demande acceptée. Le citoyen est notifié.", fix_msg: "Demande de correction envoyée au citoyen.", rejected_msg: "Refus enregistré avec son motif. Le citoyen est notifié.",
+      cannot_approve: "Impossible d'accepter : document manquant. Demandez une correction.", demo_case: "Demande fictive, pour démonstration.", case_history: "Historique des décisions",
+      verified: "Vérifié", applicant_min: "Seules les informations nécessaires au traitement sont affichées."
+    },
+    en: {
+      dir: "ltr",
+      skip: "Skip to content",
+      banner: "Synthetic data — independent prototype, not an official government service.",
+      footer: "CIVORA prototype 0.1 · synthetic data · not an official government service · illustrative content, to be replaced by verified official sources.",
+      mode: "View", mode_citizen: "Citizen app", mode_officer: "Officer workspace", lang: "Language",
+      nav_home: "Home", nav_services: "Services", nav_requests: "My requests", nav_wallet: "Wallet", nav_me: "Me", nav_guide: "Guide",
+      acting_as: "Acting as", acting_me: "Me", acting_hedi: "Hédi B.",
+      mandate_banner: "Acting on behalf of Hédi Ben Salah (mandate: reimbursements and appointments)", switch_back: "Switch back to me",
+      hello: "Hello, Amira", hello_hedi: "Hédi Ben Salah's file",
+      next_steps: "Your next steps",
+      card_action_title: "Action needed: residence certificate", card_action_body: "Your file is missing a proof of address. Add it before 25/11/2026.",
+      card_review_title: "Residence certificate: in review", card_review_body: "An officer is checking your file. We'll tell you about any change.",
+      card_ready_title: "Your residence certificate is ready", card_ready_body: "You can download it (synthetic file).",
+      card_rejected_title: "Residence certificate: request not accepted", card_rejected_body: "See the reason and what to do next.",
+      card_appt_title: "Appointment tomorrow at 09:30", card_appt_body: "Municipal office – Centre (demo). Bring your ID card.",
+      card_doc_title: "Document expiring soon", card_doc_body: "Passport (date you entered): 02/03/2027. Renew it through the official service.",
+      card_cnam_title: "Medical reimbursement (demo)", card_cnam_body: "In review since 12/11/2026. Hédi gets an SMS at every change.",
+      card_hedi_appt_title: "Medical appointment on 22/11/2026", card_hedi_appt_body: "Local clinic (demo) at 10:00.",
+      open: "Open", view_service: "View service",
+      ask_title: "Ask the Guide", ask_body: "Ask in Arabic, Derja, French or English. Every answer shows its sources.", ask_btn: "Ask a question",
+      life_events: "Life events", le_birth: "Birth", le_school: "Studies", le_work: "Work", le_health: "Health", le_retire: "Retirement", le_abroad: "Living abroad", le_demo: "In this prototype, every life event opens the same demo service.",
+      guide_title: "The Guide — procedures assistant",
+      guide_notice: "Independent, unofficial AI assistant. It can make mistakes, so always check the official source.",
+      ai: "AI assistant", samples: "Sample questions", placeholder: "Type your question…", input_label: "Your question", send: "Send",
+      sources: "Sources", last_verified: "Last verified", helpful: "Was this helpful?", yes: "Yes", no: "No", thanks: "Thanks, your feedback was recorded.",
+      demo_only: "In this prototype, the Guide only answers the sample questions. Pick one from the list.",
+      redacted: "We removed personal details from your message. You don't need them here.",
+      q1: "What documents do I need for a residence certificate?",
+      a1: "To get a residence certificate (demo content):\n1. A copy of your national ID card [1]\n2. A recent electricity or water bill, or another proof of address [1]\n3. Submit the request online or at the municipal counter [2]\nPublished processing time: up to 3 working days (illustrative) [2].",
+      q2: "chnowa nesta7a9 bech ntalla3 certificat de résidence?",
+      a2: "باش تطلّع شهادة إقامة (محتوى تجريبي)، يلزمك:\n1. نسخة من بطاقة التعريف [1]\n2. فاتورة ضوّ ولا ماء جديدة، ولا ورقة تثبت وين ساكن [1]\nتنجم تبعث المطلب أونلاين ولا تمشي لشبّاك البلدية [2].",
+      q3: "Am I eligible for the family allowance?",
+      a3: "I can explain the published rules, but I can't decide whether you are eligible. Only the competent office can.\nCheck the conditions on the service's official page or contact the office.",
+      q4: "How long does it take at the Sfax office?",
+      a4: "I'm not sure about this. Please check the official source or contact the office.",
+      src1: "Demo source: residence certificate service page (to be replaced by the official reference)", src2: "Demo source: administrative procedures guide (to be replaced by the official reference)",
+      svc_title: "Residence certificate", svc_demo: "Demo content — to be replaced by verified official information.",
+      svc_summary: "A document that proves where you live, required in several procedures.",
+      steps: "Steps", step1: "Prepare the required documents.", step2: "Submit online or at the municipal counter.", step3: "An officer checks your file.", step4: "Collect or download the certificate.",
+      docs: "Required documents", doc_id: "Copy of the national ID card", doc_addr: "Recent electricity or water bill (under 3 months)",
+      details: "Practical information", fees: "Fees", fees_val: "As published by the municipality (not specified in this prototype)", time: "Processing time", time_val: "Up to 3 working days (illustrative)",
+      where: "Where?", where_val: "Municipal office – Centre (demo), Monday to Friday, 08:00–15:00",
+      start_request: "Start request", official_service: "Go to the official service", official_disabled: "The official link is disabled in this prototype.", ask_guide: "Ask the Guide about this",
+      req_title: "Residence certificate request", ref: "Reference", status: "Status", next_step: "Next step", history: "Request progress",
+      st_submitted: "Submitted", st_review: "In review", st_action: "Action needed", st_approved: "Approved", st_ready: "Ready to download", st_rejected: "Rejected",
+      ex_submitted: "We received your request.", ex_review: "An officer is checking your file. Published time: 3 working days (illustrative).", ex_action: "We need a proof of address. Add it before 25/11/2026.", ex_approved: "Your request is approved.", ex_ready: "Your certificate is ready. You can download it (synthetic file).", ex_rejected: "Request not accepted. Reason: {r}. You can make a new request or ask for help.",
+      checklist: "Document checklist", present: "Provided", missing: "Missing",
+      upload: "Add proof of address (synthetic file)", uploaded_msg: "Document added. Your request is back in review.", download: "Download certificate (demo)", download_msg: "There is no real file to download in this prototype.",
+      appt: "Book an appointment", appt_office: "Municipal office – Centre (demo) — tomorrow", book: "Book {t}", booked: "Appointment booked for tomorrow at {t}.", booked_label: "Your appointment: tomorrow at {t}", cancel: "Cancel appointment", cancelled: "Appointment cancelled; the slot is free for others.",
+      wallet_title: "Digital wallet", wm: "SYNTHETIC — DEMO ONLY", cred_title: "Bachelor's degree", cred_issuer: "Demo University", valid: "Valid",
+      attr_name: "Name", attr_degree: "Degree", attr_year: "Year", attr_birth: "Date of birth", attr_grade: "Grade",
+      v_name: "Amira Ben Salah", v_degree: "Bachelor in Computer Science", v_year: "2014", v_birth: "14/05/1992", v_grade: "Good",
+      present_btn: "Present diploma", choose_share: "Choose what to share", share_note: "The verifier will only see what you tick.", qr_note: "Demo QR code, not scannable.", hide: "Hide", shared: "Shared details",
+      reminders: "Expiry reminders", rem_passport: "Passport — 02/03/2027 (date you entered)",
+      privacy_title: "Privacy center", consents: "My consents", revoke: "Withdraw consent", revoked: "Withdrawn", revoked_msg: "Consent withdrawn immediately.",
+      c1_title: "SMS notifications", c1_body: "Purpose: tell you how your requests progress. Recipient: SMS provider (demo). No expiry.",
+      c2_title: "Diploma verification", c2_body: "Purpose: an employer verifies your diploma. Recipient: fictional company. Expires 31/12/2026.",
+      log: "Access log", log_hint: "Who looked at your data, when and why.",
+      le_view: "Officer — Municipal office – Centre (demo) viewed your residence certificate request. Purpose: processing your request.",
+      le_sms: "The system sent an SMS notification. Purpose: informing you of the status.",
+      le_upload: "A document was added to your request from your account.",
+      le_decision: "Officer — Municipal office – Centre (demo) recorded a decision on your request. Purpose: processing your request.",
+      le_fix: "Officer — Municipal office – Centre (demo) requested a correction. Purpose: processing your request.",
+      le_agent: "Amira Ben Salah (under mandate) viewed the reimbursement status. Purpose: assistance under mandate.",
+      mandates: "Mandates", m1: "Hédi Ben Salah authorised Amira Ben Salah: reimbursements and appointments, until 18/11/2027.", m_revoke_note: "Hédi can withdraw this mandate at any time: in the app, at a counter or by phone.",
+      ws_title: "Officer workspace", ws_office: "Municipal office – Centre (demo) · Officer: Nour H.",
+      kpi_open: "Open requests", kpi_risk: "Due soon or late", kpi_median: "Median processing", kpi_days: "{n} days",
+      queue: "Queue", col_ref: "Reference", col_service: "Service", col_applicant: "Applicant", col_status: "Status", col_sla: "Due",
+      sla_ok: "On time", sla_risk: "Due soon", sla_late: "Late",
+      svc_res: "Residence certificate", svc_sig: "Signature legalisation", svc_tr: "Birth extract translation",
+      select_case: "Select a request in the queue to see its details.", case_detail: "Request details",
+      approve: "Approve", request_fix: "Request correction", reject: "Reject", reason: "Reason for rejection", r1: "Address outside the municipality", r2: "Document unreadable", r3: "Duplicate request",
+      confirm_reject: "Confirm rejection",
+      approved_msg: "Approved. The citizen has been notified.", fix_msg: "Correction request sent to the citizen.", rejected_msg: "Rejection recorded with its reason. The citizen has been notified.",
+      cannot_approve: "Can't approve: a document is missing. Request a correction.", demo_case: "Synthetic request for demonstration.", case_history: "Decision history",
+      verified: "Verified", applicant_min: "Only the data needed for processing is shown."
+    }
+  };
+
+  var state = {
+    lang: "ar", mode: "citizen", acting: "me",
+    req: { status: "action", addr: false, history: [["submitted", "14/11/2026 09:12"], ["review", "14/11/2026 11:40"], ["action", "15/11/2026 10:05"]], reason: null },
+    appt: null, consents: { c1: true, c2: true },
+    log: [["le_sms", "15/11/2026 10:06"], ["le_fix", "15/11/2026 10:05"], ["le_view", "14/11/2026 11:40"]],
+    chat: [], fb: {}, share: { name: true, degree: true, year: true, birth: false, grade: false }, presenting: false,
+    selected: null, rejecting: false
+  };
+  var queue = [
+    { ref: "REQ-2026-00412", svc: "svc_res", who: "أميرة بن صالح|Amira Ben Salah", sla: "risk", due: "18/11", own: true },
+    { ref: "REQ-2026-00409", svc: "svc_sig", who: "محمد ت.|Mohamed T.", sla: "late", due: "17/11", st: "review" },
+    { ref: "REQ-2026-00415", svc: "svc_res", who: "سارة ك.|Sarra K.", sla: "ok", due: "21/11", st: "review" },
+    { ref: "REQ-2026-00418", svc: "svc_tr", who: "يوسف م.|Youssef M.", sla: "ok", due: "22/11", st: "submitted" },
+    { ref: "REQ-2026-00420", svc: "svc_sig", who: "إيناس ب.|Ines B.", sla: "ok", due: "24/11", st: "submitted" }
+  ];
+  var VERIFIED = "10/11/2026";
+  var STORE_KEY = "civora-proto-lang";
+
+  function t(k, v) {
+    var s = (I18N[state.lang] && I18N[state.lang][k]) || I18N.en[k] || k;
+    if (v) Object.keys(v).forEach(function (x) { s = s.replace("{" + x + "}", v[x]); });
+    return s;
+  }
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function who(s) { var p = s.split("|"); return state.lang === "ar" ? p[0] : p[1]; }
+  function now() { var d = new Date(); function z(n) { return (n < 10 ? "0" : "") + n; } return "18/11/2026 " + z(d.getHours()) + ":" + z(d.getMinutes()); }
+  function toast(msg) {
+    var el = document.getElementById("live"); el.textContent = msg; el.hidden = false;
+    clearTimeout(toast._t); toast._t = setTimeout(function () { el.hidden = true; }, 4200);
+  }
+  var ICON = {
+    home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>',
+    service: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>',
+    request: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></svg>',
+    wallet: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18M16 15h2"/></svg>',
+    privacy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>'
+  };
+  var ROUTES = ["home", "service", "request", "wallet", "privacy", "guide", "workspace"];
+  function route() { var h = (location.hash || "").replace("#", ""); return ROUTES.indexOf(h) >= 0 ? h : (state.mode === "officer" ? "workspace" : "home"); }
+  function go(r) { if (location.hash === "#" + r) { render(true); } else { location.hash = r; } }
+
+  function statusBadge(st) {
+    var cls = { submitted: "b-neutral", review: "b-info", action: "b-warn", approved: "b-ok", ready: "b-ok", rejected: "b-danger" }[st];
+    return '<span class="badge ' + cls + '">' + esc(t("st_" + st)) + "</span>";
+  }
+  function slaBadge(s) { var cls = { ok: "b-ok", risk: "b-warn", late: "b-danger" }[s]; return '<span class="badge ' + cls + '">' + esc(t("sla_" + s)) + "</span>"; }
+
+  /* ---------- Views ---------- */
+  function actingSwitch() {
+    return '<div class="row small"><span class="muted" id="acting-lbl">' + esc(t("acting_as")) + '</span><div class="seg" role="group" aria-labelledby="acting-lbl"><button type="button" data-acting="me" aria-pressed="' + (state.acting === "me") + '">' + esc(t("acting_me")) + '</button><button type="button" data-acting="hedi" aria-pressed="' + (state.acting === "hedi") + '">' + esc(t("acting_hedi")) + "</button></div></div>";
+  }
+  function vHome() {
+    if (state.acting === "hedi") {
+      return '<h1 tabindex="-1">' + esc(t("hello_hedi")) + "</h1>" + actingSwitch() +
+        '<section class="stack" aria-labelledby="ns"><h2 id="ns">' + esc(t("next_steps")) + "</h2>" +
+        card(t("card_cnam_title"), t("card_cnam_body"), statusBadge("review"), null) +
+        card(t("card_hedi_appt_title"), t("card_hedi_appt_body"), null, null) + "</section>";
+    }
+    var r = state.req.status, reqCard;
+    if (r === "action") reqCard = card(t("card_action_title"), t("card_action_body"), statusBadge("action"), ["request", t("open")], true);
+    else if (r === "ready") reqCard = card(t("card_ready_title"), t("card_ready_body"), statusBadge("ready"), ["request", t("open")]);
+    else if (r === "rejected") reqCard = card(t("card_rejected_title"), t("card_rejected_body"), statusBadge("rejected"), ["request", t("open")]);
+    else reqCard = card(t("card_review_title"), t("card_review_body"), statusBadge("review"), ["request", t("open")]);
+    var apptCard = state.appt ? card(t("booked_label", { t: state.appt }), t("card_appt_body"), null, ["request", t("open")]) : card(t("card_appt_title"), t("card_appt_body"), null, null);
+    return '<h1 tabindex="-1">' + esc(t("hello")) + "</h1>" + actingSwitch() +
+      '<section class="card hero" aria-labelledby="ask"><h2 id="ask">' + esc(t("ask_title")) + "</h2><p>" + esc(t("ask_body")) + '</p><div><button class="btn btn-light" data-go="guide">' + esc(t("ask_btn")) + "</button></div></section>" +
+      '<section class="stack" aria-labelledby="ns"><h2 id="ns">' + esc(t("next_steps")) + "</h2>" + reqCard + apptCard +
+      card(t("card_doc_title"), t("card_doc_body"), null, ["wallet", t("open")]) + "</section>" +
+      '<section class="stack" aria-labelledby="le"><h2 id="le">' + esc(t("life_events")) + '</h2><div class="chips">' +
+      ["le_birth", "le_school", "le_work", "le_health", "le_retire", "le_abroad"].map(function (k) { return '<button class="chip" data-go="service">' + esc(t(k)) + "</button>"; }).join("") +
+      '</div><p class="muted small">' + esc(t("le_demo")) + "</p></section>";
+  }
+  function card(title, body, badge, link, hl) {
+    return '<article class="card' + (hl ? " hl" : "") + '"><div class="row"><h3>' + esc(title) + "</h3>" + (badge || "") + "</div><p>" + esc(body) + "</p>" +
+      (link ? '<div><button class="btn btn-secondary btn-sm" data-go="' + link[0] + '">' + esc(link[1]) + "</button></div>" : "") + "</article>";
+  }
+  function vGuide() {
+    var qs = ["q1", "q2", "q3", "q4"];
+    var msgs = state.chat.map(function (m, i) {
+      if (m.role === "user") return '<div class="msg user"' + (m.k === "q2" ? derjaAttr() : ' lang="' + state.lang + '"') + '>' + esc(m.text != null ? m.text : t(m.k)) + "</div>";
+      if (m.sys) return '<div class="msg bot" role="note"><p class="body">' + esc(t(m.sys)) + "</p></div>";
+      var refusal = m.k === "a3" || m.k === "a4";
+      var cites = (m.k === "a1" || m.k === "a2") ? '<div class="cites"><strong>' + esc(t("sources")) + '</strong><div class="cite"><span class="n">[1]</span><span>' + esc(t("src1")) + " · " + esc(t("last_verified")) + ' <span class="mono">' + VERIFIED + '</span></span></div><div class="cite"><span class="n">[2]</span><span>' + esc(t("src2")) + " · " + esc(t("last_verified")) + ' <span class="mono">' + VERIFIED + "</span></span></div></div>" : "";
+      var fb = state.fb[i] ? '<p class="muted small">' + esc(t("thanks")) + "</p>" : '<div class="row small"><span class="muted">' + esc(t("helpful")) + '</span><button class="btn btn-secondary btn-sm" data-fb="' + i + '">' + esc(t("yes")) + '</button><button class="btn btn-secondary btn-sm" data-fb="' + i + '">' + esc(t("no")) + "</button></div>";
+      var bodyAttr = m.k === "a2" ? ' lang="ar-TN" dir="rtl"' : ' lang="' + state.lang + '" dir="' + I18N[state.lang].dir + '"';
+      return '<div class="msg bot' + (refusal ? " refusal" : "") + '"><span class="ai-tag">● ' + esc(t("ai")) + '</span><p class="body"' + bodyAttr + '>' + esc(t(m.k)) + "</p>" + cites + fb + "</div>";
+    }).join("");
+    return '<h1 tabindex="-1">' + esc(t("guide_title")) + '</h1><p class="notice" role="note">' + esc(t("guide_notice")) + "</p>" +
+      '<section class="stack" aria-labelledby="sq"><h2 id="sq" class="small muted">' + esc(t("samples")) + '</h2><div class="chips">' +
+      qs.map(function (k) { return '<button class="chip" data-ask="' + k + '"' + (k === "q2" ? derjaAttr() : "") + ">" + esc(t(k)) + "</button>"; }).join("") + "</div></section>" +
+      '<section class="chat" aria-live="polite">' + msgs + "</section>" +
+      '<form class="composer" id="composer"><label class="small" for="q" style="position:absolute;inline-size:1px;block-size:1px;overflow:hidden;clip-path:inset(50%)">' + esc(t("input_label")) + '</label><input id="q" name="q" dir="auto" autocomplete="off" placeholder="' + esc(t("placeholder")) + '"><button class="btn btn-primary" type="submit">' + esc(t("send")) + "</button></form>";
+  }
+  function derjaAttr() { return state.lang === "en" ? ' lang="ar-Latn-TN" dir="ltr"' : ' lang="ar-TN" dir="rtl"'; }
+  function vService() {
+    return '<h1 tabindex="-1">' + esc(t("svc_title")) + '</h1><p class="notice" role="note">' + esc(t("svc_demo")) + "</p><p>" + esc(t("svc_summary")) + "</p>" +
+      '<section class="card"><h2>' + esc(t("steps")) + '</h2><ol class="steps"><li>' + esc(t("step1")) + "</li><li>" + esc(t("step2")) + "</li><li>" + esc(t("step3")) + "</li><li>" + esc(t("step4")) + "</li></ol></section>" +
+      '<section class="card"><h2>' + esc(t("docs")) + '</h2><ul class="plain"><li>• ' + esc(t("doc_id")) + "</li><li>• " + esc(t("doc_addr")) + "</li></ul></section>" +
+      '<section class="card"><h2>' + esc(t("details")) + '</h2><dl class="kv"><dt>' + esc(t("fees")) + "</dt><dd>" + esc(t("fees_val")) + "</dd><dt>" + esc(t("time")) + "</dt><dd>" + esc(t("time_val")) + "</dd><dt>" + esc(t("where")) + "</dt><dd>" + esc(t("where_val")) + "</dd><dt>" + esc(t("last_verified")) + '</dt><dd class="mono">' + VERIFIED + "</dd></dl>" +
+      '<div class="cites"><strong>' + esc(t("sources")) + '</strong><div class="cite"><span class="n">[1]</span><span>' + esc(t("src1")) + "</span></div></div></section>" +
+      '<div class="row"><button class="btn btn-primary" data-go="request">' + esc(t("start_request")) + '</button><button class="btn btn-secondary" data-go="guide">' + esc(t("ask_guide")) + '</button><button class="btn btn-secondary" disabled aria-describedby="offdis">' + esc(t("official_service")) + '</button></div><p id="offdis" class="muted small">' + esc(t("official_disabled")) + "</p>";
+  }
+  function vRequest() {
+    var r = state.req;
+    var order = ["submitted", "review", "action", "approved", "ready", "rejected"];
+    var tl = r.history.map(function (h, i) {
+      var last = i === r.history.length - 1;
+      var ex = h[0] === "rejected" ? t("ex_rejected", { r: t(r.reason || "r1") }) : t("ex_" + h[0]);
+      return '<li><span class="dot ' + (last && (h[0] === "action" || h[0] === "review") ? "now" : "done") + '" aria-hidden="true">' + (i + 1) + "</span><div><div class=\"row\"><strong>" + esc(t("st_" + h[0])) + '</strong><span class="muted small mono">' + h[1] + "</span></div><p class=\"small" + (last ? "" : " muted") + "\">" + esc(ex) + "</p></div></li>";
+    }).join("");
+    var actions = "";
+    if (r.status === "action") actions = '<button class="btn btn-primary" data-act="upload">' + esc(t("upload")) + "</button>";
+    if (r.status === "ready") actions = '<button class="btn btn-primary" data-act="download">' + esc(t("download")) + "</button>";
+    var slots = ["09:00", "09:30", "10:00", "11:30"];
+    var appt = state.appt
+      ? '<p><strong>' + esc(t("booked_label", { t: state.appt })) + '</strong></p><div><button class="btn btn-danger btn-sm" data-act="cancel">' + esc(t("cancel")) + "</button></div>"
+      : '<p class="muted small">' + esc(t("appt_office")) + '</p><div class="chips">' + slots.map(function (s) { return '<button class="chip mono" data-book="' + s + '">' + esc(t("book", { t: s })) + "</button>"; }).join("") + "</div>";
+    return '<h1 tabindex="-1">' + esc(t("req_title")) + '</h1><div class="row"><span class="muted">' + esc(t("ref")) + '</span><span class="ref">REQ-2026-00412</span>' + statusBadge(r.status) + "</div>" +
+      '<section class="card" aria-labelledby="hist"><h2 id="hist">' + esc(t("history")) + '</h2><ol class="timeline">' + tl + "</ol>" + (actions ? "<div>" + actions + "</div>" : "") + "</section>" +
+      '<section class="card" aria-labelledby="chk"><h2 id="chk">' + esc(t("checklist")) + '</h2><ul class="plain"><li class="row"><span>' + esc(t("doc_id")) + '</span><span class="badge b-ok">✓ ' + esc(t("present")) + '</span></li><li class="row"><span>' + esc(t("doc_addr")) + "</span>" + (r.addr ? '<span class="badge b-ok">✓ ' + esc(t("present")) + "</span>" : '<span class="badge b-warn">! ' + esc(t("missing")) + "</span>") + "</li></ul></section>" +
+      '<section class="card" aria-labelledby="ap"><h2 id="ap">' + esc(t("appt")) + "</h2>" + appt + "</section>";
+  }
+  function vWallet() {
+    var attrs = [["name", "attr_name", "v_name"], ["degree", "attr_degree", "v_degree"], ["year", "attr_year", "v_year"], ["birth", "attr_birth", "v_birth"], ["grade", "attr_grade", "v_grade"]];
+    var present = "";
+    if (state.presenting) {
+      present = '<section class="card" aria-labelledby="pr"><h2 id="pr">' + esc(t("choose_share")) + "</h2>" +
+        attrs.map(function (a) { return '<label class="check" for="sh-' + a[0] + '"><input type="checkbox" id="sh-' + a[0] + '" data-share="' + a[0] + '"' + (state.share[a[0]] ? " checked" : "") + "> " + esc(t(a[1])) + "</label>"; }).join("") +
+        '<p class="muted small">' + esc(t("share_note")) + '</p><div class="row" style="align-items:flex-start"><canvas id="qr" width="232" height="232" role="img" aria-label="' + esc(t("qr_note")) + '"></canvas><div class="stack small" style="min-width:0"><strong>' + esc(t("shared")) + '</strong><ul class="plain" id="shared-list">' +
+        attrs.filter(function (a) { return state.share[a[0]]; }).map(function (a) { return "<li>" + esc(t(a[1])) + ": " + esc(t(a[2])) + "</li>"; }).join("") + '</ul><p class="muted">' + esc(t("qr_note")) + '</p></div></div><div><button class="btn btn-secondary btn-sm" data-act="hideqr">' + esc(t("hide")) + "</button></div></section>";
+    }
+    return '<h1 tabindex="-1">' + esc(t("wallet_title")) + "</h1>" +
+      '<article class="cred" data-wm="' + esc(t("wm")) + '"><div class="issuer"><span class="seal" aria-hidden="true">DU</span><div><strong>' + esc(t("cred_title")) + '</strong><p class="muted small">' + esc(t("cred_issuer")) + '</p></div></div><dl class="kv">' +
+      attrs.map(function (a) { return "<dt>" + esc(t(a[1])) + "</dt><dd>" + esc(t(a[2])) + "</dd>"; }).join("") + '</dl><div class="row"><span class="badge b-ok">✓ ' + esc(t("valid")) + "</span>" + (state.presenting ? "" : '<button class="btn btn-primary btn-sm" data-act="present">' + esc(t("present_btn")) + "</button>") + "</div></article>" + present +
+      '<section class="card" aria-labelledby="rem"><h2 id="rem">' + esc(t("reminders")) + "</h2><p>" + esc(t("rem_passport")) + "</p></section>";
+  }
+  function vPrivacy() {
+    var cons = ["c1", "c2"].map(function (c) {
+      var on = state.consents[c];
+      return '<article class="card"><div class="row"><h3>' + esc(t(c + "_title")) + "</h3>" + (on ? "" : '<span class="badge b-neutral">' + esc(t("revoked")) + "</span>") + '</div><p class="small">' + esc(t(c + "_body")) + "</p>" + (on ? '<div><button class="btn btn-danger btn-sm" data-revoke="' + c + '">' + esc(t("revoke")) + "</button></div>" : "") + "</article>";
+    }).join("");
+    var log = state.log.map(function (l) { return '<li class="card"><span class="muted small mono">' + l[1] + "</span><span>" + esc(t(l[0])) + "</span></li>"; }).join("");
+    return '<h1 tabindex="-1">' + esc(t("privacy_title")) + "</h1>" +
+      '<section class="stack" aria-labelledby="lg"><h2 id="lg">' + esc(t("log")) + '</h2><p class="muted small">' + esc(t("log_hint")) + '</p><ul class="plain">' + log + "</ul></section>" +
+      '<section class="stack" aria-labelledby="cs"><h2 id="cs">' + esc(t("consents")) + "</h2>" + cons + "</section>" +
+      '<section class="card" aria-labelledby="md"><h2 id="md">' + esc(t("mandates")) + "</h2><p>" + esc(t("m1")) + '</p><p class="muted small">' + esc(t("m_revoke_note")) + "</p></section>";
+  }
+  function vWorkspace() {
+    var rows = queue.map(function (q) {
+      var st = q.own ? state.req.status : q.st;
+      return '<tr data-case="' + q.ref + '"' + (state.selected === q.ref ? ' class="sel"' : "") + '><td><button class="linkbtn ref" data-case="' + q.ref + '"' + (state.selected === q.ref ? ' aria-current="true"' : "") + '>' + q.ref + "</button></td><td>" + esc(t(q.svc)) + "</td><td>" + esc(who(q.who)) + "</td><td>" + statusBadge(st) + "</td><td>" + slaBadge(q.sla) + ' <span class="mono small">' + q.due + "</span></td></tr>";
+    }).join("");
+    var open = queue.filter(function (q) { var s = q.own ? state.req.status : q.st; return s !== "ready" && s !== "rejected"; }).length;
+    var risk = queue.filter(function (q) { return q.sla !== "ok" && !(q.own && (state.req.status === "ready" || state.req.status === "rejected")); }).length;
+    var detail;
+    var sel = queue.filter(function (q) { return q.ref === state.selected; })[0];
+    if (!sel) detail = '<section class="card"><p class="muted">' + esc(t("select_case")) + "</p></section>";
+    else if (!sel.own) detail = '<section class="card"><h2>' + esc(t("case_detail")) + '</h2><p class="ref">' + sel.ref + "</p><p>" + esc(t(sel.svc)) + " · " + esc(who(sel.who)) + '</p><p class="muted small">' + esc(t("demo_case")) + "</p></section>";
+    else {
+      var r = state.req, closed = r.status === "ready" || r.status === "rejected";
+      var hist = r.history.map(function (h) { return '<li class="row small"><span class="mono muted">' + h[1] + "</span>" + statusBadge(h[0]) + "</li>"; }).join("");
+      var rej = state.rejecting ? '<div class="stack"><label for="rr" class="small"><strong>' + esc(t("reason")) + '</strong></label><select id="rr"><option value="r1">' + esc(t("r1")) + '</option><option value="r2">' + esc(t("r2")) + '</option><option value="r3">' + esc(t("r3")) + '</option></select><div><button class="btn btn-danger btn-sm" data-act="confirmreject">' + esc(t("confirm_reject")) + "</button></div></div>" : "";
+      detail = '<section class="card" aria-labelledby="cd"><h2 id="cd">' + esc(t("case_detail")) + '</h2><div class="row"><span class="ref">' + sel.ref + "</span>" + statusBadge(r.status) + "</div><p>" + esc(t("svc_res")) + " · " + esc(who(sel.who)) + '</p><p class="muted small">' + esc(t("applicant_min")) + "</p>" +
+        "<h3>" + esc(t("checklist")) + '</h3><ul class="plain"><li class="row"><span>' + esc(t("doc_id")) + '</span><span class="badge b-ok">✓ ' + esc(t("verified")) + '</span></li><li class="row"><span>' + esc(t("doc_addr")) + "</span>" + (r.addr ? '<span class="badge b-ok">✓ ' + esc(t("present")) + "</span>" : '<span class="badge b-warn">! ' + esc(t("missing")) + "</span>") + "</li></ul>" +
+        (closed ? "" : '<div class="row"><button class="btn btn-primary btn-sm" data-act="approve">' + esc(t("approve")) + '</button><button class="btn btn-secondary btn-sm" data-act="fix"' + (r.status === "action" ? " disabled" : "") + ">" + esc(t("request_fix")) + '</button><button class="btn btn-danger btn-sm" data-act="reject">' + esc(t("reject")) + "</button></div>" + rej) +
+        "<h3>" + esc(t("case_history")) + '</h3><ul class="plain">' + hist + "</ul></section>";
+    }
+    return '<div class="row"><h1 tabindex="-1">' + esc(t("ws_title")) + '</h1></div><p class="muted">' + esc(t("ws_office")) + "</p>" +
+      '<div class="kpis"><div class="kpi"><span class="small muted">' + esc(t("kpi_open")) + "</span><b>" + open + '</b></div><div class="kpi"><span class="small muted">' + esc(t("kpi_risk")) + "</span><b>" + risk + '</b></div><div class="kpi"><span class="small muted">' + esc(t("kpi_median")) + "</span><b>" + esc(t("kpi_days", { n: "2.4" })) + "</b></div></div>" +
+      '<div class="ws-grid"><section class="stack" aria-labelledby="qh"><h2 id="qh">' + esc(t("queue")) + '</h2><div class="table-wrap"><table><thead><tr><th scope="col">' + esc(t("col_ref")) + '</th><th scope="col">' + esc(t("col_service")) + '</th><th scope="col">' + esc(t("col_applicant")) + '</th><th scope="col">' + esc(t("col_status")) + '</th><th scope="col">' + esc(t("col_sla")) + "</th></tr></thead><tbody>" + rows + "</tbody></table></div></section>" + detail + "</div>";
+  }
+
+  /* ---------- Shell ---------- */
+  function shell(r) {
+    var L = I18N[state.lang];
+    document.documentElement.lang = state.lang; document.documentElement.dir = L.dir;
+    document.getElementById("skip-link").textContent = t("skip");
+    document.getElementById("env-banner").textContent = t("banner");
+    document.getElementById("footer").textContent = t("footer");
+    var lg = document.getElementById("lang-group"); lg.setAttribute("aria-label", t("lang"));
+    Array.prototype.forEach.call(lg.querySelectorAll("button"), function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-lang") === state.lang)); });
+    var mg = document.getElementById("mode-group"); mg.setAttribute("aria-label", t("mode"));
+    mg.innerHTML = '<button type="button" data-mode="citizen" aria-pressed="' + (state.mode === "citizen") + '">' + esc(t("mode_citizen")) + '</button><button type="button" data-mode="officer" aria-pressed="' + (state.mode === "officer") + '">' + esc(t("mode_officer")) + "</button>";
+    var tabs = [["home", "nav_home", ICON.home], ["service", "nav_services", ICON.service], ["request", "nav_requests", ICON.request], ["wallet", "nav_wallet", ICON.wallet], ["privacy", "nav_me", ICON.privacy]];
+    var tn = document.getElementById("topnav"), tb = document.getElementById("tabbar");
+    if (state.mode === "citizen") {
+      var cur = r === "guide" ? "home" : r;
+      tn.innerHTML = tabs.map(function (x) { return '<a href="#' + x[0] + '"' + (cur === x[0] ? ' aria-current="page"' : "") + ">" + esc(t(x[1])) + "</a>"; }).join("") +
+        "";
+      tn.setAttribute("aria-label", t("nav_home"));
+      tb.innerHTML = tabs.map(function (x) { return '<a href="#' + x[0] + '"' + (cur === x[0] ? ' aria-current="page"' : "") + ">" + x[2] + "<span>" + esc(t(x[1])) + "</span></a>"; }).join("");
+      tb.hidden = false;
+    } else { tn.innerHTML = ""; tb.innerHTML = ""; tb.hidden = true; }
+  }
+  function render(focus) {
+    var r = route();
+    if (r === "workspace" && state.mode !== "officer") state.mode = "officer";
+    if (r !== "workspace" && state.mode === "officer") state.mode = "citizen";
+    shell(r);
+    var main = document.getElementById("main");
+    main.className = r === "workspace" ? "wide" : "";
+    var mandate = (state.mode === "citizen" && state.acting === "hedi") ? '<div class="mandate" role="status"><span>' + esc(t("mandate_banner")) + '</span><button class="btn btn-secondary btn-sm" data-acting="me">' + esc(t("switch_back")) + "</button></div>" : "";
+    var html = { home: vHome, guide: vGuide, service: vService, request: vRequest, wallet: vWallet, privacy: vPrivacy, workspace: vWorkspace }[r]();
+    main.innerHTML = mandate + html;
+    if (r === "wallet" && state.presenting) drawQR();
+    if (focus) { var h = main.querySelector("h1"); if (h) h.focus({ preventScroll: false }); }
+  }
+
+  /* ---------- Demo QR (not a real QR code) ---------- */
+  function drawQR() {
+    var c = document.getElementById("qr"); if (!c) return;
+    var ctx = c.getContext("2d"), n = 29, s = Math.floor(c.width / (n + 2));
+    var cs = getComputedStyle(document.documentElement);
+    var fg = "#1A1F25", bg = "#FFFFFF";
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, c.width, c.height);
+    var seed = 7; Object.keys(state.share).forEach(function (k, i) { if (state.share[k]) seed = (seed * 31 + i + 1) % 2147483647; });
+    function rnd() { seed = (seed * 48271) % 2147483647; return seed / 2147483647; }
+    ctx.fillStyle = fg;
+    for (var y = 0; y < n; y++) for (var x = 0; x < n; x++) {
+      var inF = (x < 8 && y < 8) || (x > n - 9 && y < 8) || (x < 8 && y > n - 9);
+      if (!inF && rnd() > 0.52) ctx.fillRect((x + 1) * s, (y + 1) * s, s, s);
+    }
+    [[0, 0], [n - 7, 0], [0, n - 7]].forEach(function (p) {
+      ctx.fillStyle = fg; ctx.fillRect((p[0] + 1) * s, (p[1] + 1) * s, 7 * s, 7 * s);
+      ctx.fillStyle = bg; ctx.fillRect((p[0] + 2) * s, (p[1] + 2) * s, 5 * s, 5 * s);
+      ctx.fillStyle = fg; ctx.fillRect((p[0] + 3) * s, (p[1] + 3) * s, 3 * s, 3 * s);
+    });
+    void cs;
+  }
+
+  /* ---------- Events ---------- */
+  function addLog(k) { state.log.unshift([k, now()]); }
+  document.addEventListener("click", function (e) {
+    var el = e.target.closest("button, [data-case]"); if (!el) return;
+    var d = el.dataset;
+    if (d.lang) { state.lang = d.lang; try { localStorage.setItem(STORE_KEY, state.lang); } catch (err) { } render(false); return; }
+    if (d.mode) { state.mode = d.mode; go(d.mode === "officer" ? "workspace" : "home"); return; }
+    if (d.acting) { state.acting = d.acting; if (d.acting === "hedi") addLog("le_agent"); go("home"); return; }
+    if (d.go) { go(d.go); return; }
+    if (d.ask) { ask(d.ask); return; }
+    if (d.fb) { state.fb[d.fb] = true; render(false); return; }
+    if (d.book) { state.appt = d.book; toast(t("booked", { t: d.book })); render(false); return; }
+    if (d.revoke) { state.consents[d.revoke] = false; toast(t("revoked_msg")); render(false); return; }
+    if (d.share) return;
+    if (d.case) { state.selected = d.case; state.rejecting = false; if (d.case === "REQ-2026-00412") addLog("le_view"); render(false); return; }
+    var a = d.act;
+    if (a === "upload") { state.req.addr = true; state.req.status = "review"; state.req.history.push(["review", now()]); addLog("le_upload"); toast(t("uploaded_msg")); render(false); }
+    else if (a === "download") toast(t("download_msg"));
+    else if (a === "cancel") { state.appt = null; toast(t("cancelled")); render(false); }
+    else if (a === "present") { state.presenting = true; render(false); }
+    else if (a === "hideqr") { state.presenting = false; render(false); }
+    else if (a === "approve") {
+      if (!state.req.addr) { toast(t("cannot_approve")); return; }
+      state.req.status = "ready"; state.req.history.push(["approved", now()], ["ready", now()]); addLog("le_decision"); addLog("le_sms"); toast(t("approved_msg")); render(false);
+    }
+    else if (a === "fix") { state.req.status = "action"; state.req.addr = false; state.req.history.push(["action", now()]); addLog("le_fix"); addLog("le_sms"); toast(t("fix_msg")); render(false); }
+    else if (a === "reject") { state.rejecting = true; render(false); var s = document.getElementById("rr"); if (s) s.focus(); }
+    else if (a === "confirmreject") { var sel = document.getElementById("rr"); state.req.reason = sel ? sel.value : "r1"; state.req.status = "rejected"; state.req.history.push(["rejected", now()]); state.rejecting = false; addLog("le_decision"); addLog("le_sms"); toast(t("rejected_msg")); render(false); }
+  });
+  document.addEventListener("change", function (e) {
+    var k = e.target.getAttribute("data-share");
+    if (k) { state.share[k] = e.target.checked; render(false); var cb = document.getElementById("sh-" + k); if (cb) cb.focus(); }
+  });
+  document.addEventListener("submit", function (e) {
+    if (e.target.id !== "composer") return;
+    e.preventDefault();
+    var inp = document.getElementById("q"); var text = (inp.value || "").trim(); if (!text) return;
+    var match = ["q1", "q2", "q3", "q4"].filter(function (k) { return ["ar", "fr", "en"].some(function (l) { return I18N[l][k].trim() === text; }); })[0];
+    if (match) { ask(match); return; }
+    var pii = /[^\s@]+@[^\s@]+\.[^\s@]+|\+?\d[\d\s]{6,}\d/;
+    var hadPii = pii.test(text);
+    var clean = text.replace(/[^\s@]+@[^\s@]+\.[^\s@]+/g, "[•••]").replace(/\+?\d[\d\s]{6,}\d/g, "[•••]");
+    state.chat.push({ role: "user", text: clean });
+    if (hadPii) state.chat.push({ role: "bot", sys: "redacted" });
+    state.chat.push({ role: "bot", sys: "demo_only" });
+    render(false);
+    var i2 = document.getElementById("q"); if (i2) i2.focus();
+  });
+  function ask(k) { state.chat.push({ role: "user", k: k }); state.chat.push({ role: "bot", k: "a" + k.slice(1) }); render(false); var i = document.getElementById("q"); if (i) i.focus(); }
+  window.addEventListener("hashchange", function () { render(true); });
+
+  try { var saved = localStorage.getItem(STORE_KEY); if (saved && I18N[saved]) state.lang = saved; } catch (err) { }
+  if (location.hash === "#workspace") state.mode = "officer";
+  render(false);
+})();
+</script>
+<!-- ARTIFACT-END -->
+</body>
+</html>
