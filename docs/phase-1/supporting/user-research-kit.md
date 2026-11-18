@@ -198,6 +198,16 @@ Use a **validated translation** where available. Validated French and Arabic SUS
 
 ## 8.12 First-product discovery module — Workspace, Regulated Finance (added in v2.0)
 
+> **18 Nov 2026:** extended by the ready-to-execute [financial-institution validation package](../validation/fi-validation-package.md). The package adds:
+> - the target list
+> - FR/AR invitations
+> - the evidence template
+> - buyer, procurement and willingness-to-pay questionnaires
+> - pain scoring
+> - hypotheses H-R6 and H-R7
+>
+> **Note on H-R2:** payment institutions are outside BCT Circular 2022-08 (they follow Circular 2026-10). The sample is re-balanced to ≥ 7 banks, ≥ 3 leasing/factoring companies and ≥ 3 payment institutions.
+
 **Objective:** validate or reject the first-product recommendation ([10](../10-first-product-recommendation.md)) with ≥ 15 financial institutions within 60 days.
 
 ### Hypotheses

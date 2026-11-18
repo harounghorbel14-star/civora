@@ -16,7 +16,7 @@
 
 | Opportunity | Countable buyers (evidence) | ARPU assumption | Tunisian serviceable market / year | Notes |
 |---|---|---|---|---|
-| **Workspace — Regulated Finance** | 29 banks + 18 financial institutions (end-2025) [P][S132]; 16 licensed payment providers (Mar 2026) [P][S133]; microfinance and insurers to verify [U] → **~60–90 institutions** | 25k–150k TND/yr depending on size (subscription + support) | **~3–6M TND** | Regulatory requirement for a dedicated complaint system (BCT 2022-08 Art. 9) [P][S141]. Many banks likely already have *some* tool → replacement/upgrade sales |
+| **Workspace — Regulated Finance** | 29 banks + 18 financial institutions (end-2025), of which 41 are covered by BCT 2022-08 and 7 are payment institutions under separate rules [V][S165] (supersedes [P][S132][S133]); microfinance and insurers to verify [U] → **~60–90 institutions** | 25k–150k TND/yr depending on size (subscription + support) | **~3–6M TND** | Regulatory requirement for a dedicated complaint system (BCT 2022-08 Art. 9) [P][S141]. Many banks likely already have *some* tool → replacement/upgrade sales |
 | Workspace — insurance, telecom, utilities | ~20+ insurers [A], 3 mobile operators, STEG, SONEDE | 50k–200k TND/yr | ~2–5M TND | Expansion editions |
 | Government Workspace (institutions) | 138 projects (2025–26), 192 (2026–30) [P Phase 0 S29, S30] | 0.3–3M TND per contract | Pipeline 2–15M TND/yr; won 0.3–3M by Y3 | Unchanged from Phase 0 |
 | e-KYC orchestration | Same financial buyers + telcos | 2–4 TND/check + platform | ~1.5–4M TND | Price pressure; incumbents live [P][S135] |
@@ -35,7 +35,7 @@
 | Digital payments growing fast | Mobile payment up **80.5% in 2025** (BCT) [P][S134]; bank accounts **down 1.8% in 2025** [P][S150] | Payment providers multiply → new regulated customers with lean teams |
 | Regulator tightening remote-identification and payment-institution rules | BCT Circulars 2025-06 and 2026-10 [P Phase 0 S51, S53] | Compliance workflows and audits increase |
 | State building its own channels and AI assistants | Khadamet; RNE assistants [P][S127] | Do not sell front doors or chatbots to the state; sell back-office capacity |
-| Customer complaint deadlines not met | 23.5% of admissible complaints over deadline (2020 report) [P][S142] | Pain exists. Current figure to verify with the banking mediator / BCT |
+| Customer complaint deadlines not met | **Withdrawn (18 Nov 2026):** the 23.5% figure [P][S142] measured *mediators'* handling. Official mediator series: 21.7% → 17.3% → 11.4% over the 2-month mediator deadline (2022–2024) [V][S166]. **No public data on banks' internal on-time rates** [U] | Pain **unverified**; to establish in discovery (E-01, P1) |
 
 ## 7.4 International opportunity by division (first screening)
 

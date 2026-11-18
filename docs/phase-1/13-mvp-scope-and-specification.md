@@ -12,8 +12,8 @@ The MVP is the **smallest product a payment provider or mid-size bank would pay 
 
 | Priority | Capabilities (requirement IDs from [12](12-product-requirements-document.md)) |
 |---|---|
-| **Must** | Agent intake form + customer web form (FR-01) · minimal customer data (FR-02) · category taxonomy (FR-03) · reference + acknowledgement with deadline (FR-04) · attachments with malware scan (FR-06) · queues, filters, deadline sort (FR-07) · manual + rule assignment (FR-08) · SLA rules, timers, escalation (FR-09) · internal notes, sub-tasks (FR-10) · configurable states (FR-11) · reason codes + mandatory written rejection reasons (FR-15, FR-16) · AR/FR templates (FR-17) · response letter PDF (FR-18) · customer status page with OTP (FR-20) · SMS/email notifications (FR-21) · mediator information block (FR-22) · correspondent workspace + case-file export (FR-25, FR-26) · operational dashboard (FR-30) · annual report generator v1 (FR-32) · tenant admin (FR-40) · scoped RBAC (FR-41) · tamper-evident audit (FR-42) · retention policies (FR-43) · SSO + MFA (FR-50) · email & SMS (FR-51) · AR/FR/EN UI with RTL · WCAG 2.2 AA |
-| **Should** | Email-to-case (FR-01 email) · duplicate detection (FR-05) · four-eyes approval (FR-12) · reopen (FR-13) · customer replies on status page (FR-19) · branch notice generator (FR-23) · root-cause view (FR-31) · regulator statistics export (FR-33) · REST API + webhooks (FR-53) |
+| **Must** | Agent intake form + customer web form (FR-01) · minimal customer data (FR-02) · category taxonomy (FR-03) · reference + acknowledgement with deadline (FR-04) · attachments with malware scan (FR-06) · queues, filters, deadline sort (FR-07) · manual + rule assignment (FR-08) · SLA rules, timers, escalation (FR-09) · internal notes, sub-tasks (FR-10) · configurable states (FR-11) · reason codes + mandatory written rejection reasons (FR-15, FR-16) · AR/FR templates (FR-17) · response letter PDF (FR-18) · customer status page with OTP (FR-20) · SMS/email notifications (FR-21) · mediator information block (FR-22) · correspondent workspace + case-file export (FR-25, FR-26) · operational dashboard (FR-30) · annual report generator v1 (FR-32) · tenant admin (FR-40) · scoped RBAC (FR-41) · tamper-evident audit (FR-42) · retention policies (FR-43) · SSO + MFA (FR-50) · email & SMS (FR-51) · AR/FR/EN UI with RTL · WCAG 2.2 AA · **case type and Art. 2 exclusions (FR-60)** · **15-working-day regulatory ceiling and automatic acknowledgement (FR-61)** · **Annex 1 data set (FR-62)** · **ROGS760 statement dataset/export (FR-65, RP-BCT-2022-08)** |
+| **Should** | Email-to-case (FR-01 email) · duplicate detection (FR-05) · four-eyes approval (FR-12) · reopen (FR-13) · customer replies on status page (FR-19) · branch notice generator (FR-23) · root-cause view (FR-31) · regulator statistics export (FR-33) · REST API + webhooks (FR-53) · internal-control chapter export (FR-63) · internal-audit pack (FR-64) · rule packs RP-BCT-2026-10 and RP-BCT-2020-11 with RAA10/RAA20 and quarterly statements (FR-65, FR-66) |
 | **Could** | Phone-log intake helper · satisfaction survey (FR-24) · bulk actions (FR-14) · read-only core-banking lookup adapter (FR-52) · mediator outcome linking (FR-27) |
 | **Won't (MVP)** | AI triage, summarisation or document extraction (→ Phase 10 future requirement) · e-KYC (→ partner integration) · e-signature of letters (→ Phase 4 capability, later edition) · core-banking write-back · native mobile apps · insurance/telecom editions |
 
@@ -55,12 +55,12 @@ The v2.0 "light pass" approach is **withdrawn** (P1-D4, conditional). Every phas
 | 12 Official Institutional Integrations | Unchanged | Customer SSO, email, SMS, optional core-banking read; e-KYC partners |
 | **13 Pilot Deployment in Tunisia** | Unchanged (Government pilot) | **2–3 Workspace RF production pilots** |
 
-**Timing to the Phase 13 start** depends on execution mode (decision P1-D4a):
+**Timing to the Phase 13 start.** The founder approved **overlapping independent activities** (P1-D4, 18 Nov 2026), formerly called mode B. Mode A is kept below for reference only:
 
 | Mode | Moderate | Lean |
 |---|---|---|
-| **B** (ordered, dependency-respecting overlap) | ~M17–M18 | ~M26–M27 |
-| **A** (strictly sequential) | ~M22–M23 | ~M33–M34 |
+| **Approved: overlapping independent activities** (formerly B) | ~M17–M18 | ~M26–M27 |
+| A (strictly sequential; not adopted) | ~M22–M23 | ~M33–M34 |
 
 These are [A] estimates from Phase 0 §19 phase durations.
 
@@ -112,14 +112,15 @@ These are [A] estimates from Phase 0 §19 phase durations.
 | QA and test automation | 12–18 |
 | DevSecOps: infrastructure, CI/CD, observability, backups/DR | 12–18 |
 | Security engineering (threat model, reviews) | 6–10 |
+| Regulatory rule packs and statements (FR-60–FR-66; added 18 Nov 2026 after the BCT text verification) | 8–14 |
 | Product management (~0.5 FTE) | ~24 |
-| **Total** | **≈ 150–215 person-weeks ≈ 35–50 person-months** |
+| **Total** | **≈ 158–229 person-weeks ≈ 36–53 person-months** (v2.1: 150–215) |
 
 ### Cost
 
 | Item | Low (TND) | High (TND) | Basis |
 |---|---|---|---|
-| People: 35–50 person-months × 9,375 TND (7,500 loaded salary + 25% overhead allocation) | 324,000 | 466,000 | Phase 0 salary assumptions [A], benchmarked to [P] S85/S86 |
+| People: 36–53 person-months × 9,375 TND (7,500 loaded salary + 25% overhead allocation) | 342,000 | 495,000 | Phase 0 salary assumptions [A], benchmarked to [P] S85/S86 |
 | Pre-pilot penetration test | 30,000 | 60,000 | Estimate [A] — quotes needed |
 | ANCS-compliant security audit | 20,000 | 60,000 | Estimate [A] — quotes needed |
 | WCAG 2.2 AA audit | 15,000 | 30,000 | Estimate [A] |
@@ -128,15 +129,15 @@ These are [A] estimates from Phase 0 §19 phase durations.
 | Legal: DPA, design-partner agreement, BCT outsourcing/retention opinion | 30,000 | 60,000 | Estimate [A] |
 | Design-partner support and travel | 10,000 | 20,000 | Estimate [A] |
 | Third-party tools (malware scanning, PDF, monitoring) | 10,000 | 25,000 | Estimate [A] |
-| Subtotal | 504,000 | 881,000 | — |
-| Contingency 15% | 76,000 | 132,000 | — |
-| **Incremental MVP cost** | **≈ 0.58M** | **≈ 1.01M** | **≈ US$195k–340k** |
+| Subtotal | 522,000 | 910,000 | — |
+| Contingency 15% | 78,000 | 137,000 | — |
+| **Incremental MVP cost** | **≈ 0.60M** | **≈ 1.05M** | **≈ US$202k–353k** (v2.1: 0.58–1.01M; +0.02–0.04M for FR-60–FR-66) |
 
 ### Company spend to reach the Phase 13 start
 
 All phases run at full scope (Moderate model, v3):
-- **Mode B:** ≈ 3.4M TND cumulative net spend by M18.
-- **Mode A:** ≈ 4.6M TND by M23.
+- **Approved overlapping execution (formerly mode B):** ≈ 3.2M TND cumulative net spend before the first production client (end of M17), ≈ 3.4M by the end of M18 (v3/v4 Moderate model, [20](20-updated-financial-assumptions.md) §20.7).
+- Mode A (not adopted): ≈ 4.6M TND by M23.
 
 The MVP is a fraction of this. Most of the spend is the protected roadmap (Government, documents, directory, health prototype, payments, social security and education, AI, security, integrations).
 

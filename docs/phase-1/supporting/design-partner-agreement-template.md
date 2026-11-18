@@ -129,7 +129,13 @@ Tunisian law. Amicable settlement first; failing that, [competent courts of Tuni
 |---|---|
 | 1 | Is a fee-bearing sandbox evaluation compatible with the partner's procurement rules? Is a lighter LOI preferable for banks? |
 | 2 | What anonymisation standard satisfies Law 2004-63 and banking secrecy for "properly authorised test data" (Phase 1 Q18)? |
-| 3 | Does a sandbox evaluation by a bank or payment institution require any BCT notification (Q13)? |
+| 3 | Does a sandbox evaluation by a bank or payment institution require any BCT notification (Q13)? See also question 7 |
 | 4 | What liability cap and dispute-resolution forum are appropriate? |
 | 5 | Is a French version required, plus an Arabic version for public bodies? |
 | 6 | Is the feedback licence and IP clause enforceable as drafted? |
+| 7 | *(Added 18 Nov 2026 after reading Law 2016-48.)* Art. 81 requires a bank or financial institution to **inform the BCT before signing an outsourcing contract**. One month of BCT silence counts as acceptance. Does a **sandbox** evaluation with synthetic data fall outside "externalisation"? Does a later production contract fall inside it? |
+| 8 | *(Added from Law 2004-63.)* Art. 22 sets nationality, residency and no-criminal-record conditions for processors **and their agents**. Art. 52 makes INPDP authorisation mandatory for any transfer abroad. How should clause 3 (data rules) and clause 10 (security) reflect these if authorised test data contains any personal data? |
+| 9 | *(Added from Law 2016-48 Art. 61.)* Should clause 7 (confidentiality) refer expressly to banking professional secrecy and Penal Code Art. 254? |
+| 10 | Should clause 10 grant the partner, and the BCT on request, an **audit and access right**? Circular 2025-06 Art. 15 requires this of e-KYC providers, and banks are likely to ask for it by analogy |
+
+Supporting documents for the controlled trial (proposal, scope, responsibilities, metrics, security questionnaire, evaluation form) are in [../validation/design-partner-package.md](../validation/design-partner-package.md).

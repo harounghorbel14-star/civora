@@ -4,7 +4,7 @@
 |---|---|
 | Product | CIVORA Workspace — Regulated Finance (RF) |
 | Division | B — Enterprise (shared engine with A — Government) |
-| Version | PRD 1.0 (Phase 1). Subject to discovery validation. **P1-D3 conditional**: see the [validation evidence register](validation-evidence-register.md) |
+| Version | PRD 1.1 (Phase 1, 18 Nov 2026): regulatory traceability rebuilt from the **official BCT text**, scope corrected, FR-60–FR-66 added ([validation/product-validation-report.md](validation/product-validation-report.md)). Subject to discovery validation. **P1-D3 conditional**: see the [validation evidence register](validation-evidence-register.md) |
 | Roadmap phases | Built across Phases 3, 4, 5, 6; verified in 11; integrated in 12; piloted in 13 ([10](10-first-product-recommendation.md) §10.5) |
 | Government requirements | Retained in [supporting/government-product-requirements.md](supporting/government-product-requirements.md) (shared epics: identity, notifications, consent/audit, integrations) |
 
@@ -14,13 +14,21 @@
 
 ## 12.2 Problem statement
 
-Institutions must handle complaints as the first level before mediation, inform customers of deadlines, give written reasons for any rejection, run a dedicated IT solution and report annually to their board (BCT 2022-08) [P][S141][S142].
+**Verified obligations [V][S159]** (banks, leasing, factoring and investment banks; **not** payment institutions, which follow Circular 2026-10 and, for mobile payment, 2020-11):
+- acknowledge every complaint with date and reference
+- answer in writing within **15 working days** of the acknowledgement
+- give reasons for any rejection
+- run a **dedicated IT solution** with central archiving, automatic acknowledgements for remote complaints, deadline alerts and KPIs (Art. 9)
+- report annually to the board, to the BCT through the internal-control report, and in the annual **ROGS760** XML statement
+- have the system audited internally at least every three years
 
-Hypothesised current state [A — to validate]:
-- emails, spreadsheets or generic CRMs
-- weak deadline control (23.5% over deadline in 2020 [P][S142])
+The compliance deadline was mid-2023, so most institutions should already have some tool.
+
+Hypothesised current state [A — to validate in E-01; H-R1, H-R6, H-R7]:
+- emails, spreadsheets, generic CRMs or bespoke tools built around 2023
+- weak deadline control (**no public data on banks' internal on-time rates** [U]; the earlier "23.5% over deadline" figure measured *mediator* handling and is withdrawn [V][S166])
 - no customer-facing status
-- manual report compilation
+- manual compilation of the board report and the ROGS760 statement
 - incomplete files when cases escalate to the mediator
 
 ## 12.3 Goals and non-goals
@@ -33,25 +41,33 @@ Hypothesised current state [A — to validate]:
 | Annual board report and regulator statistics generated in < 1 hour | Payments, refunds execution (stay in core systems) |
 | Complete, exportable case file for mediator/BCT within minutes | e-KYC / identity verification of customers |
 
-## 12.4 Regulatory traceability (BCT Circular 2022-08)
+## 12.4 Regulatory traceability (BCT Circular 2022-08 — verified text)
 
-Only obligations reported in available sources are listed. **Exact deadlines, report formats and any additional obligations must be confirmed from the official JORT/BCT text** (open question Q-01).
+Verified against the official BCT text [V][S159] on 18 Nov 2026. The article-by-article analysis is in [validation/bct-regulatory-verification.md](validation/bct-regulatory-verification.md). Counsel confirmation of the interpretation is still pending (E-02).
 
-| Obligation (as reported) | Product capability | Requirement IDs |
-|---|---|---|
-| Internal complaint handling as first level before the mediator | Intake, case management, closure before escalation | FR-01…FR-14 |
-| Inform customers of procedures, processing deadlines and mediation conditions (branches, electronic platforms, statements) | Customer notices, status page with deadline, mediator information block, printable branch notice | FR-20…FR-24 |
-| Reason in writing any partial or total rejection | Mandatory reason code + written explanation; template library | FR-15…FR-18 |
-| Dedicated IT solution (Art. 9) | The product itself; audit trail; retention | FR-40…FR-44 |
-| Correspondent as interlocutor of the mediator and the BCT | Correspondent role, escalation workspace, case-file export | FR-25…FR-28 |
-| Annual report on complaint handling to the board | Report generator and statistics | FR-30…FR-33 |
+| Article | Obligation | Product capability | Requirement IDs |
+|---|---|---|---|
+| Art. 1 | Effective, **free** and confidential handling; scope = banks and financial institutions **except payment institutions** | Free for end customers; rule packs per regime | FR-66, NFR security |
+| Art. 2 | Definition of complaint; exclusions (service and information requests, mediator, courts, settled disputes, employment, domestic mobile payment) | Case type and out-of-scope reasons | **FR-60** |
+| Art. 3–5 | System, dedicated structure, formal procedures for reception, handling and archiving, periodic review | Teams, roles, workflow configuration, retention, configuration history | FR-40–FR-44 |
+| Art. 6 | Channels: email, online form, deposit at branches and HQ | Email-to-case, web form, agent form; postal logged | FR-01 |
+| Art. 7 | Inform customers (branch posters, electronic platforms, statements, contractual documents) | Notices, status page, mediator block, statement/contract text block | FR-20–FR-24 |
+| Art. 8 | Acknowledgement with date and reference; written answer within **15 working days** of acknowledgement; reasoned rejections | Acknowledgement engine; regulatory deadline ceiling; mandatory reasons | FR-04, FR-09, FR-15–FR-18, **FR-61** |
+| Art. 9 + Annex 1 | **Dedicated IT solution**: central database by subject and outcome; automatic acknowledgements for remote complaints; deadline alerts; KPIs; retain Annex 1 information for the legal period | The product; Annex 1 data set | FR-03, FR-04, FR-09, FR-30, FR-43, **FR-62** |
+| Art. 10 | Annual report to the board | Board report generator | FR-32 |
+| Art. 11 | Chapter in the internal-control report to the BCT (Circular 2006-19 Art. 52) | Internal-control chapter export | **FR-63** |
+| Art. 12 | Internal audit at least every 3 years; audit committee approval | Audit pack | FR-42, **FR-64** |
+| Art. 13 | Correspondent of the BCT and the banking mediator | Correspondent workspace, case-file export, regulator requests | FR-25–FR-28 |
+| Art. 14 + Annexes 2–3 | Annual statement **ROGS760**, XML, due DR + 45 days | Regulatory dataset and export | FR-33, **FR-65** |
+| Art. 15 | In force on publication; compliance within 6 months | — | — |
+| Circular 2026-10 / 2020-11 | Payment institutions; mobile-payment complaints (7 working days; quarterly statement) | Separate rule packs | **FR-65, FR-66** |
 
 ## 12.5 Functional requirements
 
 ### Intake
-- **FR-01** Create a case from: agent form (branch/HQ), customer web form, inbound email (email-to-case), phone log.
+- **FR-01** Create a case from: agent form (branch/HQ), customer web form, inbound email (email-to-case), phone log, postal mail (logged by an agent).
 - **FR-02** Capture customer identification *minimally*: name, customer reference, contact channel. Optional link to account or product identifiers. No ID-card images unless a category requires it.
-- **FR-03** Classify by configurable **category → subcategory** taxonomy and product/channel, plus a priority.
+- **FR-03** Classify by configurable **category → subcategory** taxonomy and product/channel, plus a priority. The default categories map to the eight BCT Annex 3 subjects (financing, non-card payment, card payment, account operation, international operations, pricing, remote banking, other).
 - **FR-04** Generate a unique case reference and send an acknowledgement (SMS/email/printed) with the expected response deadline.
 - **FR-05** Detect duplicates: same customer, same category, open case.
 - **FR-06** Attach documents (PDF/JPEG/PNG; size limits; malware scan).
@@ -93,7 +109,7 @@ Only obligations reported in available sources are listed. **Exact deadlines, re
   - access via reference + one-time code to the registered contact
 - **FR-21** Notifications on status changes (SMS/email; templates per language).
 - **FR-22** **Mediator information block** shown on decisions and on request: how and when the customer can escalate.
-- **FR-23** Printable branch notice and web snippet describing the complaint procedure and deadlines (configurable text).
+- **FR-23** Printable branch notice, web snippet, and a text block for account statements and promotional, pre-contractual and contractual documents, describing the complaint procedure, deadlines and mediation (configurable text; BCT 2022-08 Art. 7).
 - **FR-24** Customer satisfaction survey after closure (optional).
 
 ### Mediator and regulator liaison
@@ -109,8 +125,8 @@ Only obligations reported in available sources are listed. **Exact deadlines, re
   - by category, branch, product, channel
   - median and p90 resolution time
 - **FR-31** Root-cause view: top categories and reasons, trend over time.
-- **FR-32** **Annual board report generator**: structured sections, charts, export to PDF/DOCX. Format to confirm (Q-02).
-- **FR-33** Regulator statistics export (CSV/XLSX) in the format required (Q-02).
+- **FR-32** **Annual board report generator** (BCT 2022-08 Art. 10; format not prescribed): structured sections, charts, export to PDF/DOCX.
+- **FR-33** Regulator statistics export. The regulatory statements themselves are specified in FR-65.
 
 ### Administration and audit
 - **FR-40** Tenant administration: users, roles, teams, branches, categories, SLA rules, templates, holidays, languages.
@@ -127,6 +143,24 @@ Only obligations reported in available sources are listed. **Exact deadlines, re
 - **FR-51** Email in (IMAP/Graph) and out (SMTP/relay); SMS gateway (Tunisian operators/aggregators).
 - **FR-52** Optional read-only lookup in core banking/CRM via a customer-provided API (adapter). No write-back in MVP.
 - **FR-53** Public REST API with webhooks for case creation and status changes (customer's own channels such as a mobile app).
+
+### Regulatory rule packs and statements (added in PRD 1.1 from the verified BCT text)
+- **FR-60** **Case type**: complaint ("réclamation") / service request / information-or-advice request, plus **out-of-scope reasons** per BCT 2022-08 Art. 2 (referred to mediator; in court or arbitration; already settled; employment matter; domestic mobile payment under Circular 2020-11). Regulatory statistics count only in-scope complaints.
+- **FR-61** **Regulatory deadline ceiling.** For in-scope complaints under RP-BCT-2022-08:
+  - The deadline is computed in **working days from the acknowledgement date**.
+  - The deadline **cannot be configured above 15 working days**; shorter internal targets are allowed.
+  - A pause for missing customer information does **not** move the regulatory deadline (pending counsel Q-07).
+  - The acknowledgement states at least the **registration date and reference**, and is **automatic for remote channels** (Art. 8–9).
+- **FR-62** **Annex 1 data set.** Reference; name or company name; **RNE unique identifier** for legal persons; date of receipt; channel; product/service type; subject and description; **investigations carried out**; **steps taken**; outcome. Retention for the legal period, configurable until counsel answers Q-06. A **sensitive-content flag** restricts visibility and redacts exports when free text contains data covered by Law 2004-63 Art. 13–14.
+- **FR-63** **Internal-control chapter** export: description of the complaint system and controls performed, for the annual internal-control report (Circular 2006-19 Art. 52; BCT 2022-08 Art. 11).
+- **FR-64** **Internal-audit pack**: case sampling, audit-log extract, configuration and template history, deadline statistics (Art. 12).
+- **FR-65** **Regulatory statement dataset and export**:
+  - ROGS760 per Annex 3: complainant type; individuals by gender and age band (18–25, 26–60, > 60); channel; subject × number received × average response time × outcomes. Annual, DR + 45 days, XML.
+  - RAA10 and RAA20 for payment institutions (Circular 2026-10).
+  - The quarterly mobile-payment complaint statement (Circular 2020-11 Art. 44).
+  - Gender and age band are captured only for this statistic, preferably derived from core banking.
+  - The institution submits the files through its own BCT channel. **CIVORA has no access to BCT systems.**
+- **FR-66** **Rule packs** as versioned configuration: RP-BCT-2022-08 (15 working days; ROGS760), RP-BCT-2026-10 (payment institutions; RAA10/RAA20), RP-BCT-2020-11 (mobile payment; 7 working days; quarterly). Each pack sets definitions, deadline ceilings, mandatory fields, statement formats and notice texts. A tenant may run several packs.
 
 ## 12.6 Key user stories and acceptance criteria
 
@@ -158,13 +192,15 @@ Only obligations reported in available sources are listed. **Exact deadlines, re
 | Audit integrity | Append-only audit; daily hash-chain anchor (Phase 0 §9.7) |
 | Backup & DR | Daily backups + PITR; monthly restore test; RPO ≤ 15 min, RTO ≤ 4 h (pilot) |
 | Observability | Metrics, logs and traces without personal data; customer-facing status page for the service |
+| Data location | **No processing of personal data by foreign sub-processors** (email, SMS, monitoring, AI) unless authorised by the INPDP (Law 2004-63 Art. 50–52) |
+| Legal security basis | Access control, ex-post verifiability of access and changes, secure backups are legal obligations (Law 2004-63 Art. 18–19), not options |
 | Compatibility | Latest two versions of Chrome, Edge, Firefox, Safari; Android 9+ / iOS 15+ browsers for the status page |
 | Export / exit | Full data export (JSON/CSV + documents) at any time; documented exit plan |
 
 ## 12.8 Dependencies and assumptions
 
 - Discovery confirms demand and willingness to pay (H-R1…H-R4 in the research kit) [A].
-- Official text of BCT 2022-08 obtained and reviewed by counsel.
+- Official text of BCT 2022-08 **obtained and analysed (18 Nov 2026)**; interpretation still to be reviewed by counsel (Q-06–Q-11).
 - SMS gateway and email relay agreements (class 3 commercial).
 - Labelled hosting provider agreement (class 3).
 - Customers accept a SaaS-in-Tunisia or on-prem model.
@@ -172,7 +208,8 @@ Only obligations reported in available sources are listed. **Exact deadlines, re
 ## 12.9 Release criteria (for Phase 13 pilot)
 
 - All "Must" items in [13](13-mvp-scope-and-specification.md) delivered with automated tests.
-- Pen test: no open critical/high findings. ANCS-compliant audit completed.
+- Pen test: no open critical/high findings. Security audit under Decree-law 2023-17 Art. 6–8 completed (if CIVORA is in scope; counsel to confirm).
+- Regulatory deadline, acknowledgement and ROGS760 statement tests pass ([validation/product-validation-report.md](validation/product-validation-report.md) §9, criteria A1–A5).
 - WCAG 2.2 AA audit of console and status page passed.
 - DPIA template and processor agreement reviewed by counsel.
 - 2 design partners validate workflows and reports on synthetic data or properly authorised test data (P1-D5).
@@ -181,8 +218,14 @@ Only obligations reported in available sources are listed. **Exact deadlines, re
 
 | ID | Question | Owner | By |
 |---|---|---|---|
-| Q-01 | Exact deadlines, admissibility rules and other obligations in the official text of BCT 2022-08 and any amendments | Counsel / founder | Day 30 |
-| Q-02 | Required format of the annual board report and any regulator statistics | Design partners / BCT guidance | Day 60 |
-| Q-03 | Do BCT outsourcing / IT-risk rules require notification or approval when a bank uses a SaaS provider? | Counsel | Day 30 |
-| Q-04 | Do insurers (CGA) and telecom operators (INT) have equivalent complaint rules? | Research | Day 60 |
-| Q-05 | Which complaint tools do banks already use (incumbents, satisfaction)? | Discovery | Day 60 |
+| Q-01 | Exact deadlines, admissibility rules and other obligations in the official text of BCT 2022-08 and any amendments | Counsel / founder | **Answered from the official text (18 Nov 2026)**: [validation/bct-regulatory-verification.md](validation/bct-regulatory-verification.md). No amendment found [U]; counsel to confirm (Q-10) |
+| Q-02 | Required format of the annual board report and any regulator statistics | Design partners / BCT guidance | **Partly answered:** board report format is free (Art. 10); ROGS760 content is fixed by Annex 3 (annual, XML, DR + 45 days). **XML schema still to obtain** (Q-09) |
+| Q-03 | Do BCT outsourcing / IT-risk rules require notification or approval when a bank uses a SaaS provider? | Counsel | **Partly answered:** Law 2016-48 Art. 81 requires prior information of the BCT before signing an outsourcing contract (one month of silence = acceptance). Whether SaaS complaint handling is "externalisation", and the content of Circular 2006-01, need counsel (Q-08) |
+| Q-04 | Do insurers (CGA) and telecom operators (INT) have equivalent complaint rules? | Research | **Partly answered:** insurance has CGA Regulation 01/2023 (cited by the OIF [V][S166]; text not read). Microfinance has a 2016 client-protection order. Telecoms not researched |
+| Q-05 | Which complaint tools do banks already use (incumbents, satisfaction)? | Discovery | Open (E-05) |
+| Q-06 | Legal retention period for Annex 1 information | Counsel | Open |
+| Q-07 | May the 15-working-day period be suspended while awaiting customer information? | Counsel | Open |
+| Q-08 | Is a hosted complaint SaaS an outsourcing under Law 2016-48 Art. 81? What does Circular 2006-01 require? | Counsel | Open |
+| Q-09 | Where are the ROGS760 and RAA10/RAA20 XML schemas published, and can a vendor obtain them? | Founder / design partner | Open |
+| Q-10 | Any amendment to 2022-08? Entry-into-force date of 2026-10? | Counsel | Open |
+| Q-11 | Do non-resident banks and investment banks file ROGS760 in practice? | Design partner | Open |

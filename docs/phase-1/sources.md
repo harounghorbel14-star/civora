@@ -1,4 +1,4 @@
-# Phase 1 Sources (S120–S158)
+# Phase 1 Sources (S120–S180)
 
 Phase 0 sources **S1–S119** remain valid and are listed in [../phase-0/sources.md](../phase-0/sources.md). The sources below were added during the Phase 1 v2.0 update (research cut-off 18 November 2026).
 
@@ -25,8 +25,8 @@ Press, secondary and vendor items correspond to the **[P]** evidence label.
 | S129 | Tunisia accelerates dematerialisation of municipal services | Acteurs publics | n.d. | Press | https://acteurspublics.fr/articles/la-tunisie-accelere-la-dematerialisation-des-services-municipaux/ |
 | S130 | STEG electricity bills payable online | L'Économiste Maghrébin | Mar 2020 | Press | https://www.leconomistemaghrebin.com/2020/03/17/paiement-factures-electricite-disponible-ligne-steg/ |
 | S131 | SONEDE adopts card-terminal payment nationwide (see also Idaraty SONEDE online payment page) | Tunisie Numérique | 2025/26 | Press | https://www.tunisienumerique.com/factures-deau-la-sonede-adopte-le-paiement-par-tpe-a-lechelle-nationale/ |
-| S132 | BCT banking supervision figures for 2025: 29 banks (22 resident, 7 non-resident), 18 financial institutions incl. 6 payment institutions | Tuniscope | 5 Nov 2026 | Press | https://www.tuniscope.com/article/444005/actualites/societe/comptes-bancaires-412409 |
-| S133 | OFT Tunisie (Ooredoo FinTech) licensed by BCT; 16 licensed payment-service providers | WebManagerCenter | 16 Mar 2026 | Press | https://www.webmanagercenter.com/2026/03/16/563259/paiement-electronique-en-tunisie-oft-tunisie-filiale-dooredoo-fintech-officiellement-agreee-par-la-bct/ |
+| S132 | BCT banking supervision figures for 2025: 29 banks (22 resident, 7 non-resident), 18 financial institutions incl. 6 payment institutions. *Confirmed by the official report S165* | Tuniscope | 5 Nov 2026 | Press | https://www.tuniscope.com/article/444005/actualites/societe/comptes-bancaires-412409 |
+| S133 | OFT Tunisie (Ooredoo FinTech) licensed by BCT; 16 licensed payment-service providers. *The "16" is superseded: the official BCT report S165 lists 7 payment institutions (6 + Walletii by Ooredoo, 2026)* | WebManagerCenter | 16 Mar 2026 | Press | https://www.webmanagercenter.com/2026/03/16/563259/paiement-electronique-en-tunisie-oft-tunisie-filiale-dooredoo-fintech-officiellement-agreee-par-la-bct/ |
 | S134 | BCT: mobile payment up 80.5% in 2025 | AllAfrica (La Presse) | Jul 2026 | Press | https://fr.allafrica.com/stories/202607080538.html |
 | S135 | Tunisia's Avatar-ID (Thinkneo) automates remote customer identity verification | We Are Tech Africa | 2025/26 | Press | https://www.wearetech.africa/en/fils-uk/solutions/tunisia-s-avatar-id-uses-ai-to-automate-remote-customer-identity-verification |
 | S136 | NGSIGN and Kaoun to offer complete, 100% Tunisian e-KYC solutions | WebManagerCenter | Dec 2021 | Press | https://www.webmanagercenter.com/2021/12/07/476886/ngsign-et-kaoun-vont-offrir-de-solutions-dekyc-completes-et-100-tunisiennes/ |
@@ -34,7 +34,7 @@ Press, secondary and vendor items correspond to the **[P]** evidence label.
 | S138 | Veriff plans and pricing (aggregator) | Costbench | 2026 | Secondary | https://www.costbench.com/software/kyc-aml/veriff/ |
 | S139 | Middle East & Africa identity verification market (~US$1.17bn 2025 → US$2.38bn 2030) | MarketsandMarkets | 2025 | Secondary (analyst) | https://www.marketsandmarkets.com/PressReleases/middle-east-africa-identity-verification.asp |
 | S140 | Global identity verification market statistics | IMARC Group | 2025 | Secondary (analyst) | https://www.imarcgroup.com/identity-verification-market-statistics |
-| S141 | BCT Circular 2022-08 on customer complaint handling (copy of circular) | WebManagerCenter (hosting BCT circular) | Oct 2022 | Primary-copy | https://cdn2.webmanagercenter.com/wmc/wp-content/uploads/2022/10/BCT_Circulaire2022_08_reclamations_clients.pdf |
+| S141 | BCT Circular 2022-08 on customer complaint handling (copy of circular). **Byte-identical to the official BCT file S159** (SHA-256 checked 18 Nov 2026) | WebManagerCenter (hosting BCT circular) | Oct 2022 | Primary-copy | https://cdn2.webmanagercenter.com/wmc/wp-content/uploads/2022/10/BCT_Circulaire2022_08_reclamations_clients.pdf |
 | S142 | Banks: BCT sets the rules for handling customer complaints | Le Temps | 22 Oct 2022 | Press | https://letemps.news/2022/10/22/banques-la-bct-fixe-les-regles-du-traitement-des-reclamations-des-clients |
 | S143 | IyedeX — 3amAli Derja conversational assistant (agency profile) | Sortlist | 2025/26 | Vendor | https://www.sortlist.com/fr/agency/iyedex |
 | S144 | AI partner listings (agentic/conversational platforms for banks and insurers) | b2match — Forum Méditerranée IA | Oct–Nov 2025 | Vendor (low reliability) | https://www.b2match.com/e/forum-mediterranee-ia/opportunities/UGFydGljaXBhdGlvbk9wcG9ydHVuaXR5OjE5MTIyNQ== |
@@ -59,11 +59,40 @@ Press, secondary and vendor items correspond to the **[P]** evidence label.
 | S157 | US application CIVORA, serial 99869258, Class 37, EverClean Services LLC, pending | Markinton (aggregator of USPTO data) | Jun 2026 | Secondary | https://markinton.com/trademark/civora-99869258 |
 | S158 | Alternative-name screening: SELORA listing; T TELORI (Class 42) | Serchen; Markinton | 2026 | Secondary | https://serchen.com/company/selora · https://markinton.com/trademark/t-telori-99791225 |
 
+### Added in v2.2 (Phase 1 completion and validation mission, 18 Nov 2026)
+
+Network access to the official hosts was granted for this mission. Files were downloaded and read on 18 Nov 2026.
+
+| ID | Title / description | Publisher | Date | Type | URL |
+|---|---|---|---|---|---|
+| S159 | **BCT Circular 2022-08** "Politiques et mesures de traitement des réclamations de la clientèle" (Art. 1–15, Annexes 1–3). SHA-256 `0e4b998897235859b9f9169cea5de6b717259c3a7c18cf15e9dd569e0f287810` | Banque Centrale de Tunisie | 20 Oct 2022 | **Official** | https://www.bct.gov.tn/bct/siteprod/documents/Cir_2022_08_fr.pdf |
+| S160 | BCT press release on Circular 2022-08 | Banque Centrale de Tunisie | Oct 2022 | Official | https://www.bct.gov.tn/bct/siteprod/actualites.jsp?id=976 |
+| S161 | **BCT Circular 2026-10**, rules for payment institutions (replaces 2018-16; Art. 11, 39, 48, 49, 51; Annex 1 bis RAA10/RAA20). Text read from the Business News copy; the BCT-hosted file was not text-extractable | Banque Centrale de Tunisie (copy: Business News) | 25 Sep 2026 | Primary-copy | https://businessnews.com.tn/wp-content/uploads/2026/09/yA1IYG-Cir_2026_10_fr.pdf · https://www.bct.gov.tn/bct/siteprod/documents/Cir_2026_10_fr.pdf |
+| S162 | BCT Circular 2020-11, domestic mobile payment (Art. 2, 9, 11, 12, 44) | Banque Centrale de Tunisie | 18 May 2020 | Official | https://www.bct.gov.tn/bct/siteprod/documents/Cir_2020_11_fr.pdf |
+| S163 | BCT Circular 2018-16, payment institutions (Art. 33–35); repealed by S161 when S161 enters into force | Banque Centrale de Tunisie | 31 Dec 2018 | Official | https://www.bct.gov.tn/bct/siteprod/documents/Cir_2018_16_fr.pdf |
+| S164 | BCT Circular 2006-19, internal control (Art. 52: annual internal-control report) | Banque Centrale de Tunisie | 28 Nov 2006 | Official | https://www.bct.gov.tn/bct/siteprod/documents/Cir_2006_19_fr.pdf |
+| S165 | **BCT Annual Banking Supervision Report 2025**: institution counts by category; ownership lists; licensed payment institutions; complaint handling in inspection scope | Banque Centrale de Tunisie | Oct 2026 | **Official** | https://www.bct.gov.tn/bct/siteprod/documents/sup_bc_fr.pdf |
+| S166 | **Annual Report on Banking Mediation 2024**: 506 complaints; rejection reasons; mediator deadline statistics 2022–2024; OIF study on internal complaint systems | Observatoire de l'Inclusion Financière / BCT | Dec 2025 | **Official** | https://www.bct.gov.tn/bct/siteprod/documents/RAPPORT_ANNUEL_MEDIATION_BANCAIRE_FR.pdf |
+| S167 | **Law 2016-48** on banks and financial institutions (JORT 15 Jul 2016): Art. 18 (FI definition), 61 (professional secrecy), 81 (outsourcing), 82 (customer protection) | JORT (copy: Conseil du Marché Financier) | 11 Jul 2016 | Primary-copy (regulator) | https://www.cmf.tn/sites/default/files/pdfs/reglementation/textes-reference/loi2016_48_fr.pdf |
+| S168 | **Organic Law 2004-63** on personal data protection: Art. 7–24, 50–52, 62–65 read | JORT (copy: Institut National de la Statistique) | 27 Jul 2004 | Primary-copy (public body) | https://www.ins.tn/sites/default/files/2020-04/Loi%2063-2004%20Fr.pdf |
+| S169 | **Decree-law 2023-17** on cybersecurity: Art. 2, 6–8, 10–15, 17–22, 24, 30 read | Legislation-securite.tn (Tunisian security-sector legislation database) | 11 Mar 2023 | Primary-copy | https://legislation-securite.tn/latest-laws/decret-loi-n-2023-17-du-11-mars-2023-relatif-a-la-cybersecurite/ |
+| S170 | BCT Circular 2025-06, electronic enrolment of customers (Art. 14–15: third-party providers) | Banque Centrale de Tunisie | 28 Feb 2025 | Official | https://www.bct.gov.tn/bct/siteprod/documents/Cir_2025_06_fr.pdf |
+| S171 | BCT Circular 2017-06, accounting, prudential and statistical reporting (amended by S159 Annex 2 and S161 Annex 1 bis) | Banque Centrale de Tunisie | 31 Jul 2017 | Official | https://www.bct.gov.tn/bct/siteprod/documents/Cir_2017_06_fr.pdf |
+| S172 | BCT Circular 2021-05, governance of banks and FIs (customer-protection policy referred to by S159 Art. 3). Downloaded; not analysed | Banque Centrale de Tunisie | 19 Aug 2021 | Official | https://www.bct.gov.tn/bct/siteprod/documents/Cir_2021_05_fr.pdf |
+| S173 | Registry RDAP records for kelora / telora / nasaq / civora (.com, .net): creation dates, registrars, name servers | Verisign (authoritative .com/.net registry) | Retrieved 18 Nov 2026 | Official (registry) | https://rdap.verisign.com/com/v1/domain/kelora.com (same pattern for each name and TLD) |
+| S174 | WIPO Global Brand Database: access attempted; requires an interactive human-verification challenge, **not bypassed** | WIPO | 18 Nov 2026 | Official (limitation record) | https://branddb.wipo.int/ |
+| S175 | KELORA screening: an abandoned 2016 US application by an individual (TrademarkDir record; URL withheld because it names a private person); Kelora Systems, LLC (1995 software mark owner); near marks KAELORA, KELTORA | Justia; Markinton; TrademarkDir | 1995–2026 | Secondary | https://trademarks.justia.com/owners/kelora-systems-llc-753856 · https://markinton.com/trademark/kaelora-99457862 · https://markinton.com/trademark/keltora-99455612 |
+| S176 | INNORPI (Tunisian IP office) website: access attempted; TLS certificate verification failed; **not bypassed** | INNORPI | 18 Nov 2026 | Official (limitation record) | https://www.innorpi.tn/ |
+| S177 | TELORA screening: TELORICS (US 99306313, classes 9/42); TELERA, Inc. (software mark); "Telora" listed on Capterra (conversational AI); Tellora (AI sales platform) | TrademarkElite; Justia; Capterra; Product Hunt | 2025–2026 | Secondary / vendor | https://www.trademarkelite.com/trademark/trademark-detail/99306313/TELORICS · https://trademarks.justia.com/owners/telera-inc-1008295 · https://www.capterra.co.nz/software/1327653/Telora · https://www.producthunt.com/posts/1151300 |
+| S178 | NASAQ screening: Nassaq Enterprise (construction e-tendering platform); NASAQ (Riyadh channel partner); Nasq Al Tatawwar Electronic Publishing (Riyadh, 2024) | ProTenders; Elioplus; Decypha | 2024–2026 | Secondary | https://www.protenders.com/en/companies/nassaq-enterprise · https://elioplus.com/profiles/channel-partners/126310/nasaq · https://www.decypha.com/en/company-list/Nasq-Al-Tatawwar-Electronic-Publishing-Co-278496 |
+| S179 | Data-protection law reform: ARP committee hearings (Feb 2026) and examination (May 2026) | Business News; AllAfrica (La Presse) | Feb–May 2026 | Press | https://businessnews.com.tn/2026/02/18/arp-audition-autour-du-projet-de-loi-sur-la-protection-des-donnees-personnelles/1388983/ · https://fr.allafrica.com/stories/202605210089.html |
+| S180 | Circular 2026-10 coverage: rectified version (28 Sep 2026); entry into force three months after publication; annual security audit for payment institutions | Managers; La Presse; Webdo | Sep 2026 | Press | https://managers.tn/2026/09/28/circulaire-sur-les-etablissements-de-paiement-la-bct-publie-une-version-rectifiee/ · https://www.lapresse.tn/2026/09/27/bct-de-nouvelles-regles-pour-les-etablissements-de-paiement/ · https://www.webdo.tn/fr/actualite/national/paiement-mobile-la-bct-durcit-les-regles-et-impose-un-audit-cyber-annuel/404596/ |
+
 ## Primary documents to obtain (Phase 1 90-day plan)
 
-1. Official BCT Circular 2022-08 (BCT site or JORT No. 117 of 1 Nov 2022) and any amendments.
-2. Latest annual report of the banking mediator (complaint deadline statistics).
-3. BCT annual banking supervision report 2025 (institution counts).
-4. BCT rules on outsourcing / IT risk applicable to banks and payment institutions.
+1. ✅ Official BCT Circular 2022-08: **obtained** (S159). JORT copy and any amendments: counsel to confirm (Q-10).
+2. ✅ Latest annual report of the banking mediator: **obtained** (S166, year 2024).
+3. ✅ BCT annual banking supervision report 2025: **obtained** (S165).
+4. Partly: Law 2016-48 Art. 81 (S167) and Circular 2025-06 Art. 14–15 (S170) obtained. **Circular 2006-01 (outsourcing) still to obtain.**
 5. CGA (insurance) and INT (telecom) complaint-handling rules, if any.
 6. Official trademark register entries (DPMA/EUIPO) for DKSR's CIVORA mark, and INNORPI search results. Attorney to obtain.

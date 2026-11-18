@@ -13,7 +13,7 @@
 ## 10.1 Recommendation
 
 > **CIVORA Workspace — Regulated Finance edition**
-> A complaints and customer-request case-management platform for Tunisian banks, financial institutions and payment providers. It is built so that institutions meet BCT Circular 2022-08 and resolve customer issues on time, with a full audit trail. It is hosted in Tunisia or on the customer's premises, and is Arabic/French native.
+> A complaints and customer-request case-management platform for Tunisian banks and financial institutions (and, with a separate rule pack, payment institutions). It is built to support institutions in meeting BCT Circular 2022-08 and resolve customer issues on time, with a full audit trail. It is hosted in Tunisia or on the customer's premises, and is Arabic/French native.
 
 It is the first product **of the shared Workspace engine**. The same engine powers the Government Workspace (Division A) and later editions for insurers, telecom operators and utilities.
 
@@ -23,8 +23,8 @@ It is the first product **of the shared Workspace engine**. The same engine powe
 |---|---|---|
 | Ranked first in weighted scoring | 66.6 / 100, #1 under all three weightings | [09](09-opportunity-scoring-matrix.md) |
 | Verified regulatory requirement | BCT Circular 2022-08 (20 Oct 2022): complaint-handling policies as first level before the mediator; customers informed of procedures, deadlines and mediation; **written reasons for any rejection**; **dedicated IT solution (Art. 9)**; correspondent to mediator/BCT; annual report to the board | [P][S141][S142]. Full official text to be retrieved and archived (90-day plan) |
-| Evidence of pain | 23.5% of admissible complaints exceeded regulatory deadlines (2020 mediation report; must be refreshed) | [P][S142] |
-| Countable buyers | 29 banks, 18 financial institutions (end-2025); 16 licensed payment providers (Mar 2026) | [P][S132][S133] |
+| Evidence of pain | **Obligation verified** (Art. 8–9, 14 of BCT 2022-08) [V][S159]. **Pain unverified**: the earlier 23.5% figure measured mediators, not banks, and is withdrawn [V][S166]. Compliance was due in 2023, so incumbents are likely | [validation/bct-regulatory-verification.md](validation/bct-regulatory-verification.md) |
+| Countable buyers | 41 institutions under 2022-08 (29 banks, 8 leasing, 2 factoring, 2 investment banks); 7 payment institutions under 2026-10/2020-11 | [V][S165] |
 | Growing segment | Mobile payments +80.5% in 2025 → more fintech customers and complaints | [P][S134] |
 | Buildable with low technical risk | Workflow, documents, notifications, audit — no biometrics, no health data, no government registry access | — |
 | Strategic leverage | Builds the exact shared capabilities Government needs (sector 20 complaints/tracking; sectors 09, 11, 16) | [06](06-tunisia-government-service-mapping.md) §6.4 |
@@ -34,9 +34,10 @@ It is the first product **of the shared Workspace engine**. The same engine powe
 
 | Segment | Count (evidence) | Why first | Sequence |
 |---|---|---|---|
-| **Payment providers / payment institutions** | 16 licensed PSPs (Mar 2026) [P][S133]; 6 payment institutions in the BCT 2025 report [P][S132] | New, fast-growing, lean compliance teams, likely no legacy complaint tooling; shorter decisions | **Design partners 1–2** |
-| **Mid-size resident banks** (non-top-5) | Part of 22 resident banks [P][S132] | Regulatory requirement; budgets; need customer-facing tracking | **Design partners 2–3** |
-| **Specialised banks & financial institutions** (microfinance/SME banks, leasing, factoring) | 2 SME/micro-project banks + 8 leasing + 2 factoring [P][S132] | High-volume simple cases; underserved | Early customers |
+| **Mid-size resident banks** (non-top-5) | Part of 22 resident banks [V][S165] | Art. 9 dedicated IT solution required; budgets; need customer-facing tracking | **Design partners 1–2** |
+| **Leasing and factoring companies; SME/micro-project banks** | 8 leasing + 2 factoring; 2 SME/micro-project banks (BTS, BFPME) [V][S165] | Covered by 2022-08; smaller teams; possibly underserved | **Design partner 3**; early customers |
+| **Payment institutions** | 7 licensed (6 end-2025 + Walletii 2026) [V][S165] | Fast-growing, likely little legacy tooling, but **not covered by 2022-08**: Circular 2026-10 (from ~Dec 2026) and 2020-11 (mobile payment, 7 working days). Weaker regulatory pull; demand to prove | Validate in discovery; separate rule pack |
+| *Microfinance institutions* | Not BCT-licensed; Ministry of Finance client-protection order (2016) [V][S166] | Different regime | Later |
 | **Large banks** | Top resident banks | Highest value; slowest; likely incumbent systems | After 2–3 references |
 | **Expansion editions** | Insurers [A], telecom operators, utilities (STEG/SONEDE) | Same workflow pattern | Phase 14 |
 
@@ -103,7 +104,7 @@ The phase-by-phase table is in [roadmap-protection-matrix.md](roadmap-protection
   - co-design of templates and reports
 - **Founder-led sales**, then a regulated-industries sales lead.
 - **Partners:** compliance consultancies and audit firms, banking-software integrators.
-- **Pricing tiers** (experimental hypotheses, P1-D9): Starter (payment providers) / Professional (mid-size banks) / Enterprise (large banks, on-prem), plus implementation fee.
+- **Pricing tiers** (experimental hypotheses, P1-D9): Starter (leasing/factoring, payment institutions) / Professional (mid-size banks) / Enterprise (large banks, on-prem), plus implementation fee.
 
 ## 10.7 Kill / pivot criteria (by end of the 90-day plan)
 
@@ -112,7 +113,7 @@ The phase-by-phase table is in [roadmap-protection-matrix.md](roadmap-protection
 | Qualified interest | < 3 of 15 institutions confirm budget and timeline | Re-score; consider E2 or Government-first with donor funding |
 | Design partners | < 2 signed design-partner agreements | Same |
 | Regulatory blocker | Counsel finds outsourcing/hosting barriers that customers cannot accept | Shift to on-prem licence model or reconsider |
-| Incumbent lock-in | > 70% of banks interviewed satisfied with an installed tool | Narrow to payment providers/microfinance; test insurance edition |
+| Incumbent lock-in | > 70% of banks interviewed satisfied with an installed tool (H-R6 refuted) | Narrow to leasing/factoring and the payment-institution rule pack; test insurance edition; or revisit P1-D3 |
 
 ## 10.8 Long-term expansion from this product
 

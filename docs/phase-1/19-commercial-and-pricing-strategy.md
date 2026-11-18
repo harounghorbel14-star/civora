@@ -89,10 +89,12 @@ Donor-funded and co-financed options remain as in Phase 0. Citizens are never ch
 |---|---|---|
 | Qualified discovery conversations | ≥ 15 | Day 60 |
 | Design-partner agreements | ≥ 2 signed (target 3) | Day 90 → M9 |
-| Production pilots | 2–3 | Phase 13 (~M14) |
-| Paying customers | 6 | ~M23 |
-| Paying customers | 14 | ~M35 |
-| First public-institution Workspace contract | 1 | ~M16–M24 (donor or direct) |
+| Production pilots | 2–3 | Phase 13 (~M17–M18 under the approved overlapping execution model, P1-D4) |
+| Paying customers | 6 | ~M27 |
+| Paying customers | 12 | ~M36 |
+| First public-institution Workspace contract | 1 | ~M20–M28 (donor or direct; after the Phase 13 Government pilot starts) |
+
+*Timing corrected on 18 Nov 2026 to match the v3/v4 baseline under the approved execution model ([20](20-updated-financial-assumptions.md) §20.6–§20.7). The earlier targets (~M14, 6 customers by ~M23, 14 by ~M35) came from v2.0, before full-scope phases were restored. These are **planning targets, not forecasts or commitments**.*
 
 ## 19.6 Contract principles
 

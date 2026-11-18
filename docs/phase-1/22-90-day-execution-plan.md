@@ -6,6 +6,11 @@
 - This plan **supersedes** the engineering stream in Phase 0 §20, which assumed Phase 2 would run in parallel (conflict C2).
 
 > **Founder review (18 Nov 2026):** the evidence items E-01–E-15 in [validation-evidence-register.md](validation-evidence-register.md) are the checklist for this plan. Phase 1 approval (P1-D12) remains **pending** until they are documented as met or explicitly waived.
+>
+> **Status 18 Nov 2026 (completion and validation mission):**
+> - The desk work is done: official BCT text, legal matrix, name evaluation, financial v4, product validation, interview and design-partner packages.
+> - The remaining items need the founder, counsel or institutions. See the [readiness report](phase-1-readiness-report.md) §7 for the exact actions.
+> - Week-1 items already completed at desk level are marked ✅ below.
 
 ## 22.1 Objectives by Day 90
 
@@ -21,7 +26,7 @@
 
 | Week | Market validation (Workspace RF) | Regulatory & legal | Design & research | Government track | Company |
 |---|---|---|---|---|---|
-| 1 | Build target list: 22 resident banks, FIs, 16 PSPs, microfinance [P][S132][S133]; prioritise ICP-1/2/3 | Engage counsel (Q1–Q18) and a **trademark attorney** (CIVORA + shortlist, E-11); request official BCT 2022-08 text; send the design-partner template to counsel (E-12) | Plan research; recruit agents/customers for tests | Restart citizen/officer research (kit) | Record P1 decisions taken so far |
+| 1 | ✅ Target list built from the BCT 2025 report [V][S165] (15 + 11 reserves, [data/fi-target-institutions.csv](data/fi-target-institutions.csv)); founder to confirm and start outreach | Engage counsel (Q1–Q18, Q-06–Q-11, legal matrix) and a **trademark attorney** (KELORA first, E-11); ✅ official BCT 2022-08 text obtained and analysed; send the design-partner template and package to counsel (E-12) | Plan research; recruit agents/customers for tests | Restart citizen/officer research (kit) | Record P1 decisions taken so far |
 | 2–3 | First 6 discovery interviews (Head of Customer Relations, Compliance); **map buyer roles and purchasing steps** (E-03) | Domain and handle checks via registrar; native-speaker name review | Hi-fi design of queue and case screens | Citizen interviews (target 30 over 6 weeks) | Pre-seed materials updated for first product |
 | 4 | +5 interviews; map incumbents and satisfaction | Counsel interim memo (Q13–Q16 priority) | Hi-fi intake, status page AR/FR | Civil-servant interviews (≥ 10) | — |
 | 5 | Draft design-partner agreement (sandbox, fee credited to year-1) | Obtain the mediator's latest annual report (deadline statistics) | Clickable prototype v1 (Workspace RF) | Donor conversations (Phase 0 list) | — |
@@ -37,7 +42,7 @@
 
 | Area | Target |
 |---|---|
-| Discovery | ≥ 15 financial institutions interviewed (≥ 5 PSPs, ≥ 5 banks, ≥ 3 FIs/microfinance) |
+| Discovery | 15 financial institutions interviewed (≥ 7 banks, ≥ 3 leasing/factoring, ≥ 3 payment institutions; revised after the BCT verification) |
 | Evidence | Top pains ranked; incumbent map; satisfaction measured; willingness-to-pay range per tier |
 | Commercial | ≥ 2 design-partner agreements (target 3); ≥ 5 qualified opportunities |
 | Regulatory | Official BCT 2022-08 text archived; counsel memo Q1–Q18; outsourcing position clear |
@@ -50,6 +55,6 @@
 
 | Outcome | Condition | Action |
 |---|---|---|
-| **Approve Phase 1 → start Phase 2** | Evidence register items met or explicitly waived by the founder; first product confirmed (P1-D3); execution mode chosen (P1-D4a); funding target committed only after E-01/E-04/E-08 (P1-D7) | Phase 2 (Technical Architecture) for the shared platform + Workspace RF |
+| **Approve Phase 1 → start Phase 2** | Evidence register items met or explicitly waived by the founder; first product confirmed (P1-D3); execution mode chosen (✅ P1-D4 approved 18 Nov 2026: overlapping independent activities); funding target committed only after E-01/E-04/E-08 (P1-D7) | Phase 2 (Technical Architecture) for the shared platform + Workspace RF |
 | **Approve with pivot** | B1 weak but E2 or A2 strong | Revise first product; update PRD; then Phase 2 |
 | **Extend Phase 1** | Insufficient evidence | +30–45 days of discovery; no Phase 2 |

@@ -1,0 +1,27 @@
+code,institution,segment_bct,ownership_bct_2025,regulatory_regime,priority,hypotheses_tested,contact_route,contact_status,source
+FI-01,BIAT,Resident bank (universal),Private Tunisian capital,BCT 2022-08,Primary,H-R1;H-R6,Official website / professional network (role: head of complaint structure or compliance),Not contacted,S165
+FI-02,Attijari Bank,Resident bank (universal),Foreign capital,BCT 2022-08,Primary,H-R6;E-03,Official website / professional network,Not contacted,S165
+FI-03,Amen Bank,Resident bank (universal),Private Tunisian capital,BCT 2022-08,Primary,H-R1;H-R2,Official website / professional network,Not contacted,S165
+FI-04,UIB,Resident bank (universal),Foreign capital,BCT 2022-08,Primary,E-03,Official website / professional network,Not contacted,S165
+FI-05,QNB Tunisia,Resident bank,Foreign capital,BCT 2022-08,Primary,H-R4,Official website / professional network,Not contacted,S165
+FI-06,STB,Resident bank,Public (State),BCT 2022-08,Primary,E-03 (public procurement),Official website / professional network,Not contacted,S165
+FI-07,BNA,Resident bank,Public (State),BCT 2022-08,Primary,E-03;H-R1,Official website / professional network,Not contacted,S165
+FI-08,Banque Zitouna,Resident bank (Islamic),Foreign capital,BCT 2022-08,Primary,H-R1,Official website / professional network,Not contacted,S165
+FI-09,Tunisie Leasing et Factoring (TLF),Leasing company,Not stated in BCT report,BCT 2022-08,Primary,H-R2;H-R4,Official website / professional network,Not contacted,S165
+FI-10,Compagnie Internationale de Leasing (CIL),Leasing company,Not stated in BCT report,BCT 2022-08,Primary,H-R2,Official website / professional network,Not contacted,S165
+FI-11,Hannibal Lease,Leasing company,Not stated in BCT report,BCT 2022-08,Primary,H-R2;H-R4,Official website / professional network,Not contacted,S165
+FI-12,Best Lease,Leasing company,Not stated in BCT report,BCT 2022-08,Primary,H-R2,Official website / professional network,Not contacted,S165
+FI-13,Wafacash,Payment institution (licensed 12/10/2022),Attijariwafa Bank group,BCT 2026-10;BCT 2020-11,Primary,H-R2;H-R7,Official website / professional network,Not contacted,S165
+FI-14,Payvago,Payment institution (licensed 23/02/2023),Poulina Holding,BCT 2026-10;BCT 2020-11,Primary,E-03,Official website / professional network,Not contacted,S165
+FI-15,Walletii by Ooredoo,Payment institution (licensed 29/01/2026),Ooredoo FinTech International LLC,BCT 2026-10;BCT 2020-11,Primary,H-R2;H-R5,Official website / professional network,Not contacted,S165
+FI-R01,BH Bank,Resident bank,Public (State),BCT 2022-08,Reserve,E-03,Official website / professional network,Not contacted,S165
+FI-R02,ATB,Resident bank,Foreign capital,BCT 2022-08,Reserve,H-R6,Official website / professional network,Not contacted,S165
+FI-R03,BT (Banque de Tunisie),Resident bank,Foreign capital,BCT 2022-08,Reserve,H-R6,Official website / professional network,Not contacted,S165
+FI-R04,UBCI,Resident bank,Private Tunisian capital,BCT 2022-08,Reserve,H-R6,Official website / professional network,Not contacted,S165
+FI-R05,Arab Tunisian Lease (ATL),Leasing company,Not stated in BCT report,BCT 2022-08,Reserve,H-R2,Official website / professional network,Not contacted,S165
+FI-R06,Attijari Leasing,Leasing company,Not stated in BCT report,BCT 2022-08,Reserve,H-R2,Official website / professional network,Not contacted,S165
+FI-R07,BH Leasing,Leasing company,Not stated in BCT report,BCT 2022-08,Reserve,H-R2,Official website / professional network,Not contacted,S165
+FI-R08,Viamobile,Payment institution (licensed 01/04/2021),Meninx Holding,BCT 2026-10;BCT 2020-11,Reserve,H-R2,Official website / professional network,Not contacted,S165
+FI-R09,Zitouna Payment,Payment institution (licensed 24/11/2021),Zitouna Bank,BCT 2026-10;BCT 2020-11,Reserve,H-R2,Official website / professional network,Not contacted,S165
+FI-R10,First Pay,Payment institution (licensed 12/07/2024),Amen Bank,BCT 2026-10;BCT 2020-11,Reserve,H-R2,Official website / professional network,Not contacted,S165
+FI-R11,Enda Tao,Payment institution (licensed 19/09/2022),Enda inter arabe,BCT 2026-10;BCT 2020-11,Reserve,H-R2,Official website / professional network,Not contacted,S165

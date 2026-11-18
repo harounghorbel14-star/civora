@@ -87,6 +87,10 @@
 
 ## 6.7 Name investigation (founder request, 18 Nov 2026)
 
+> **Follow-up (P1-D13 approved as an evaluation, 18 Nov 2026):** the weighted evaluation of KELORA, TELORA and NASAQ is in [../validation/company-name-evaluation.md](../validation/company-name-evaluation.md).
+> - KELORA is the strongest desk candidate, subject to attorney clearance. **No final name is selected.**
+> - Registry checks have since been possible for .com/.net. **civora.com is registered** (since 2013) [V][S173], so the "Domains … not verifiable" row below is superseded for those TLDs.
+
 **Method and limits:**
 - This is desk screening only: web search and trademark aggregators.
 - Official registers could not be queried from the research environment: INNORPI (Tunisia), EUIPO/DPMA, WIPO Global Brand Database and USPTO TSDR.
