@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 64" role="img" aria-labelledby="t">
+  <title id="t">CIVORA logo, horizontal (concept v0.1, Latin wordmark only)</title>
+  <rect width="64" height="64" rx="16" fill="#0F5551"/>
+  <path d="M44.5 21.5A15 15 0 1 0 44.5 42.5" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="32" cy="32" r="5" fill="#F2C25C"/>
+  <text x="80" y="43" font-family="IBM Plex Sans, Noto Sans, Segoe UI, sans-serif" font-size="30" font-weight="600" letter-spacing="3" fill="#0F5551">CIVORA</text>
+</svg>

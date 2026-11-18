@@ -38,15 +38,22 @@ Record each decision as: **Approved / Approved with changes / Rejected**, with d
 
 ## Approval record
 
+On **18 November 2026** the founder instructed: *"Okay do next phase."* This is recorded as **approval of Phase 0 with decisions D1–D10 adopted as recommended**. Any decision can be revised by the founder at any time; a revision triggers an update of the affected sections.
+
 | Decision | Status | Date | Notes |
 |---|---|---|---|
-| D1 | Pending | | |
-| D2 | Pending | | |
-| D3 | Pending | | |
-| D4 | Pending | | |
-| D5 | Pending | | |
-| D6 | Pending | | |
-| D7 | Pending | | |
-| D8 | Pending | | |
-| D9 | Pending | | |
-| D10 | Pending | | |
+| D1 | Approved (as recommended) | 2026-11-18 | Founder go-ahead |
+| D2 | Approved (as recommended) | 2026-11-18 | Founder go-ahead |
+| D3 | Approved (as recommended) | 2026-11-18 | Staged funding; pre-seed sizing to be confirmed with real quotes |
+| D4 | Approved (as recommended) | 2026-11-18 | Counsel engagement is a 90-day-plan action |
+| D5 | Approved (as recommended) | 2026-11-18 | MVP scope per Section 18 |
+| D6 | Approved (as recommended) | 2026-11-18 | Citizen Data Charter v1 drafted in Phase 1 |
+| D7 | Approved (as recommended) | 2026-11-18 | Stack confirmed for Phase 2 ADRs |
+| D8 | Approved (as recommended) | 2026-11-18 | Re-sequenced roadmap |
+| D9 | Approved (as recommended) | 2026-11-18 | Hosting policy |
+| D10 | Approved (as recommended) | 2026-11-18 | AI model policy |
+| D11 | Pending | | Tier 2 |
+| D12 | Pending — **new finding** | | Phase 1 found that the natural Arabic transliteration of "CIVORA" (سيفورا) is the Arabic brand name used by Sephora in the Middle East. See `docs/phase-1/06-brand-identity.md` |
+| D13 | Pending | | Tier 2 |
+| D14 | Pending | | Tier 2 |
+| D15 | Pending | | Tier 2 |
