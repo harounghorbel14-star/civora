@@ -1,5 +1,7 @@
 # 19. Commercial and Pricing Strategy
 
+> **Founder review (P1-D9): all prices in this document are EXPERIMENTAL PRICING HYPOTHESES** until tested with prospective institutional customers (evidence E-04, E-06). They must not be quoted to customers as a price list.
+
 All prices are **hypotheses [A]** to test with design partners. Prices exclude VAT. 1 USD = 2.969 TND (BCT, 5 Nov 2026; Phase 0 S84).
 
 ## 19.1 Go-to-market for the first product (Workspace — Regulated Finance)
@@ -7,7 +9,7 @@ All prices are **hypotheses [A]** to test with design partners. Prices exclude V
 | Stage | Activity | Output | When |
 |---|---|---|---|
 | 1. Discovery | 15+ interviews with banks, FIs and payment providers (research kit §8.12) | Validated pains, budgets, incumbent map | Days 1–60 (Phase 1) |
-| 2. Design-partner programme | 3–5 institutions; **sandbox only** (synthetic or anonymised data); co-design categories, templates and reports; modest paid evaluation fee, credited against year-1 subscription | 2–3 signed design-partner agreements | From Day 45 (Phase 1) through Phase 12 |
+| 2. Design-partner programme | 3–5 institutions; **sandbox only** (synthetic data or properly authorised test data; P1-D5 approved); agreement subject to Tunisian counsel review (P1-D11); co-design categories, templates and reports; modest paid evaluation fee, credited against year-1 subscription | 2–3 signed design-partner agreements | From Day 45 (Phase 1) through Phase 12 |
 | 3. Security & procurement readiness | Architecture pack, pen-test report, DPIA template, processor agreement, hosting statement | Bid/procurement pack | Phase 11 |
 | 4. Pilot | 2–3 production pilots (3 months) | Pilot reports, references | **Phase 13** |
 | 5. Scale | Annual contracts; editions for insurers, telcos, utilities | ARR growth | Phase 14 |
@@ -101,3 +103,15 @@ Donor-funded and co-financed options remain as in Phase 0. Citizens are never ch
 - SLA credits.
 - No use of customer data for any other purpose, including product benchmarking without explicit opt-in.
 - Security audits allowed. The BCT's audit expectations on remote-identification technology (Circular 2026-10) indicate customers will audit vendors [P Phase 0 S52].
+
+## 19.7 Pricing experiment plan (to turn hypotheses into evidence)
+
+| Experiment | Method | Sample | Output | Evidence ID |
+|---|---|---|---|---|
+| Willingness-to-pay ranges | Van Westendorp price-sensitivity questions per tier, asked at the end of discovery interviews | ≥ 8 institutions | Acceptable price range per tier | E-04, E-06 |
+| Tier fit | Present 3 tiers; ask which fits and what is missing | ≥ 8 institutions | Tier boundaries (seats, features, hosting) | E-06 |
+| Design-partner fee | Offer a paid sandbox programme with the fee credited to year 1; record acceptance or objections | 5 offers | Conversion rate; fee level accepted | E-04 |
+| Competitive anchors | Collect current tool costs or competitor quotes | ≥ 3 data points | Price anchors | E-05 |
+| On-prem vs SaaS preference | Ask hosting requirement and its budget impact | ≥ 8 institutions | Model mix (SaaS / private / on-prem) | E-03 |
+
+**Decision rule:** prices become "validated" only when ≥ 5 institutions confirm a range and ≥ 2 sign at or near the proposed level.

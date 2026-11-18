@@ -10,13 +10,14 @@ Scale: L = likelihood, I = impact, both 1–5. Score = L × I.
 |---|---|---|---|---|---|---|
 | R25 | **Horizontal CRM/help-desk incumbents** (global suites, banking-software modules) win on price or bundling | 4 | 4 | **16** | Regulation-native features; Tunisian hosting; Arabic/French; target segments with weak tooling (payment providers, microfinance); partner with integrators | CEO |
 | R26 | **Banks already equipped** after 2022 → low replacement demand | 3 | 4 | 12 | Discovery measures satisfaction; kill/pivot criteria ([10](10-first-product-recommendation.md) §10.7); insurance/telecom editions as fallback | CEO |
-| R27 | **Strict roadmap order delays revenue** (first production pilot only in Phase 13) | 4 | 3 | 12 | Light passes for phases not needed by the first product (P1-D4); paid sandbox design partners; staged funding | CTO |
+| R27 | **Protected roadmap delays revenue**: every phase keeps full scope (P1-D4), so the first production pilot comes only in Phase 13 (~M18 Moderate mode B; ~M23 mode A) | 4 | 4 | **16** | Ordered, dependency-respecting overlap (mode B, P1-D4a); paid sandbox design partners (P1-D5); staged funding sized for a longer pre-revenue period ([20](20-updated-financial-assumptions.md) §20.6) | CEO / CTO |
 | R28 | **Focus dilution across six divisions** | 3 | 4 | 12 | Division activation gate ([04](04-business-division-strategy.md) §4.3); max one build track + one pipeline track | CEO |
 | R29 | **Local e-KYC incumbents** make Identity standalone unattractive | 4 | 2 | 8 | Partner/integrate instead of build (P1-D8) | CEO |
 | R30 | **BCT outsourcing / IT-risk rules** restrict SaaS use by banks or impose heavy approval | 3 | 4 | 12 | Counsel question Q13; on-premises licence option; Tunisian labelled hosting | Counsel |
 | R31 | **Banking secrecy** limits what a processor may access (support, logs) | 3 | 3 | 9 | In-country support; no vendor access to case content by default; break-glass with customer approval and logging (Phase 0 §8.4) | CISO |
 | R32 | **Complaint data misuse risk** (e.g. pressure to reuse data for marketing or benchmarking) | 2 | 4 | 8 | Contract clauses; no cross-tenant analytics; Charter | CEO |
-| R33 | **Brand collision in Arabic** (سيفورا = Sephora's Arabic brand) | 4 | 3 | 12 | D12 decision before brand spend; trademark clearance ([supporting/brand-identity.md](supporting/brand-identity.md)) | Founder |
+| R33 | **Name conflicts**: CIVORA is reportedly a registered trademark of DKSR GmbH for a municipal urban-data platform (EU, same field). The Arabic transliteration سيفورا is Sephora's Arabic brand | 4 | 4 | **16** | No branding spend; attorney clearance; rename shortlist (KELORA, TELORA, NASAQ); decision P1-D13 ([supporting/brand-identity.md](supporting/brand-identity.md) §6.7) | Founder |
+| R34 | **Score mistaken for demand**: the first product is chosen on desk evidence | 3 | 4 | 12 | Evidence gate E-01–E-07 before confirming P1-D3 or committing funding ([validation-evidence-register.md](validation-evidence-register.md)) | Founder |
 | R1 (re-rated) | State builds in-house what CIVORA offers | 4 | 3 | 12 | (was 20) First product is B2B, which reduces exposure. Government track stays complementary | CEO |
 | R2 (re-rated) | Long procurement / late payment | 3 | 4 | 12 | (was 20) B2B first; donor-funded B2G | CEO |
 

@@ -1,4 +1,4 @@
-# Phase 1 Sources (S120–S153)
+# Phase 1 Sources (S120–S158)
 
 Phase 0 sources **S1–S119** remain valid and are listed in [../phase-0/sources.md](../phase-0/sources.md). The sources below were added during the Phase 1 v2.0 update (research cut-off 18 November 2026).
 
@@ -48,6 +48,17 @@ Press, secondary and vendor items correspond to the **[P]** evidence label.
 | S152 | Sephora Middle East Arabic storefront ("سيفورا") | Sephora | 2026 | Official (brand) | https://www.sephora.me/kw-ar/ |
 | S153 | Medical practice software and patient records in Tunis (2026 guide) | Kolonell | 2026 | Secondary | https://kolonell.com/fr/blog/logiciel-cabinet-medical-dossier-patient-tunis-2026 |
 
+
+### Added in v2.1 (name investigation, founder review)
+
+| ID | Title / description | Publisher | Date | Type | URL |
+|---|---|---|---|---|---|
+| S154 | CIVORA UI listing: "CIVORA is a registered trademark of DKSR GmbH"; AGPL code; name/logo use requires permission | openCoDE (German public-sector open-source platform) | 2025/26 | Secondary (listing) | https://opencode.de/en/software/civora-ui-5560 |
+| S155 | DKSR (Data Competence Center for Cities and Regions) profile: open urban data platform for cities and regions | Bable Smart Cities | 2025/26 | Secondary | https://www.bable-smartcities.eu/community/companies/company/data-competence-center-for-cities-and-regions.html |
+| S156 | EU OSS catalogue entry "CIVORA UI" (seen in search excerpt only; page not retrievable from research environment) | Interoperable Europe (European Commission) | 2025/26 | Official (catalogue) | https://interoperable-europe.ec.europa.eu/eu-oss-catalogue/solutions/civora-ui |
+| S157 | US application CIVORA, serial 99869258, Class 37, EverClean Services LLC, pending | Markinton (aggregator of USPTO data) | Jun 2026 | Secondary | https://markinton.com/trademark/civora-99869258 |
+| S158 | Alternative-name screening: SELORA listing; T TELORI (Class 42) | Serchen; Markinton | 2026 | Secondary | https://serchen.com/company/selora · https://markinton.com/trademark/t-telori-99791225 |
+
 ## Primary documents to obtain (Phase 1 90-day plan)
 
 1. Official BCT Circular 2022-08 (BCT site or JORT No. 117 of 1 Nov 2022) and any amendments.
@@ -55,3 +66,4 @@ Press, secondary and vendor items correspond to the **[P]** evidence label.
 3. BCT annual banking supervision report 2025 (institution counts).
 4. BCT rules on outsourcing / IT risk applicable to banks and payment institutions.
 5. CGA (insurance) and INT (telecom) complaint-handling rules, if any.
+6. Official trademark register entries (DPMA/EUIPO) for DKSR's CIVORA mark, and INNORPI search results. Attorney to obtain.

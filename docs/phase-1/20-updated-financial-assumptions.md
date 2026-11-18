@@ -6,6 +6,17 @@
 >
 > All figures are **assumptions [A]**, in TND excluding VAT. **Projected revenue is not guaranteed.** No contract exists.
 
+## 20.0 Founder review (P1-D7, conditional) and classification of every figure
+
+The revised model is a **planning baseline only**. **No funding target is committed** until customer validation (E-01, E-03, E-04) and the financial sensitivity analysis (E-08) are complete; see the [validation evidence register](validation-evidence-register.md).
+
+| Class | What it contains | Examples in this model |
+|---|---|---|
+| **Validated figures** (external fact, cited) | Facts from sources, used as inputs or anchors | FX 1 USD = 2.969 TND (BCT, 5 Nov 2026) [P S84]; institution counts: 29 banks, 18 FIs, 16 PSPs [P S132, S133]; developer salary benchmarks [P S85, S86]; help-desk list prices [P S147, S148]. **No CIVORA customer, price or cost has been validated yet** |
+| **Assumptions** (inputs chosen by CIVORA) | Behavioural and structural inputs | Client ramp; ARPU; implementation fees; churn; gross-margin conventions; salary loading ×1.25; 8% raises; phase durations and execution mode; design-partner fees |
+| **Estimated costs** (cost inputs not yet backed by quotes) | Staff plans and overheads; compliance one-offs; MVP cost ([13](13-mvp-scope-and-specification.md) §13.8) | Hosting, audits, pen tests, legal, equipment. All [A] until quotes are obtained (E-07) |
+| **Potential revenue** (outputs, never guaranteed) | Revenue lines produced by the assumptions | B2B subscriptions and overage; implementation; Government services and licences; international. **No contract, LOI or pipeline exists** |
+
 ## 20.1 What was reviewed and why some inputs changed
 
 The directive says to update only when new evidence or revised assumptions justify it. Costs, staffing, salaries, overheads and compliance one-offs were reviewed and **left unchanged**: no new cost evidence was found. Four revenue-side assumptions changed:
@@ -61,12 +72,12 @@ The directive says to update only when new evidence or revised assumptions justi
 **Interpretation:**
 1. **The first-product switch does not materially change funding needs.** Earlier design-partner fees and implementation fees roughly offset later production revenue.
 2. **Moderate remains the recommended target trajectory, reached via a Lean pre-seed** (P1-D7 confirms Phase 0 D3).
-3. **The strict roadmap order delays first production revenue** to ~M14 (Moderate) or ~M19 (Lean). The light-pass approach (P1-D4) is what keeps this from slipping further. If phases 7–10 were built at full Phase 0 scope before Phase 13, first production revenue would move to ~M20+ (Moderate) [A].
+3. **Superseded by founder review:** the v2 timing assumed light passes for Phases 7–10. That approach is withdrawn (P1-D4: every phase keeps full scope). The revised timing and its cost are in §20.6.
 4. Enterprise relies on international deployments for most Year-3 revenue. This is still the riskiest scenario.
 
-## 20.4 Funding requirements (confirmed)
+## 20.4 Funding requirements (planning ranges — NOT committed; P1-D7)
 
-Staging and milestones are unchanged from Phase 0 §15.10, with milestones adapted to the first product:
+Staging and milestones from Phase 0 §15.10 are kept as **planning ranges**. Amounts are re-assessed after the evidence gate. With full-scope phases (§20.6), the pre-seed must cover a longer pre-revenue period, so the upper end of the range is more likely.
 
 | Stage | Amount | Milestones to unlock the next stage |
 |---|---|---|
@@ -83,3 +94,38 @@ Staging and milestones are unchanged from Phase 0 §15.10, with milestones adapt
 | Enterprise | ~40–60k TND | Larger sales team; regional expansion |
 
 These are consistent with payback of ~5–10 months at the modelled ARPU and margins ([19](19-commercial-and-pricing-strategy.md) §19.4).
+
+## 20.6 v3 — timing with full-scope phases, and sensitivity analysis (founder review)
+
+**Data:** [data/financial-model-monthly-v3.csv](data/financial-model-monthly-v3.csv).
+**Same assumptions as v2**, except all *production* revenue (B2B clients, implementation fees, Government and international) shifts to the Phase 13 start under each execution mode ([roadmap-protection-matrix.md](roadmap-protection-matrix.md) §3). Design-partner fees before Phase 13 are unchanged (P1-D5).
+
+| Scenario | First production client | Revenue Y1 / Y2 / Y3 (TND) | Peak cash need to M36 (TND) | vs v2 |
+|---|---|---|---|---|
+| Lean — mode B | ~M27 | 0 / 20,000 / 352,500 | **2.75M** (~US$0.93M) | +16% |
+| Lean — mode A | ~M34 | 0 / 20,000 / 68,000 | **2.96M** (~US$1.00M) | +25% |
+| **Moderate — mode B** (recommended) | ~M18 | 45,000 / 484,000 / 2,190,667 | **7.77M** (~US$2.62M) | +13% |
+| Moderate — mode A | ~M23 | 45,000 / 63,000 / 1,405,000 | **8.67M** (~US$2.92M) | +26% |
+| Enterprise — mode B | ~M15 | 80,000 / 1,850,833 / 8,295,667 | **12.89M** (~US$4.34M) | +29% |
+| Enterprise — mode A | ~M20 | 80,000 / 660,667 / 4,871,833 | **16.28M** (~US$5.48M) | +64% |
+
+No scenario breaks even within 36 months.
+
+**Sensitivities — Moderate, mode B (peak cash need to M36):**
+
+| Case | Peak (TND) | Change | Y3 revenue (TND) |
+|---|---|---|---|
+| Base | 7.77M | — | 2.19M |
+| Price −30% | 7.93M | +2% | 2.02M |
+| Price +30% | 7.61M | −2% | 2.36M |
+| B2B clients −50% | 8.16M | +5% | 1.80M |
+| No Government / international revenue | 8.97M | +15% | 0.77M |
+| Salaries +20% | 9.01M | +16% | 2.19M |
+| **Combined downside** (price −30%, clients −50%, no B2G) | **9.44M** | **+21%** | 0.30M |
+
+**What the sensitivities say:**
+1. Within 36 months, **cost and timing drive funding need far more than price or B2B volume**. The roadmap's full scope and the team size dominate.
+2. B2B price and volume matter for **break-even after M36** and for valuation. That is why E-04/E-06 (willingness to pay) must be met before committing funding.
+3. Choosing **mode B** saves roughly 0.9M TND (Moderate) versus mode A, without removing any phase deliverable.
+
+**Not yet done (E-08 refresh):** re-run with discovery evidence (actual prices, buyer cycles, design-partner conversion) and with external cost quotes (E-07).

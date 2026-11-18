@@ -4,7 +4,7 @@
 |---|---|
 | Product | CIVORA Workspace — Regulated Finance (RF) |
 | Division | B — Enterprise (shared engine with A — Government) |
-| Version | PRD 1.0 (Phase 1). Subject to discovery validation |
+| Version | PRD 1.0 (Phase 1). Subject to discovery validation. **P1-D3 conditional**: see the [validation evidence register](validation-evidence-register.md) |
 | Roadmap phases | Built across Phases 3, 4, 5, 6; verified in 11; integrated in 12; piloted in 13 ([10](10-first-product-recommendation.md) §10.5) |
 | Government requirements | Retained in [supporting/government-product-requirements.md](supporting/government-product-requirements.md) (shared epics: identity, notifications, consent/audit, integrations) |
 
@@ -175,7 +175,7 @@ Only obligations reported in available sources are listed. **Exact deadlines, re
 - Pen test: no open critical/high findings. ANCS-compliant audit completed.
 - WCAG 2.2 AA audit of console and status page passed.
 - DPIA template and processor agreement reviewed by counsel.
-- 2 design partners validate workflows and reports on synthetic or anonymised data.
+- 2 design partners validate workflows and reports on synthetic data or properly authorised test data (P1-D5).
 
 ## 12.10 Open questions
 

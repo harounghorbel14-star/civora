@@ -52,6 +52,14 @@ Every material claim carries one of these labels and, where applicable, a source
 
 Integration status labels (used in the [feasibility matrix](12-integration-feasibility-matrix.md) and the [status register](integration-status-register.md)): `NOT STARTED`, `SIMULATED`, `COMMERCIALLY AVAILABLE`, `AUTHORIZATION REQUIRED`, `BLOCKED`, `DO NOT PURSUE`.
 
+**Since Phase 1 (P1-D6, approved):** every integration also carries the six-class status:
+1. Verified official integration
+2. Authorized partner integration
+3. Technically possible but not yet authorized
+4. Independent prototype
+5. Future opportunity
+6. Not currently feasible
+
 ## Research method and limitations
 
 - Research was performed through web search of official portals, Tunisian and international press, multilateral (World Bank, UN) and vendor sources, current to 18 November 2026.

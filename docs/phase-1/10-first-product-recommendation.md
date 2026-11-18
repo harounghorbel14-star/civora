@@ -1,5 +1,15 @@
 # 10. First Product Recommendation
 
+> **Founder review (18 Nov 2026) — P1-D3 is CONDITIONAL.** Workspace — Regulated Finance remains the *recommended* first commercial product. The opportunity score is **not** proof of market demand. Confirmation requires:
+> - ≥ 15 discovery interviews
+> - validated regulatory requirements
+> - confirmed buyer and purchasing process
+> - willingness-to-pay evidence
+> - competitor and pricing validation
+> - a realistic MVP cost assessment
+>
+> Status: [validation-evidence-register.md](validation-evidence-register.md) (E-01…E-07).
+
 ## 10.1 Recommendation
 
 > **CIVORA Workspace — Regulated Finance edition**
@@ -71,32 +81,29 @@ Customer profiles are in [11](11-target-customer-profiles.md).
 
 ## 10.5 Mapping to the original (unchanged) roadmap
 
-| Phase | First-product track scope | Ecosystem scope (same phase) |
-|---|---|---|
-| 2 Technical Architecture | Architecture for Workspace + shared platform | Government & future divisions considered, not built |
-| 3 Authentication & Citizen Profiles | Staff auth (SSO, MFA), customer reference access, tenant/roles | Citizen accounts, mandates (Government) |
-| 4 Digital Documents | Attachments, response letters, document retention | Credentials/wallet design |
-| 5 Government Services Directory | Category & service taxonomy engine (complaint categories) | 20-sector Directory |
-| 6 Civil Registry Workflows | **Case/workflow engine, SLAs, decisions** | Civil-registry templates (synthetic) |
-| 7 Healthcare Prototype | Light pass: documentation + synthetic prototype only | Health consent bridge (synthetic) |
-| 8 Payments & Financial Services | Light pass (subscription billing outside the product) | Payment orchestration design |
-| 9 Social Security & Education | Light pass | Status-tracking templates (synthetic) |
-| 10 AI Government Assistant | Light pass; AI future requirements for Workspace documented | Guide / document processing design |
-| 11 Security, Testing & Auditing | **Full**: pen test, ANCS-compliant audit, DPIA | Same |
-| 12 Official Institutional Integrations | Customer-side integrations (email, SMS, SSO, optional core-banking read) | Government integrations by authorisation |
-| 13 Pilot Deployment in Tunisia | **First production pilots with 2–3 financial institutions** + one public institution if available | — |
+Every original phase keeps its **complete** Phase 0 §19 scope (P1-D4). Workspace RF capabilities are **additive** acceptance criteria in:
+- Phase 2 (architecture)
+- Phase 3 (staff SSO, customer OTP)
+- Phase 4 (documents, letters, retention)
+- Phase 5 (taxonomy engine)
+- Phase 6 (case engine, reasoned decisions, liaison, reports)
+- Phase 11 (security, audits)
+- Phase 12 (customer-side integrations, e-KYC partners)
+- Phase 13 (2–3 production pilots alongside the Government pilot)
 
-"Light pass" means the phase still happens in order. Its scope for this cycle is limited to documentation and synthetic prototypes, so it does not delay the first product. This needs founder approval (**P1-D4**).
+Phases 7–10 run at full scope, with no Workspace RF additions. The only exception is optional Workspace AI inside Phase 10, by founder decision.
+
+The phase-by-phase table is in [roadmap-protection-matrix.md](roadmap-protection-matrix.md). The v2.0 "light pass" proposal is withdrawn.
 
 ## 10.6 Commercial strategy (detail in [19](19-commercial-and-pricing-strategy.md))
 
-- **Design-partner programme before Phase 13** (sandbox only, synthetic or anonymised data):
+- **Design-partner programme before Phase 13** (approved P1-D5; sandbox only, synthetic data or properly authorised test data):
   - 3–5 institutions
   - modest paid evaluation fees
   - co-design of templates and reports
 - **Founder-led sales**, then a regulated-industries sales lead.
 - **Partners:** compliance consultancies and audit firms, banking-software integrators.
-- **Pricing tiers:** Starter (payment providers) / Professional (mid-size banks) / Enterprise (large banks, on-prem), plus implementation fee.
+- **Pricing tiers** (experimental hypotheses, P1-D9): Starter (payment providers) / Professional (mid-size banks) / Enterprise (large banks, on-prem), plus implementation fee.
 
 ## 10.7 Kill / pivot criteria (by end of the 90-day plan)
 

@@ -5,6 +5,8 @@
 - **No Phase 2 work and no application code** (directive §14). Phase 2 starts only after founder approval of Phase 1 at the Day-90 gate, or earlier if the founder explicitly approves.
 - This plan **supersedes** the engineering stream in Phase 0 §20, which assumed Phase 2 would run in parallel (conflict C2).
 
+> **Founder review (18 Nov 2026):** the evidence items E-01–E-15 in [validation-evidence-register.md](validation-evidence-register.md) are the checklist for this plan. Phase 1 approval (P1-D12) remains **pending** until they are documented as met or explicitly waived.
+
 ## 22.1 Objectives by Day 90
 
 1. **Validate or reject the first product** (Workspace RF) with evidence from at least 15 financial institutions.
@@ -19,15 +21,15 @@
 
 | Week | Market validation (Workspace RF) | Regulatory & legal | Design & research | Government track | Company |
 |---|---|---|---|---|---|
-| 1 | Build target list: 22 resident banks, FIs, 16 PSPs, microfinance [P][S132][S133]; prioritise ICP-1/2/3 | Engage counsel (Q1–Q18); request official BCT 2022-08 text | Plan research; recruit agents/customers for tests | Restart citizen/officer research (kit) | Record P1 decisions taken so far |
-| 2–3 | First 6 discovery interviews (Head of Customer Relations, Compliance) | Trademark + phonetic search (D12) | Hi-fi design of queue and case screens | Citizen interviews (target 30 over 6 weeks) | Pre-seed materials updated for first product |
+| 1 | Build target list: 22 resident banks, FIs, 16 PSPs, microfinance [P][S132][S133]; prioritise ICP-1/2/3 | Engage counsel (Q1–Q18) and a **trademark attorney** (CIVORA + shortlist, E-11); request official BCT 2022-08 text; send the design-partner template to counsel (E-12) | Plan research; recruit agents/customers for tests | Restart citizen/officer research (kit) | Record P1 decisions taken so far |
+| 2–3 | First 6 discovery interviews (Head of Customer Relations, Compliance); **map buyer roles and purchasing steps** (E-03) | Domain and handle checks via registrar; native-speaker name review | Hi-fi design of queue and case screens | Citizen interviews (target 30 over 6 weeks) | Pre-seed materials updated for first product |
 | 4 | +5 interviews; map incumbents and satisfaction | Counsel interim memo (Q13–Q16 priority) | Hi-fi intake, status page AR/FR | Civil-servant interviews (≥ 10) | — |
 | 5 | Draft design-partner agreement (sandbox, fee credited to year-1) | Obtain the mediator's latest annual report (deadline statistics) | Clickable prototype v1 (Workspace RF) | Donor conversations (Phase 0 list) | — |
 | 6 | Design-partner proposals to top 5 | DPIA template and processor agreement drafts | Usability round 1 with 2–3 design partners | — | Investor conversations start |
-| 7–8 | +4 interviews (≥ 15 total); pricing tests (Van Westendorp or tier choice) | — | Iterate prototype | Usability tests on Government prototype (round 1) | — |
-| 9 | Sign design partner #1 | Native review of AR/FR templates, status texts, charter | Usability round 2 (≥ 8 agents, ≥ 8 customers) | Synthesis | Brand decision (D12) |
+| 7–8 | +4 interviews (≥ 15 total); pricing experiments per [19](19-commercial-and-pricing-strategy.md) §19.7 (E-06); collect competitor tools and prices (E-05) | Obtain ≥ 2 quotes each for hosting and pen test/audit (E-07) | Iterate prototype | Usability tests on Government prototype (round 1) | — |
+| 9 | Sign design partner #1 (counsel-approved template) | Native review of AR/FR templates, status texts, charter | Usability round 2 (≥ 8 agents, ≥ 8 customers) | Synthesis | **Brand decision P1-D13** |
 | 10 | Sign design partners #2–3 | Counsel final memo | Update PRD/MVP with findings | Government round 2 | — |
-| 11 | Re-score opportunities with evidence ([09](09-opportunity-scoring-matrix.md)) | — | Final hi-fi + design system v1.2 changes | Insight report | — |
+| 11 | Re-score opportunities with evidence ([09](09-opportunity-scoring-matrix.md)); refresh financial sensitivities with evidence (E-08) | CTO/lead engineer review of the MVP cost estimate (E-07) | Final hi-fi + design system v1.2 changes | Insight report | — |
 | 12 | Commercial pipeline review | — | Prepare Phase 2 handover inputs (no Phase 2 work) | — | Phase 1 approval package |
 | 13 | **Day-90 gate** | — | — | — | **Founder approval of Phase 1** |
 
@@ -48,6 +50,6 @@
 
 | Outcome | Condition | Action |
 |---|---|---|
-| **Approve Phase 1 → start Phase 2** | Targets substantially met; first product confirmed | Phase 2 (Technical Architecture) for the shared platform + Workspace RF |
+| **Approve Phase 1 → start Phase 2** | Evidence register items met or explicitly waived by the founder; first product confirmed (P1-D3); execution mode chosen (P1-D4a); funding target committed only after E-01/E-04/E-08 (P1-D7) | Phase 2 (Technical Architecture) for the shared platform + Workspace RF |
 | **Approve with pivot** | B1 weak but E2 or A2 strong | Revise first product; update PRD; then Phase 2 |
 | **Extend Phase 1** | Insufficient evidence | +30–45 days of discovery; no Phase 2 |

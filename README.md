@@ -6,7 +6,9 @@ Global technology & digital infrastructure company. One shared platform serves s
 
 - **Phase 0 — Research, Feasibility & Strategy:** approved by the founder on 18 Nov 2026 (decisions D1–D10 as recommended).
 - **Phase 1 — Product Strategy, Market Validation, Product Architecture & UX/UI:** v2.0 delivered to the founder's Phase 1 directive (six divisions, 20-sector Government catalog, weighted opportunity scoring, first product = *Workspace — Regulated Finance*). **Awaiting founder approval; Phase 2 and coding on hold.** Field validation, brand decision (D12) and native-language review pending.
-- **Roadmap:** the original 15 phases (0–15) are unchanged and in their original order.
+- **Founder review (18 Nov 2026):** direction accepted in principle. Several decisions are conditional. **Phase 1 approval is pending** until the [validation evidence register](docs/phase-1/validation-evidence-register.md) is complete.
+- **Roadmap:** the original 15 phases (0–15) are unchanged, in their original order, and each keeps its full scope ([roadmap protection matrix](docs/phase-1/roadmap-protection-matrix.md)).
+- **Name:** "CIVORA" is a working name. The desk investigation found trademark and Arabic-transliteration conflicts, so renaming is recommended (decision P1-D13). No branding spend until resolved.
 
 - No product code has been written.
 - CIVORA has no official relationship, authorization, endorsement or data access with any government institution.

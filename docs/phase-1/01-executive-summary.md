@@ -1,4 +1,16 @@
-# 1. Executive Summary — Phase 1 (v2.0)
+# 1. Executive Summary — Phase 1 (v2.1)
+
+> **Founder review, 18 Nov 2026.** The direction is accepted in principle.
+> - **Approved:** P1-D1, D2, D5, D6, D8, D10 (with boundaries), D11 (in principle).
+> - **Conditional:** P1-D3 (first product), D4 (roadmap: full scope for every phase), D7 (financials: no funding commitment yet), D9 (pricing is experimental).
+> - **Phase 1 approval (P1-D12) is pending** until the evidence in [validation-evidence-register.md](validation-evidence-register.md) is documented.
+> - **Phase 2 and coding are on hold.**
+>
+> **What changed in v2.1:**
+> 1. The "light pass" idea is withdrawn ([roadmap-protection-matrix.md](roadmap-protection-matrix.md)).
+> 2. A realistic MVP cost estimate has been added: 0.58–1.01M TND incremental [A] ([13](13-mvp-scope-and-specification.md) §13.8).
+> 3. Financials are re-run with full-scope phases. Moderate peak cash need is 7.77M TND in mode B and 8.67M TND in mode A, and is not committed ([20](20-updated-financial-assumptions.md) §20.6).
+> 4. The **name investigation found meaningful conflicts**. CIVORA is reportedly a registered trademark of DKSR GmbH for a municipal urban-data platform in the EU, and the Arabic spelling is Sephora's Arabic brand. Renaming is recommended (P1-D13; [supporting/brand-identity.md](supporting/brand-identity.md) §6.7).
 
 ## 1.1 What changed in this phase
 
@@ -65,19 +77,20 @@ The Tunisia mapping ([06](06-tunisia-government-service-mapping.md)) classifies 
 
 **CIVORA has no official integration today.**
 
-## 1.5 Money (assumptions, not promises)
+## 1.5 Money (assumptions, not promises — no funding commitment, P1-D7)
 
-The Phase 0 model was re-run, not replaced ([20](20-updated-financial-assumptions.md)). Under the restored roadmap order, production pilots come in Phase 13. Peak cash need to month 36 barely moves:
+The Phase 0 model was re-run, not replaced ([20](20-updated-financial-assumptions.md)). Every original phase now keeps its full scope, so production pilots come in Phase 13. Peak cash need to month 36 (v3):
 
-| Scenario | Peak cash need (TND) | Approx. USD |
+| Scenario | Mode B (ordered overlap, recommended) | Mode A (strictly sequential) |
 |---|---|---|
-| **Lean** | 2.38M | ~0.80M |
-| **Moderate** | 6.86M | ~2.31M |
-| **Enterprise** | 9.96M | ~3.35M |
+| Lean | 2.75M TND (~US$0.93M) | 2.96M TND |
+| **Moderate** | **7.77M TND (~US$2.62M)** | 8.67M TND |
+| Enterprise | 12.89M TND | 16.28M TND |
 
-- No scenario breaks even within 36 months. At month 36, Moderate needs ~1.6× its run-rate revenue to break even.
-- Pricing is anchored to international help-desk benchmarks [P][S147][S148] and is to be validated with design partners ([19](19-commercial-and-pricing-strategy.md)).
-- **Staged funding stays as approved:** pre-seed 1.0–1.2M TND.
+- No scenario breaks even within 36 months.
+- Within 36 months, funding need is driven mainly by **cost and timing**, not price or volume ([20](20-updated-financial-assumptions.md) §20.6). The combined downside case for Moderate needs 9.44M TND.
+- The MVP's own incremental cost is 0.58–1.01M TND [A] ([13](13-mvp-scope-and-specification.md) §13.8).
+- **Pricing is experimental** (P1-D9). The funding staging is a planning range only.
 
 ## 1.6 What is *not* done and cannot be done at a desk
 
@@ -93,7 +106,8 @@ These items are in the [90-day plan](22-90-day-execution-plan.md) and the [accep
 There are 12 Phase 1 decisions, listed in [23-founder-approval-decisions.md](23-founder-approval-decisions.md). The most important:
 - **P1-D1:** company positioning.
 - **P1-D3:** first product.
-- **P1-D4:** roadmap restoration with light passes through phases not needed by the first product.
-- **P1-D5:** sandbox-only design-partner programme before Phase 13.
+- **P1-D4:** roadmap restoration with every phase at full scope (conditional; see the roadmap protection matrix), plus the execution-mode choice P1-D4a.
+- **P1-D5:** sandbox-only design-partner programme before Phase 13 (approved: synthetic or properly authorised test data).
+- **P1-D13:** company name (rename recommended).
 
 **Phase 2 and all coding remain on hold until the founder approves Phase 1.**

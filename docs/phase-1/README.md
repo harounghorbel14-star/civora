@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Version** | 2.0, updated to the founder's *Master Project Directive — Phase 1* (18 Nov 2026) |
+| **Version** | 2.1: founder review applied (18 Nov 2026). 2.0 was the update to the *Master Project Directive — Phase 1* |
 | **Previous version** | 1.0 (same day). All content preserved and restructured; see [change-record.md](change-record.md) |
-| **Status** | **Awaiting founder approval.** Phase 2 and all coding are on hold until approval |
+| **Status** | **Direction accepted in principle; Phase 1 approval PENDING (P1-D12)** until the [validation evidence register](validation-evidence-register.md) is complete. Phase 2 and all coding on hold |
 | **Roadmap** | Original 15-phase roadmap unchanged and in original order (Phase 0 D8 re-sequencing superseded) |
 | **Evidence labels** | [V] verified · [P] press/secondary · [A] assumption · [U] unverified (as in Phase 0). Sources: [sources.md](sources.md) (S120–S153) + [Phase 0 sources](../phase-0/sources.md) (S1–S119) |
 
@@ -36,6 +36,19 @@
 | 22 | 90-Day Execution Plan | [22-90-day-execution-plan.md](22-90-day-execution-plan.md) |
 | 23 | Founder Approval Decisions | [23-founder-approval-decisions.md](23-founder-approval-decisions.md) |
 
+## Founder-review clarifications (v2.1)
+
+| Clarification | File |
+|---|---|
+| Decision register with founder statuses (approved / conditional / pending) | [23-founder-approval-decisions.md](23-founder-approval-decisions.md) |
+| Roadmap protection: all 15 phases at full scope; Enterprise work additive; execution modes A/B | [roadmap-protection-matrix.md](roadmap-protection-matrix.md) |
+| Evidence required before confirming the first product, funding and Phase 1 approval | [validation-evidence-register.md](validation-evidence-register.md) |
+| Realistic MVP cost assessment | [13-mvp-scope-and-specification.md](13-mvp-scope-and-specification.md) §13.8 |
+| Financial classification + v3 timing and sensitivities (funding not committed) | [20-updated-financial-assumptions.md](20-updated-financial-assumptions.md) §20.0, §20.6 · [financial-model-monthly-v3.csv](data/financial-model-monthly-v3.csv) |
+| Pricing experiment plan (prices are experimental hypotheses) | [19-commercial-and-pricing-strategy.md](19-commercial-and-pricing-strategy.md) §19.7 |
+| Name investigation and alternatives | [supporting/brand-identity.md](supporting/brand-identity.md) §6.7 |
+| Design-partner agreement draft (for Tunisian counsel review) | [supporting/design-partner-agreement-template.md](supporting/design-partner-agreement-template.md) |
+
 ## Supporting materials (retained from v1.0)
 
 | Material | File |
@@ -48,6 +61,7 @@
 | Citizen Data Charter v1 (EN/FR/AR) | [supporting/citizen-data-charter.md](supporting/citizen-data-charter.md) |
 | Government proposal, executive presentation, pilot template, partnership one-pager | [supporting/](supporting/) |
 | Clickable Government-track prototype (independent prototype, class 4) | [design/prototype/index.html](../../design/prototype/index.html) · published (private): https://claude.ai/artifact/8mSSc8wUoiG5b2bpg6QQ5Y |
+| Design-partner agreement draft (counsel review pending) | [supporting/design-partner-agreement-template.md](supporting/design-partner-agreement-template.md) |
 | v1.0 exit checklist (superseded) | [supporting/v1-exit-checklist.md](supporting/v1-exit-checklist.md) |
 
 ## Acceptance checklist
@@ -61,23 +75,25 @@ Status of the directive §15 final acceptance criteria as of 18 Nov 2026.
 | 3 | The 20 government sectors included | ✅ Met | [05](05-government-master-service-catalog.md), JSON data, IA in [15](15-information-architecture.md) §15.8 |
 | 4 | Tunisia's existing digital infrastructure considered | ✅ Met | [06](06-tunisia-government-service-mapping.md) (44 integration points classified) |
 | 5 | Global expansion requirements defined | ✅ Met | [07](07-global-market-opportunity-analysis.md) §7.4, [05](05-government-master-service-catalog.md) §5.1, Phase 0 §13 |
-| 6 | First product supported by a defensible opportunity analysis | ✅ Met (desk evidence) | [09](09-opportunity-scoring-matrix.md), [10](10-first-product-recommendation.md). **Field validation pending** (90-day plan) |
+| 6 | First product supported by a defensible opportunity analysis | 🟡 Desk analysis done; **demand not yet proven** (P1-D3 conditional) | [09](09-opportunity-scoring-matrix.md), [10](10-first-product-recommendation.md); evidence E-01–E-07 open |
 | 7 | MVP has a clear scope | ✅ Met | [13](13-mvp-scope-and-specification.md) |
 | 8 | Customer profiles and user journeys exist | ✅ Met (hypotheses) | [11](11-target-customer-profiles.md), [14](14-user-journeys.md) |
 | 9 | UX/UI requirements documented | ✅ Met | [16](16-ux-ui-design-strategy.md), [17](17-design-system-specification.md), 6 wireframes |
-| 10 | Financial assumptions reviewed | ✅ Met | [20](20-updated-financial-assumptions.md) |
+| 10 | Financial assumptions reviewed | ✅ Reviewed; 🟡 funding not committed (P1-D7) | [20](20-updated-financial-assumptions.md) §20.0, §20.6 |
 | 11 | Legal and regulatory risks identified | ✅ Met | [21](21-risks-and-regulatory-requirements.md) (+ Phase 0 §11, §17) |
 | 12 | All required documents created and linked | ✅ Met | This index |
-| 13 | Original 15-phase roadmap intact | ✅ Met | Phase 0 D8 superseded; Phase 0 §19.1 annotated; phases mapped in [10](10-first-product-recommendation.md) §10.5 and [13](13-mvp-scope-and-specification.md) §13.5 |
+| 13 | Original 15-phase roadmap intact | ✅ Met, with full scope per phase | [roadmap-protection-matrix.md](roadmap-protection-matrix.md); Phase 0 D8 superseded; "light pass" withdrawn |
 | 14 | All major decisions requiring founder approval listed | ✅ Met | [23](23-founder-approval-decisions.md) |
 
 ### Validation items still open (cannot be completed at a desk)
+
+The full list with thresholds is the [validation evidence register](validation-evidence-register.md) (E-01–E-15).
 
 | Item | Owner | Plan |
 |---|---|---|
 | Discovery with ≥ 15 financial institutions; ≥ 2 design-partner agreements | Founder | [22](22-90-day-execution-plan.md) |
 | Official BCT 2022-08 text; counsel answers Q1–Q18 | Founder + counsel | [22](22-90-day-execution-plan.md) |
 | Government-track user research (≥ 30 citizens, ≥ 10 civil servants) and usability tests | Founder/team | [supporting/user-research-kit.md](supporting/user-research-kit.md) |
-| Brand decision D12 and trademark clearance | Founder | [supporting/brand-identity.md](supporting/brand-identity.md) |
+| Brand decision P1-D13 (rename recommended) and attorney trademark clearance | Founder + trademark attorney | [supporting/brand-identity.md](supporting/brand-identity.md) §6.7 |
 | Native AR/FR legal-language review | Founder | — |
 | Citizen Data Charter review by counsel and civil society | Founder | — |

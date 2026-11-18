@@ -23,10 +23,13 @@ Structured source of truth: [data/government-service-catalog.json](data/governme
 1. **Directory first.** Every sector gets guidance content in Phase 5, with official sources, dates and deep links.
 2. **Workflows only for a contracting institution's own processes** (Phase 6+). CIVORA never processes a service on behalf of the state without a mandate.
 3. **Authoritative data only by authorisation** (Phase 12+, class 3 → 2).
-4. **Excluded:** CIVORA will not build:
-   - emergency dispatch or policing systems (sector 10)
-   - electoral or voter-registration systems (sector 18)
-   - its own national registers in any sector (identity, civil status, land, health)
+4. **Excluded** (founder decision P1-D10, approved with boundaries). CIVORA will not provide:
+   - unauthorised **operational policing** functions (sector 10)
+   - **emergency dispatch** (sector 10)
+   - **electoral administration** (sector 18)
+   - **restricted national-register functions** in any sector (identity, civil status, land, health)
+
+   These sectors remain in the catalogue for information and guidance only.
 5. **Data tiers** follow Phase 0 Section 10 (T0 health/biometrics … T3 public).
 
 ## 5.3 Summary
