@@ -6,7 +6,7 @@
 | **Previous version** | 1.0 (same day). All content preserved and restructured; see [change-record.md](change-record.md) |
 | **Status** | **Readiness: NOT READY — VALIDATION ITEMS REMAINING** ([readiness report](phase-1-readiness-report.md)). Phase 1 approval **PENDING (P1-D12)**. All desk work is complete; the remaining items need the founder, counsel or institutions. Phase 2 and all coding on hold |
 | **Roadmap** | Original 15-phase roadmap unchanged and in original order. Execution model **approved (P1-D4): overlapping independent activities**, with all dependencies, order, full scope, deliverables and approval gates preserved |
-| **Evidence labels** | [V] verified · [P] press/secondary · [A] assumption · [U] unverified (as in Phase 0). Sources: [sources.md](sources.md) (S120–S180) + [Phase 0 sources](../phase-0/sources.md) (S1–S119) |
+| **Evidence labels** | [V] verified · [P] press/secondary · [A] assumption · [U] unverified (as in Phase 0). Sources: [sources.md](sources.md) (S120–S200) + [Phase 0 sources](../phase-0/sources.md) (S1–S119) |
 
 ## Required deliverables (directive §12)
 
@@ -51,6 +51,24 @@
 | 9. Updated founder approval decision register | [23-founder-approval-decisions.md](23-founder-approval-decisions.md) |
 | 10. Final Phase 1 readiness report | [phase-1-readiness-report.md](phase-1-readiness-report.md) |
 | BCT Circular 2022-08 verification (official text) | [validation/bct-regulatory-verification.md](validation/bct-regulatory-verification.md) |
+
+## Continuation mission (18 Nov 2026): everything that could be done without external participation
+
+| Output | File |
+|---|---|
+| **Founder action pack** (only the founder's actions, with ready-to-send materials) | [founder-action-pack.md](founder-action-pack.md) |
+| Verified Arabic/French legal terminology + native-review pack and workbook | [validation/arabic-legal-terminology.md](validation/arabic-legal-terminology.md) · [validation/native-language-review-pack.md](validation/native-language-review-pack.md) · [workbook](data/native-review-workbook.csv) |
+| Institutional outreach kit; public complaint-channel scan; outreach tracker | [validation/outreach-kit.md](validation/outreach-kit.md) · [scan](data/fi-public-channel-scan.csv) · [tracker](data/outreach-tracker.csv) |
+| Competitor desk scan (incl. STB consultation CD 23/2026) | [validation/competitor-desk-scan.md](validation/competitor-desk-scan.md) |
+| Usability-testing kit + **Workspace RF clickable prototype** (synthetic data) | [validation/usability-testing-kit.md](validation/usability-testing-kit.md) · [design/prototype/workspace-rf.html](../../design/prototype/workspace-rf.html) · [SUS sheet](data/sus-scoring-template.csv) |
+| Government-track recruitment kit | [validation/government-research-recruitment-kit.md](validation/government-research-recruitment-kit.md) · [quota tracker](data/gov-research-quota-tracker.csv) |
+| Counsel engagement brief (29 questions, 3 tiers) | [validation/counsel-engagement-brief.md](validation/counsel-engagement-brief.md) |
+| Design-partner agreement v0.2 | [supporting/design-partner-agreement-template.md](supporting/design-partner-agreement-template.md) |
+| Charter legal self-check and civil-society review pack | [validation/charter-review-pack.md](validation/charter-review-pack.md) |
+| Trademark attorney brief | [validation/trademark-attorney-brief.md](validation/trademark-attorney-brief.md) |
+| Quote requests and comparison sheet | [validation/quote-requests.md](validation/quote-requests.md) · [quote sheet](data/quote-comparison.csv) |
+| Market-size break-even check | [20](20-updated-financial-assumptions.md) §20.7.7 |
+| INPDP declaration draft | [validation/inpdp-declaration-draft.md](validation/inpdp-declaration-draft.md) |
 
 ## Founder-review clarifications (v2.1)
 

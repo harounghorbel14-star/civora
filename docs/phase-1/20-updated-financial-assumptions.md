@@ -260,3 +260,27 @@ Y3 revenue in the combined downside: Lean 0.01M, Moderate 0.13M, Enterprise 0.37
 5. **No projected revenue in this model is guaranteed.** There are no customers, no contracts and no quotations.
 
 **Status of E-08:** sensitivity analysis is **complete at desk level**. "Met" still requires the post-discovery refresh, so the status is **Desk evidence only (complete for v4)**.
+
+### 20.7.7 Market-size check: can Workspace RF alone carry the company? (18 Nov 2026)
+
+This check is derived only from existing v4 assumptions: M36 cost base, ARPU and gross margins. **No new input was introduced.**
+
+The Tunisian market under Circular 2022-08 is **41 institutions**, of which 32 are the most relevant buyers. There are also 7 payment institutions under separate rules [V][S165].
+
+| Scenario | M36 monthly opex | Gross profit per Workspace RF client (sub + overage) | **Clients needed to break even on Workspace RF alone** | Share of the 32 relevant institutions |
+|---|---|---|---|---|
+| Lean | 108,758 TND | 3,675 TND | **≈ 30** | ≈ 94% |
+| Moderate | 382,867 TND | 4,800 TND | **≈ 80** | > 100% (2.5× the market) |
+| Enterprise | 848,810 TND | 5,650 TND | **≈ 150** | > 100% (4.7× the market) |
+
+**Implications (to weigh at the Day-90 gate):**
+1. **Workspace RF in Tunisia cannot alone fund the Moderate or Enterprise plans,** even at 100% market share. At a realistic 25–50% share (8–16 institutions), it covers about **10–20%** of the Moderate M36 cost base.
+2. Break-even needs, in combination:
+   - Government revenue (Division A)
+   - other regulated sectors: insurers, microfinance, telecoms, utilities (Phase 14)
+   - international country packs (Phase 15)
+   - higher ARPU from Enterprise licences
+
+   This is consistent with the six-division strategy (P1-D1), but it makes the **dependence explicit**.
+3. The **Lean plan is the only one whose cost base is within reach of the first product's home market.** That matters for the funding decision (P1-D7) and for P1-D3: the first product is a **wedge and a funder of the shared engine, not the business case on its own**.
+4. Recorded as risk **R39** ([21](21-risks-and-regulatory-requirements.md)). This does **not** change any approved decision. It is evidence for the founder's P1-D3 and P1-D7 decisions.

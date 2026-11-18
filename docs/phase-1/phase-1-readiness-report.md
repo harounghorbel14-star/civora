@@ -12,6 +12,40 @@
 > - The remaining items need the founder, qualified Tunisian counsel, a trademark attorney or the cooperation of financial institutions.
 > - **Phase 2 has not started, and no application code has been written.**
 
+## 0. Update — continuation mission (18 Nov 2026)
+
+The founder asked for every remaining task that could be done without external participation to be completed. Thirteen tasks were completed (G1–G13, [completion matrix](completion-matrix.md) §G). The register and the matrix were updated after each one.
+
+**Evidence status now:**
+- **Met:** 1 (E-15).
+- **In progress:** 5 (E-02, E-10, E-12, E-13, E-14). Previously only 2 were in progress.
+- **Desk evidence only:** 4 (E-05, E-07, E-08, E-11).
+- **Blocked on the founder:** 5 (E-01, E-03, E-04, E-06, E-09).
+
+**What changed:**
+- **Official Arabic texts** of BCT Circular 2022-08 and Law 2004-63 read. The customer-facing Arabic terms were corrected (شكوى, الموفّق البنكي). Two FR/AR discrepancies were found in the circular (Art. 8 "banking working days"; Art. 10).
+- **A clickable Workspace RF prototype** for usability testing: synthetic data, 0 accessibility violations, 9 task paths verified.
+- **Ready-to-send kits:**
+  - institutional outreach (FR/AR, with the Law 2004-63 Art. 31 notice and Art. 27 written consent)
+  - usability testing
+  - Government-track recruitment
+  - counsel brief (29 questions in 3 priority tiers)
+  - trademark-attorney brief
+  - language-review pack
+  - quote requests (hosting, pen test, accessibility)
+  - Charter review pack
+  - INPDP declaration draft
+  - design-partner agreement v0.2
+- **New material findings:**
+  1. **The INPDP is publicly reported as not operating** (Oct 2026) [P][S198], and Law 2004-63 Art. 31 may require notice **one month before** processing. Counsel must answer (Tier A) **before the first interview**.
+  2. **Workspace RF alone cannot fund the Moderate or Enterprise plans.** Break-even needs ≈ 80 / 150 institutions, against 32 relevant in Tunisia ([20](20-updated-financial-assumptions.md) §20.7.7; risk R39, score 20).
+  3. **STB is procuring ticket-based complaint management** (CD 23/2026) [P][S186]. Incumbent tooling and replacement cycles are real; risk R26 is confirmed.
+  4. The Citizen Data Charter's transfer commitment is **weaker than Art. 52 of the law**. Five wording changes are proposed for the founder.
+
+**The founder's next actions, with ready-to-send material:** [founder-action-pack.md](founder-action-pack.md).
+
+**The status remains NOT READY.** The remaining criteria need interviews, user tests, counsel, an attorney and quotes, none of which can be produced or simulated at a desk.
+
 ## 1. Why the status is "NOT READY"
 
 Several Phase 1 acceptance criteria require real-world evidence that does not exist yet:
@@ -81,8 +115,8 @@ Only 1 of the 15 evidence items is met (E-15, the execution-model decision). The
 | Check | Result |
 |---|---|
 | All 23 deliverables present and indexed | ✅ 23/23 present ([README](README.md)); 10 mission deliverables added and indexed |
-| Internal links (all Markdown files in the repository) | ✅ 0 broken (529 internal links and anchors checked by script after this report was added) |
-| External citations | ✅ Every `[S…]` citation resolves to a defined source (S1–S180; pre-existing numbering gaps S66 and S113 are unused). Official URLs for S159–S170 and S173 were fetched successfully on 18 Nov 2026. Secondary URLs S175–S180 come from search results and were not fetched |
+| Internal links (all Markdown files in the repository) | ✅ 0 broken (529 checked in v2.2; **687 checked after the continuation mission**) |
+| External citations | ✅ Every `[S…]` citation resolves to a defined source (**S1–S200** after the continuation mission; pre-existing numbering gaps S66 and S113 are unused). Official URLs for S159–S170 and S173 were fetched successfully on 18 Nov 2026. Secondary URLs S175–S180 come from search results and were not fetched |
 | Source accuracy | ✅ Two inaccuracies found and corrected: payment-institution scope (F1); misattributed 23.5% statistic (F2). One count superseded (F3) |
 | Financial formulas | ✅ EBITDA, cumulative cash and gross-margin identities hold in 648 rows; v3 reproduced; v4 base = v3 approved mode; MVP cost table sums re-checked; name-evaluation scores recomputed |
 | Diagrams | ✅ 11/11 Mermaid diagrams render. Corrected wireframes re-rendered with no text overflow |
@@ -90,11 +124,13 @@ Only 1 of the 15 evidence items is met (E-15, the execution-model decision). The
 | Roadmap protection | ✅ 16 phases (0–15) in the original order with original names in the [matrix](roadmap-protection-matrix.md); no phase renamed, removed, reordered, merged, split or replaced; all scope additions are additive |
 | Six divisions and 20-sector catalogue with exclusions | ✅ Unchanged |
 | No Phase 2 work started | ✅ No `docs/phase-2/`; no architecture ADRs, infrastructure or code produced |
-| No application code | ✅ New files are Markdown and CSV only. Wireframe SVG text edits only. The analysis scripts stayed outside the repository |
+| No application code | ✅ New files are Markdown and CSV, plus one **design prototype** (`design/prototype/workspace-rf.html`: static, synthetic data, no backend or network calls), like the v1.0 Government prototype. Wireframe SVG text edits only. Analysis and test scripts stayed outside the repository |
 | No original requirement disappeared | ✅ All FR-01–FR-53 retained (FR-60–FR-66 added); all E-01–E-15 retained; all decision IDs retained; replaced tables carry the same IDs with updated status |
 | No fabricated evidence | ✅ Interview log is empty; commitments = 0; quotations = 0; integrations class 1–2 = 0 |
 
 ## 7. Exact actions required from the founder (in priority order)
+
+> **Superseded on 18 Nov 2026 by [founder-action-pack.md](founder-action-pack.md)**, which has the same actions plus the ready-to-send texts, counsel Tier A first and the new INPDP finding. The table below is kept for history.
 
 | # | Action | Unblocks | Ready-made material |
 |---|---|---|---|

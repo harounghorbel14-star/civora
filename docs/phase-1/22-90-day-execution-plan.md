@@ -11,6 +11,7 @@
 > - The desk work is done: official BCT text, legal matrix, name evaluation, financial v4, product validation, interview and design-partner packages.
 > - The remaining items need the founder, counsel or institutions. See the [readiness report](phase-1-readiness-report.md) §7 for the exact actions.
 > - Week-1 items already completed at desk level are marked ✅ below.
+> - **Continuation mission (18 Nov 2026):** all kits and briefs are ready. Start with the [founder action pack](founder-action-pack.md): counsel Tier A comes first, because the INPDP is reported as inactive and Law 2004-63 Art. 31 may require notice one month before processing.
 
 ## 22.1 Objectives by Day 90
 

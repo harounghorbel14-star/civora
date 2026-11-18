@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Decisions | P1-D5 (**approved**: paid design-partner trials before Phase 13, synthetic or properly authorised test data only, no unauthorised production deployment); P1-D11 (**approved in principle**, subject to qualified Tunisian counsel) |
-| Agreement | [supporting/design-partner-agreement-template.md](../supporting/design-partner-agreement-template.md) (DRAFT v0.1; counsel questions 1–10) |
+| Agreement | [supporting/design-partner-agreement-template.md](../supporting/design-partner-agreement-template.md) (DRAFT v0.2, 18 Nov 2026; counsel questions 1–10) |
 | Evidence item | E-12 (counsel review). Supports E-04 (≥ 2 signed agreements) |
 | **Status** | **Drafts ready for counsel. Not for signature.** No partner has been approached. Status: **BLOCKED — FOUNDER ACTION REQUIRED** (counsel review; partner selection) |
 

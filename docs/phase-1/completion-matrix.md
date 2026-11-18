@@ -121,12 +121,18 @@ The founder asked for everything that can be done independently to be completed,
 | G2 | Outreach kit: official contact routes for the target institutions; public complaint-channel desk scan; outreach tracker; message templates FR/AR; participant information and consent FR/AR | E-01, E-03, E-05 | [outreach-kit.md](validation/outreach-kit.md); [public channel scan](data/fi-public-channel-scan.csv); [outreach tracker](data/outreach-tracker.csv); target list updated (12 of 15 official websites found; reserves not verified) | ✅ Complete (sending needs the founder) |
 | G3 | Desk scan of complaint-management vendors in Tunisia and the region | E-05, E-03 | [competitor-desk-scan.md](validation/competitor-desk-scan.md): STB procurement CD 23/2026 found; 6 vendor categories; positioning hypotheses for interviews | ✅ Complete (prices and incumbents need interviews) |
 | G4 | Usability-testing kit and a clickable Workspace RF prototype (synthetic data) for the agent SUS test | E-10 | [usability-testing-kit.md](validation/usability-testing-kit.md); [workspace-rf.html](../../design/prototype/workspace-rf.html) (0 axe violations, 9 task paths pass); [SUS template](data/sus-scoring-template.csv) | ✅ Complete (sessions need participants) |
-| G5 | Government-track research recruitment kit | E-09 | *pending* | In progress |
-| G6 | Counsel engagement brief, consolidated questions, request for proposal, comparison grid | E-02, E-12, E-14 | *pending* | Planned |
-| G7 | Design-partner agreement v0.2 incorporating the verified laws (still for counsel) | E-12 | *pending* | Planned |
-| G8 | Citizen Data Charter self-check against Law 2004-63; civil-society review pack | E-14 | *pending* | Planned |
-| G9 | Trademark attorney brief: classes, goods and services, search scope, request for proposal, INNORPI manual-search guide | E-11 | *pending* | Planned |
-| G10 | Quote requests for hosting and security audit / pen test, with candidate vendors from public lists and a comparison grid | E-07 | *pending* | Planned |
-| G11 | Financial check: break-even versus the size of the market under Circular 2022-08 | E-08 | *pending* | Planned |
-| G12 | INPDP declaration preparation (record of CIVORA's own research processing) | Legal matrix 4.1 | *pending* | Planned |
-| G13 | Founder action pack (only the actions the founder must take, with ready-to-send materials) | All | *pending* | Planned |
+| G5 | Government-track research recruitment kit | E-09 | [government-research-recruitment-kit.md](validation/government-research-recruitment-kit.md); [quota tracker](data/gov-research-quota-tracker.csv); research-kit retention aligned (30 days) | ✅ Complete (recruiting needs the founder or team) |
+| G6 | Counsel engagement brief, consolidated questions, request for proposal, comparison grid | E-02, E-12, E-14 | [counsel-engagement-brief.md](validation/counsel-engagement-brief.md): 29 numbered questions (consolidating Q1–Q18, Q-06–Q-13, Q-L1 and the legal-matrix items) in tiers A (before interviews), B (before design-partner signature), C (before Phase 13); RFP (FR); 5 candidate firms from Legal 500 | ✅ Complete (engagement needs the founder) |
+| G7 | Design-partner agreement v0.2 incorporating the verified laws (still for counsel) | E-12 | [template v0.2](supporting/design-partner-agreement-template.md) (updated in place; v0.1 in git history) | ✅ Complete (counsel review pending) |
+| G8 | Citizen Data Charter self-check against Law 2004-63; civil-society review pack | E-14 | [charter-review-pack.md](validation/charter-review-pack.md): 5 wording proposals (Charter text unchanged pending founder decision); CSO letters FR/AR; **INPDP reported inactive** → counsel A4 | ✅ Complete (reviews need the founder) |
+| G9 | Trademark attorney brief: classes, goods and services, search scope, request for proposal, INNORPI manual-search guide | E-11 | [trademark-attorney-brief.md](validation/trademark-attorney-brief.md) | ✅ Complete (clearance needs an attorney) |
+| G10 | Quote requests for hosting and security audit / pen test, with candidate vendors from public lists and a comparison grid | E-07 | [quote-requests.md](validation/quote-requests.md); [quote-comparison.csv](data/quote-comparison.csv) (11 slots: legal, trademark, language, hosting, pen test, accessibility) | ✅ Complete (quotes need the founder) |
+| G11 | Financial check: break-even versus the size of the market under Circular 2022-08 | E-08 | [20](20-updated-financial-assumptions.md) §20.7.7: **Workspace RF alone cannot carry the Moderate or Enterprise plans** (needs ≈ 80 / 150 institutions vs 32); risks R39–R41 | ✅ Complete |
+| G12 | INPDP declaration preparation (record of CIVORA's own research processing) | Legal matrix 4.1 | [inpdp-declaration-draft.md](validation/inpdp-declaration-draft.md) (3 processing records, Art. 8 fields, filing checklist) | ✅ Complete (filing needs the founder and counsel) |
+| G13 | Founder action pack (only the actions the founder must take, with ready-to-send materials) | All | [founder-action-pack.md](founder-action-pack.md): 14 founder actions in order, 5 later decisions, split between founder, professionals and institutions; readiness report §0 updated | ✅ Complete |
+
+**Result of §G:**
+- All 13 independent tasks are complete.
+- **No acceptance criterion moved to "met"**, because none of them can be met without interviews, user tests, counsel, an attorney or quotes.
+- Evidence moved from *blocked* to *in progress* for E-10, E-13 and E-14.
+- Readiness: **NOT READY — VALIDATION ITEMS REMAINING**.

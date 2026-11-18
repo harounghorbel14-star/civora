@@ -62,6 +62,6 @@
 | ✅ Resolved | P1-D4a (by P1-D4) |
 | 🟡 Conditional | P1-D3 (until market validation), P1-D7 (until independent validation), P1-D9 (pricing experimental) |
 | ⏳ Pending | P1-D12 (Phase 1 approval), P1-D14 (Workspace AI in Phase 10, decide at Phase 10) |
-| Decisions the founder will need later (not now) | Final company name after attorney clearance (follow-up to P1-D13). Confirmation or revision of P1-D3 at the Day-90 gate. Funding commitment (P1-D7) |
+| Decisions the founder will need later (not now) | Final company name after attorney clearance (follow-up to P1-D13). Confirmation or revision of P1-D3 at the Day-90 gate. Funding commitment (P1-D7), now informed by the market-size check (§20.7.7: Workspace RF alone cannot carry the Moderate plan). Citizen Data Charter wording (Phase 0 D6 follow-up; 5 proposals in [validation/charter-review-pack.md](validation/charter-review-pack.md)) |
 
 The founder actions needed to move P1-D3, P1-D7 and P1-D12 are listed in the [readiness report](phase-1-readiness-report.md) §7. **Phase 1 is not approved by this document.**
