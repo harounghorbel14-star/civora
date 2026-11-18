@@ -9,6 +9,8 @@
 
 Both prototypes are design artefacts. They contain synthetic data only, make no network calls and store nothing. Open them in any modern browser from the file, or from a private published copy.
 
+**Private published copy of the Workspace RF prototype:** https://claude.ai/artifact/Kekc7Ac8whrYGxPSyz8pmS. It is private: share it from the page's Share menu before sending it to participants, or run sessions on your own laptop from the file.
+
 ## 1. Automated pre-checks completed (18 Nov 2026)
 
 Workspace RF prototype, headless Chromium + axe-core 4.10.2:
