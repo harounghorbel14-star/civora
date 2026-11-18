@@ -216,15 +216,15 @@ Every service page follows the content model in Section 15.5.
 
 | Internal state | Customer sees (EN) | FR | AR |
 |---|---|---|---|
-| Received | We received your complaint | Réclamation reçue | تمّ استلام شكايتك |
+| Received | We received your complaint | Réclamation reçue | تمّ استلام شكواك |
 | In analysis | We are analysing your complaint | En cours d'analyse | قيد الدراسة |
 | Information requested | We need information from you | Information demandée | نحتاج إلى معلومات منك |
 | Pending internal | We are checking with another department | Vérification interne en cours | تحقّق داخلي جارٍ |
 | Decision issued | A decision has been issued | Décision rendue | صدر القرار |
 | Closed | Closed | Clôturée | مُغلقة |
-| Escalated to mediator | Your case is with the banking mediator | Dossier transmis au médiateur bancaire | الملف لدى الموفّق المصرفي |
+| Escalated to mediator | Your case is with the banking mediator | Dossier transmis au médiateur bancaire | الملف لدى الموفّق البنكي |
 
-*AR/FR wording requires native review (see the UX writing guidelines). The Tunisian banking-sector Arabic term for "complaint" (شكاية vs تظلّم vs مطلب) must be confirmed with design partners.*
+*AR/FR wording requires native review (see the UX writing guidelines). **Official terms verified 18 Nov 2026** against the Arabic text of BCT Circular 2022-08: complaint = **شكوى** (pl. شكاوى), banking mediator = **الموفّق البنكي**, acknowledgement = **وصل استلام** ([validation/arabic-legal-terminology.md](validation/arabic-legal-terminology.md)). Style review still pending (E-13).*
 
 ## 15.10 Product structures for other divisions (future; top-level only)
 

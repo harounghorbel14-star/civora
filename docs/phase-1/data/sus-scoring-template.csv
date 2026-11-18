@@ -1,0 +1,2 @@
+participant_code,prototype,round,language,role_or_profile,q1,q2,q3,q4,q5,q6,q7,q8,q9,q10,sus_score_formula,translation_validated_Y_N,notes_no_personal_data
+P-EXAMPLE,workspace-rf,1,fr,complaints handler,4,2,4,1,4,2,4,2,4,2,"=((q1-1)+(5-q2)+(q3-1)+(5-q4)+(q5-1)+(5-q6)+(q7-1)+(5-q8)+(q9-1)+(5-q10))*2.5 -> 77.5 for this example row",Y,EXAMPLE ROW - DELETE BEFORE USE

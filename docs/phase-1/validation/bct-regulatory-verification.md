@@ -158,3 +158,5 @@ FR numbers refer to [12-product-requirements-document.md](../12-product-requirem
 | Q-09 | Where are the XML schemas for ROGS760 and RAA10/RAA20 published (SED technical specifications)? Can a vendor obtain them, or only reporting institutions? |
 | Q-10 | Does any later circular amend 2022-08? Has Circular 2026-10 entered into force, and on what date? |
 | Q-11 | Do non-resident banks and investment banks in practice report ROGS760 (Annex 2 lists BNR and BA)? |
+| Q-12 | *(Added after reading the Arabic text [S181].)* Art. 8: the French says "jours ouvrables", the Arabic says "يوم عمل مصرفي" (banking working days). Which version prevails, and which calendar applies? |
+| Q-13 | *(Added after reading the Arabic text.)* Art. 10: the Arabic ("يحيل هيكل الإدارة للمؤسسة إلى هيكل التسيير") may read in the opposite direction to the French ("l'organe de direction soumet à l'organe d'administration"). Which version prevails? |

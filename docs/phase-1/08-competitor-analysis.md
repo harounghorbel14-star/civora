@@ -19,7 +19,7 @@ This extends Phase 0 §4, which covers reference platforms (Absher/Nafath, Eston
 4. **Customer-facing status tracking.**
 5. **One platform** that later adds e-KYC review queues, document processing and e-signature.
 
-If discovery shows banks already satisfied, the wedge narrows to leasing/factoring companies and payment institutions (see the risk register, R26). Payment institutions are **outside** BCT 2022-08 (Circular 2026-10 applies), so the regulatory pull there is weaker (verification 18 Nov 2026). A comparison grid against the verified obligations is in [validation/fi-validation-package.md](validation/fi-validation-package.md) §9.
+If discovery shows banks already satisfied, the wedge narrows to leasing/factoring companies and payment institutions (see the risk register, R26). Payment institutions are **outside** BCT 2022-08 (Circular 2026-10 applies), so the regulatory pull there is weaker (verification 18 Nov 2026). A comparison grid against the verified obligations is in [validation/fi-validation-package.md](validation/fi-validation-package.md) §9. **Desk scan of local vendors and an active STB procurement (CD 23/2026, ITSM + ticket-based complaint management):** [validation/competitor-desk-scan.md](validation/competitor-desk-scan.md).
 
 ## 8.2 Identity (Division D)
 

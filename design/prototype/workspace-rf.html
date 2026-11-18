@@ -1,0 +1,649 @@
+<!doctype html>
+<html lang="fr" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Workspace RF Prototype</title>
+<style>
+/* Usability-test prototype for CIVORA Workspace — Regulated Finance.
+   Synthetic data only. Not product code: no backend, no network calls, no storage.
+   Tokens mirror design/tokens/civora.tokens.json (v1.0). */
+:root {
+  --bg: #F6F7F8; --surface: #FFFFFF; --sunken: #EDEFF1;
+  --brand: #0F5551; --brand-hover: #0B4341; --brand-subtle: #E8F4F3;
+  --text: #1A1F25; --text-2: #545E69; --on-brand: #FFFFFF; --link: #0F5551;
+  --border: #DCE0E4; --control: #6B7580; --focus: #1D5A9E;
+  --ok: #1C6B3A; --ok-bg: #E8F5EC; --warn: #8A5A00; --warn-bg: #FFF6E5;
+  --danger: #A4211B; --danger-bg: #FDECEA; --info: #1D5A9E; --info-bg: #E8F0FA;
+  --banner-bg: #FCE7B8; --banner-fg: #5A3B00;
+  --font-ar: "IBM Plex Sans Arabic", "Noto Sans Arabic", Tahoma, sans-serif;
+  --font-lat: "IBM Plex Sans", "Noto Sans", "Segoe UI", Roboto, Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0F1317; --surface: #1A1F25; --sunken: #2A3139;
+    --brand: #67B5AE; --brand-hover: #9CD0CB; --brand-subtle: #073230;
+    --text: #F6F7F8; --text-2: #C2C8CF; --on-brand: #073230; --link: #9CD0CB;
+    --border: #3E4751; --control: #9AA3AD; --focus: #8DB6E8;
+    --ok: #7FCB98; --ok-bg: #1A1F25; --warn: #F2C25C; --warn-bg: #1A1F25;
+    --danger: #F19A93; --danger-bg: #1A1F25; --info: #8DB6E8; --info-bg: #1A1F25;
+    --banner-bg: #5A3B00; --banner-fg: #FCE7B8;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0F1317; --surface: #1A1F25; --sunken: #2A3139;
+  --brand: #67B5AE; --brand-hover: #9CD0CB; --brand-subtle: #073230;
+  --text: #F6F7F8; --text-2: #C2C8CF; --on-brand: #073230; --link: #9CD0CB;
+  --border: #3E4751; --control: #9AA3AD; --focus: #8DB6E8;
+  --ok: #7FCB98; --ok-bg: #1A1F25; --warn: #F2C25C; --warn-bg: #1A1F25;
+  --danger: #F19A93; --danger-bg: #1A1F25; --info: #8DB6E8; --info-bg: #1A1F25;
+  --banner-bg: #5A3B00; --banner-fg: #FCE7B8;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { background: var(--bg); }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font-lat); font-size: 16px; line-height: 1.5; }
+html[lang="ar"] body { font-family: var(--font-ar); }
+a { color: var(--link); }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.banner { background: var(--banner-bg); color: var(--banner-fg); font-size: 14px; font-weight: 600; text-align: center; padding: 8px 16px; }
+header.top { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 16px; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+.brand { font-weight: 700; color: var(--brand); font-size: 18px; }
+.bank { color: var(--text-2); font-size: 14px; }
+.spacer { flex: 1 1 auto; }
+nav.main { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px 16px; background: var(--surface); border-bottom: 1px solid var(--border); }
+nav.main a { text-decoration: none; padding: 8px 12px; border-radius: 8px; color: var(--text); font-weight: 500; font-size: 15px; }
+nav.main a[aria-current="page"] { background: var(--brand-subtle); color: var(--brand); font-weight: 700; }
+main { max-width: 1180px; margin: 0 auto; padding: 16px; }
+main > *, .grid > *, .stack > * { min-width: 0; }
+h1 { font-size: 24px; line-height: 1.3; margin: 8px 0 12px; }
+h2 { font-size: 19px; margin: 20px 0 8px; }
+h3 { font-size: 16px; margin: 14px 0 6px; }
+.muted { color: var(--text-2); }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+.grid { display: grid; gap: 16px; grid-template-columns: 1fr; }
+@media (min-width: 900px) { .grid.two { grid-template-columns: 3fr 2fr; } .grid.kpi { grid-template-columns: repeat(4, 1fr); } }
+@media (min-width: 560px) and (max-width: 899px) { .grid.kpi { grid-template-columns: repeat(2, 1fr); } }
+.stack { display: flex; flex-direction: column; gap: 12px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+button, .btn { font: inherit; font-weight: 600; border-radius: 8px; padding: 10px 16px; border: 1px solid var(--brand); background: var(--brand); color: var(--on-brand); cursor: pointer; min-height: 44px; }
+button.secondary { background: var(--surface); color: var(--brand); }
+button.ghost { background: transparent; color: var(--link); border-color: transparent; text-decoration: underline; padding: 6px 8px; min-height: 36px; }
+button.small { padding: 6px 10px; min-height: 36px; font-size: 14px; }
+button:hover { filter: brightness(0.95); }
+label { font-weight: 600; display: block; margin-bottom: 4px; }
+.hint { font-size: 14px; color: var(--text-2); margin-top: 2px; }
+input, select, textarea { font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--control); border-radius: 8px; padding: 10px 12px; width: 100%; min-height: 44px; }
+textarea { min-height: 96px; resize: vertical; }
+fieldset { border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin: 0; }
+legend { font-weight: 600; padding: 0 4px; }
+.radio { display: flex; gap: 8px; align-items: center; font-weight: 400; margin: 4px 0; }
+.radio input, .check input { width: 20px; height: 20px; min-height: 0; }
+.check { display: flex; gap: 8px; align-items: center; font-weight: 400; margin: 6px 0; }
+.field { margin-bottom: 12px; }
+.err { color: var(--danger); background: var(--danger-bg); border: 1px solid var(--danger); border-radius: 8px; padding: 8px 12px; font-weight: 600; }
+.okmsg { color: var(--ok); background: var(--ok-bg); border: 1px solid var(--ok); border-radius: 8px; padding: 8px 12px; font-weight: 600; }
+.note { background: var(--info-bg); color: var(--text); border-inline-start: 4px solid var(--info); padding: 8px 12px; border-radius: 4px; font-size: 14px; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 15px; }
+th, td { text-align: start; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { background: var(--sunken); font-size: 14px; color: var(--text-2); font-weight: 600; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+.ref { font-family: var(--font-mono); font-weight: 600; }
+.badge { display: inline-block; border-radius: 999px; padding: 2px 10px; font-size: 13px; font-weight: 700; border: 1px solid currentColor; white-space: nowrap; }
+.b-over { color: var(--danger); background: var(--danger-bg); }
+.b-risk { color: var(--warn); background: var(--warn-bg); }
+.b-ok { color: var(--ok); background: var(--ok-bg); }
+.b-info { color: var(--info); background: var(--info-bg); }
+.b-neutral { color: var(--text-2); background: var(--sunken); }
+.filters { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 12px; }
+.filters button[aria-pressed="true"] { background: var(--brand); color: var(--on-brand); }
+.filters button[aria-pressed="false"] { background: var(--surface); color: var(--brand); }
+.kv { display: grid; grid-template-columns: minmax(120px, 40%) 1fr; gap: 6px 12px; font-size: 15px; }
+.kv dt { color: var(--text-2); }
+.kv dd { margin: 0; }
+ol.timeline { list-style: none; padding: 0; margin: 0; }
+ol.timeline li { padding: 6px 0 6px 12px; border-inline-start: 3px solid var(--border); margin-inline-start: 4px; }
+ol.timeline time { font-family: var(--font-mono); font-size: 13px; color: var(--text-2); display: block; }
+pre { background: var(--sunken); border-radius: 8px; padding: 12px; overflow-x: auto; font-size: 13px; font-family: var(--font-mono); max-height: 360px; }
+.kpi .num { font-size: 28px; font-weight: 700; }
+.bar { display: block; height: 10px; background: var(--brand); border-radius: 6px; }
+.barrow { display: grid; grid-template-columns: minmax(110px, 35%) 1fr 40px; gap: 8px; align-items: center; font-size: 14px; margin: 4px 0; }
+/* Customer status page: mobile-first column */
+.phone { max-width: 420px; margin: 0 auto; }
+.steps { list-style: none; margin: 0; padding: 0; }
+.steps li { padding: 8px 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; gap: 8px; }
+.langs button[aria-pressed="true"] { background: var(--brand); color: var(--on-brand); }
+.langs button[aria-pressed="false"] { background: var(--surface); color: var(--brand); }
+.skip { position: absolute; left: 8px; top: -60px; background: var(--surface); color: var(--link); padding: 8px 12px; border-radius: 8px; z-index: 10; }
+.skip:focus { top: 8px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+footer { max-width: 1180px; margin: 24px auto; padding: 0 16px 32px; color: var(--text-2); font-size: 13px; }
+</style>
+</head>
+<body>
+<a href="#main" class="skip" id="skip">Aller au contenu</a>
+<div class="banner" id="banner"></div>
+<header class="top">
+  <span class="brand">CIVORA Workspace</span>
+  <span class="bank" id="bankname"></span>
+  <span class="spacer"></span>
+  <div class="row langs" id="langswitch" role="group"></div>
+  <a href="#queue" id="modlink" class="small" hidden></a>
+  <button class="ghost small" id="reset" type="button"></button>
+</header>
+<nav class="main" id="nav"></nav>
+<div id="live" class="sr" aria-live="polite"></div>
+<main id="main" tabindex="-1"></main>
+<footer id="foot"></footer>
+<script>
+(function () {
+  "use strict";
+  // ---------- constants ----------
+  var TODAY = "2026-11-18"; // fixed synthetic date for repeatable tests
+  // Synthetic banking-holiday calendar (to verify; Q-12). Weekends: Saturday, Sunday.
+  var HOLIDAYS = ["2026-10-15", "2026-12-17", "2027-01-01"]; // Evacuation Day, Revolution Day, New Year (to verify)
+  var CEILING = { "RP-BCT-2022-08": 15, "RP-BCT-2020-11": 7 };
+
+  // ---------- i18n ----------
+  var T = {
+    fr: {
+      banner: "PROTOTYPE DE TEST — données fictives — non connecté à un système — pas un produit",
+      bank: "Banque Exemple (fictive)", reset: "Réinitialiser le prototype",
+      nav: { queue: "Ma file", intake: "Nouveau dossier", escalations: "Escalades", reports: "Rapports", admin: "Administration", status: "Vue client" },
+      foot: "Prototype d'utilisabilité (Phase 1). Données synthétiques. Calendrier des jours fériés fictif. Les règles affichées suivent la circulaire BCT n°2022-08 telle que lue le 18/11/2026 ; l'interprétation n'est pas validée par un avocat.",
+      queueTitle: "Ma file de dossiers", queueSum: function (o, r, v) { return o + " ouverts · " + r + " à risque · " + v + " en retard"; },
+      filters: { all: "Tous", risk: "À risque", over: "En retard", info: "Info demandée", med: "Médiateur" },
+      cols: ["Référence", "Type", "Objet", "Client", "Canal", "Statut", "Délai restant"],
+      sortNote: "Tri par délai restant (jours ouvrables bancaires, plafond réglementaire de 15 jours à compter de l'accusé de réception).",
+      types: { complaint: "Réclamation", service: "Demande de service", info: "Demande d'information", regulator: "Demande BCT" },
+      cats: { financing: "Financement", noncard: "Paiement hors monétique", card: "Monétique", account: "Fonctionnement des comptes", intl: "Opérations internationales", pricing: "Tarification", remote: "Services à distance", other: "Autres services" },
+      chans: { branch: "Agence / siège", email: "Courriel", form: "Formulaire en ligne", post: "Courrier postal", phone: "Téléphone (autre)" },
+      status: { received: "Reçue", analysis: "En analyse", info: "Info demandée au client", internal: "Vérification interne", closed: "Clôturée", mediator: "Chez le médiateur" },
+      left: function (n) { return n < 0 ? "En retard de " + (-n) + " j" : (n === 0 ? "Échéance aujourd'hui" : n + " j ouvrables"); },
+      noRows: "Aucun dossier dans ce filtre.",
+      intakeTitle: "Enregistrer un nouveau dossier", fType: "Type de dossier", fTypeHint: "Seules les réclamations comptent dans l'état annuel BCT (art. 2).",
+      fScope: "La demande est-elle hors champ (art. 2) ?", scopeOpts: { none: "Non, dans le champ", mediator: "Déjà soumise au médiateur", court: "En justice ou en arbitrage", settled: "Déjà réglée", employment: "Relation de travail", mobile: "Paiement mobile (circulaire 2020-11)" },
+      fChannel: "Canal de réception", fCat: "Objet (catégories de l'annexe 3)", fName: "Nom du client ou raison sociale", fRef: "Référence client (facultatif)", fContact: "Le client préfère", contactOpts: { sms: "SMS", email: "Courriel", letter: "Courrier" }, fDesc: "Description", fDescHint: "Pas de numéro de carte ni de pièce d'identité.",
+      submit: "Enregistrer et émettre l'accusé de réception", reqErr: "Remplissez les champs obligatoires : ",
+      ackTitle: "Accusé de réception émis", ackRef: "Numéro de référence", ackDate: "Date d'enregistrement", ackDue: "Réponse au plus tard le", ackNoDue: "Pas de délai réglementaire (demande hors réclamation)", ackOut: "Hors champ (art. 2) : non compté dans l'état BCT", openCase: "Ouvrir le dossier", newOne: "Enregistrer un autre dossier",
+      caseTitle: "Dossier", back: "Retour à la file", customer: "Client", channel: "Canal", received: "Reçu le", ack: "Accusé de réception", due: "Échéance réglementaire", internalDue: "Échéance interne", owner: "Responsable", amount: "Montant contesté",
+      annex1: "Informations obligatoires (annexe 1)", investigations: "Investigations menées", steps: "Démarches entreprises pour régler le problème", save: "Enregistrer", saved: "Enregistré.",
+      timeline: "Historique", decision: "Décision", outcome: "Résultat", outcomes: { upheld: "Fondée", partial: "Partiellement fondée", rejected: "Rejetée", inadmissible: "Non recevable", withdrawn: "Retirée par le client" },
+      reason: "Code motif (obligatoire)", reasons: { "": "— Choisir —", "R-01": "R-01 Erreur de l'établissement, régularisation", "R-02": "R-02 Opération conforme au contrat", "R-03": "R-03 Délai de traitement interbancaire", "R-04": "R-04 Remboursement commerçant en cours", "R-05": "R-05 Frais conformes au barème affiché", "R-06": "R-06 Information demandée non fournie" },
+      expl: "Explication écrite", explHint: "Obligatoire pour tout rejet total ou partiel (art. 8). 30 caractères minimum.",
+      issue: "Émettre la décision", errReason: "Choisissez un code motif.", errExpl: "Impossible d'émettre : une explication écrite d'au moins 30 caractères est obligatoire pour un rejet total ou partiel (circulaire 2022-08, art. 8).",
+      issued: "Décision émise et envoyée au client. Le texte émis est conservé à l'identique.", mediatorInfo: "Les informations sur le recours au médiateur bancaire sont ajoutées automatiquement à la lettre.",
+      reqInfo: "Demander une information au client", reqInfoLabel: "Message au client", reqInfoSend: "Envoyer la demande", reqInfoDone: "Demande envoyée. L'échéance interne est suspendue ; l'échéance réglementaire ne change pas (voir Q-07).",
+      escalate: "Transmettre au médiateur", escalated: "Dossier marqué comme transmis au médiateur bancaire.",
+      audit: "Journal d'audit (extrait)",
+      escTitle: "Escalades — médiateur et BCT", escCorr: "Correspondant (art. 13) : Karim (fictif)", escCols: ["Référence", "Type", "Origine", "Réponse due", "Statut"], escFrom: { mediator: "Médiateur bancaire", bct: "BCT (fictif)" },
+      exportTitle: "Exporter le dossier complet", exportItems: { timeline: "Historique (événements, acteurs, horodatage)", comms: "Communications au client (copies émises)", docs: "Documents (avec empreintes)", decision: "Décision, code motif et explication", audit: "Extrait du journal d'audit", notes: "Notes internes (exclues par défaut)" },
+      exportBtn: "Générer PDF + JSON", exported: function (r) { return "Dossier " + r + " généré (PDF + JSON). Génération enregistrée dans le journal d'audit."; }, exportFor: "Dossier à exporter",
+      repTitle: "Rapports", kpiRecv: "Réclamations reçues (2026)", kpiOnTime: "Clôturées dans le délai", kpiMedian: "Délai moyen de réponse", kpiMed: "Transmises au médiateur", days: "j ouvrables",
+      rogs: "État annuel des réclamations reçues — aperçu ROGS760 (annexe 3)", rogsNote: "Structure de l'annexe 3 de la circulaire 2022-08. Déclaration annuelle, XML, au plus tard 45 jours après la date d'arrêté. Le schéma XML officiel n'est pas public : l'export ci-dessous est illustratif (Q-09).",
+      secI: "I. Par nature de réclamant", secII: "II. Particuliers par genre et tranche d'âge", secIII: "III. Par canal de réception", secIV: "IV. Par objet, délais et suites réservées",
+      kinds: { individual: "Particuliers", company: "Entreprises", professional: "Professionnels", association: "Associations", otherk: "Autres" },
+      genders: { F: "Féminin", M: "Masculin" }, ages: { a: "18–25 ans", b: "26–60 ans", c: "Plus de 60 ans" },
+      ivCols: ["Objet", "Nombre reçues", "Délai moyen de réponse", "En cours de traitement", "Dénouées en faveur du client"],
+      count: "Nombre", showXml: "Afficher l'export XML (illustratif)", board: "Rapport annuel au conseil (art. 10) — étapes", boardSteps: ["Période", "Sections : volumes, délais, causes, médiation, actions", "Commentaires de la direction", "Export PDF / DOCX"],
+      admTitle: "Catégories et délais", rulePack: "Pack de règles", admCols: ["Catégorie", "Délai interne (jours ouvrables)", "Alerte à", ""], admSave: "Enregistrer", admCeil: function (n, p) { return "Refusé : le plafond réglementaire du " + p + " est de " + n + " jours ouvrables à compter de l'accusé de réception. Vous pouvez fixer un délai plus court."; }, admOk: "Délai enregistré.",
+      admNote: "Les délais plus courts sont configurables. Le plafond réglementaire ne peut pas être dépassé (FR-61).",
+      stTitle: "Suivre ma réclamation", stRef: "Numéro de référence", stCode: "Code reçu par SMS", stHint: "Données fictives : RC-2026-0418 et 482913.", stGo: "Afficher", stErr: "Référence ou code incorrect.",
+    },
+    en: {
+      banner: "TEST PROTOTYPE — synthetic data — not connected to any system — not a product",
+      bank: "Example Bank (fictitious)", reset: "Reset prototype",
+      nav: { queue: "My queue", intake: "New case", escalations: "Escalations", reports: "Reports", admin: "Administration", status: "Customer view" },
+      foot: "Usability prototype (Phase 1). Synthetic data. Fictitious holiday calendar. Rules shown follow BCT Circular 2022-08 as read on 18/11/2026; the interpretation is not validated by counsel.",
+      queueTitle: "My case queue", queueSum: function (o, r, v) { return o + " open · " + r + " at risk · " + v + " overdue"; },
+      filters: { all: "All", risk: "At risk", over: "Overdue", info: "Info requested", med: "Mediator" },
+      cols: ["Reference", "Type", "Subject", "Customer", "Channel", "Status", "Time left"],
+      sortNote: "Sorted by time left (banking working days; regulatory ceiling of 15 days from the acknowledgement).",
+      types: { complaint: "Complaint", service: "Service request", info: "Information request", regulator: "BCT request" },
+      cats: { financing: "Financing", noncard: "Non-card payment", card: "Card payment", account: "Account operation", intl: "International operations", pricing: "Pricing", remote: "Remote banking", other: "Other services" },
+      chans: { branch: "Branch / HQ", email: "Email", form: "Online form", post: "Post", phone: "Phone (other)" },
+      status: { received: "Received", analysis: "In analysis", info: "Information requested", internal: "Internal check", closed: "Closed", mediator: "With the mediator" },
+      left: function (n) { return n < 0 ? "Overdue by " + (-n) + " d" : (n === 0 ? "Due today" : n + " working days"); },
+      noRows: "No case in this filter.",
+      intakeTitle: "Register a new case", fType: "Case type", fTypeHint: "Only complaints count in the annual BCT statement (Art. 2).",
+      fScope: "Is the request out of scope (Art. 2)?", scopeOpts: { none: "No, in scope", mediator: "Already with the mediator", court: "In court or arbitration", settled: "Already settled", employment: "Employment matter", mobile: "Mobile payment (Circular 2020-11)" },
+      fChannel: "Channel received", fCat: "Subject (Annex 3 categories)", fName: "Customer name or company name", fRef: "Customer reference (optional)", fContact: "Customer prefers", contactOpts: { sms: "SMS", email: "Email", letter: "Letter" }, fDesc: "Description", fDescHint: "No card number or ID document.",
+      submit: "Register and issue acknowledgement", reqErr: "Fill in the required fields: ",
+      ackTitle: "Acknowledgement issued", ackRef: "Reference number", ackDate: "Registration date", ackDue: "Answer due by", ackNoDue: "No regulatory deadline (not a complaint)", ackOut: "Out of scope (Art. 2): not counted in the BCT statement", openCase: "Open the case", newOne: "Register another case",
+      caseTitle: "Case", back: "Back to queue", customer: "Customer", channel: "Channel", received: "Received", ack: "Acknowledgement", due: "Regulatory deadline", internalDue: "Internal deadline", owner: "Owner", amount: "Amount disputed",
+      annex1: "Mandatory information (Annex 1)", investigations: "Investigations carried out", steps: "Steps taken to resolve the problem", save: "Save", saved: "Saved.",
+      timeline: "History", decision: "Decision", outcome: "Outcome", outcomes: { upheld: "Upheld", partial: "Partially upheld", rejected: "Rejected", inadmissible: "Not admissible", withdrawn: "Withdrawn by customer" },
+      reason: "Reason code (required)", reasons: { "": "— Choose —", "R-01": "R-01 Institution error, corrected", "R-02": "R-02 Operation compliant with contract", "R-03": "R-03 Interbank processing time", "R-04": "R-04 Merchant refund in progress", "R-05": "R-05 Fees match published tariff", "R-06": "R-06 Requested information not provided" },
+      expl: "Written explanation", explHint: "Required for any total or partial rejection (Art. 8). At least 30 characters.",
+      issue: "Issue decision", errReason: "Choose a reason code.", errExpl: "Cannot issue: a written explanation of at least 30 characters is required for a total or partial rejection (Circular 2022-08, Art. 8).",
+      issued: "Decision issued and sent to the customer. The issued text is stored unchanged.", mediatorInfo: "Information about recourse to the banking mediator is added to the letter automatically.",
+      reqInfo: "Request information from the customer", reqInfoLabel: "Message to the customer", reqInfoSend: "Send request", reqInfoDone: "Request sent. The internal deadline is paused; the regulatory deadline does not change (see Q-07).",
+      escalate: "Send to mediator", escalated: "Case marked as sent to the banking mediator.",
+      audit: "Audit log (extract)",
+      escTitle: "Escalations — mediator and BCT", escCorr: "Correspondent (Art. 13): Karim (fictitious)", escCols: ["Reference", "Type", "From", "Response due", "Status"], escFrom: { mediator: "Banking mediator", bct: "BCT (fictitious)" },
+      exportTitle: "Export the complete case file", exportItems: { timeline: "History (events, actors, timestamps)", comms: "Customer communications (issued copies)", docs: "Documents (with checksums)", decision: "Decision, reason code and explanation", audit: "Audit-log extract", notes: "Internal notes (excluded by default)" },
+      exportBtn: "Generate PDF + JSON", exported: function (r) { return "Case file " + r + " generated (PDF + JSON). Generation recorded in the audit log."; }, exportFor: "Case to export",
+      repTitle: "Reports", kpiRecv: "Complaints received (2026)", kpiOnTime: "Closed within deadline", kpiMedian: "Average response time", kpiMed: "Sent to mediator", days: "working days",
+      rogs: "Annual statement of complaints received — ROGS760 preview (Annex 3)", rogsNote: "Structure of Annex 3 of Circular 2022-08. Annual, XML, due 45 days after the reporting date. The official XML schema is not public: the export below is illustrative (Q-09).",
+      secI: "I. By complainant type", secII: "II. Individuals by gender and age band", secIII: "III. By channel", secIV: "IV. By subject, timing and outcomes",
+      kinds: { individual: "Individuals", company: "Companies", professional: "Professionals", association: "Associations", otherk: "Other" },
+      genders: { F: "Female", M: "Male" }, ages: { a: "18–25", b: "26–60", c: "Over 60" },
+      ivCols: ["Subject", "Number received", "Average response time", "In progress", "Resolved in customer's favour"],
+      count: "Count", showXml: "Show XML export (illustrative)", board: "Annual board report (Art. 10) — steps", boardSteps: ["Period", "Sections: volumes, deadlines, root causes, mediation, actions", "Management commentary", "Export PDF / DOCX"],
+      admTitle: "Categories and deadlines", rulePack: "Rule pack", admCols: ["Category", "Internal deadline (working days)", "Alert at", ""], admSave: "Save", admCeil: function (n, p) { return "Rejected: the regulatory ceiling of " + p + " is " + n + " working days from the acknowledgement. You can set a shorter deadline."; }, admOk: "Deadline saved.",
+      admNote: "Shorter deadlines are configurable. The regulatory ceiling cannot be exceeded (FR-61).",
+      stTitle: "Track my complaint", stRef: "Reference number", stCode: "Code received by SMS", stHint: "Synthetic data: RC-2026-0418 and 482913.", stGo: "Show", stErr: "Reference or code incorrect.",
+    }
+  };
+  // Customer-facing strings (status page): FR / AR / EN. Official Arabic terms per BCT 2022-08 (شكوى، الموفّق البنكي، وصل استلام).
+  var C = {
+    fr: { title: "Votre réclamation", ref: "Réf.", due: "La banque vous répondra au plus tard le", steps: "Étapes", add: "Ajouter un document", added: "Document ajouté. La banque est informée.", med1: "Si la réponse ne vous satisfait pas", med2: "vous pouvez saisir gratuitement le médiateur bancaire, par écrit (coordonnées affichées en agence et sur le site de la banque).", reply: "Votre réponse au message de la banque", send: "Envoyer", sent: "Message envoyé.", msg: "Message de la banque", back: "Retour", lang: "Langue",
+      st: { received: "Réclamation reçue", analysis: "En cours d'analyse", info: "Information demandée", internal: "Vérification interne en cours", closed: "Clôturée", mediator: "Dossier transmis au médiateur bancaire" } },
+    ar: { title: "شكواك", ref: "المرجع:", due: "سيجيبك البنك في أجل أقصاه", steps: "المراحل", add: "إضافة وثيقة", added: "تمّت إضافة الوثيقة وإعلام البنك.", med1: "إذا لم يرضك الردّ", med2: "يمكنك اللجوء مجانا وكتابيا إلى الموفّق البنكي (الإحداثيات معلّقة بالفروع وعلى موقع البنك).", reply: "ردّك على رسالة البنك", send: "إرسال", sent: "تمّ إرسال الرسالة.", msg: "رسالة البنك", back: "رجوع", lang: "اللغة",
+      st: { received: "تمّ استلام شكواك", analysis: "قيد الدراسة", info: "نحتاج إلى معلومات منك", internal: "تحقّق داخلي جارٍ", closed: "مُغلقة", mediator: "الملف لدى الموفّق البنكي" } },
+    en: { title: "Your complaint", ref: "Ref.", due: "The bank will answer by", steps: "Steps", add: "Add a document", added: "Document added. The bank has been notified.", med1: "If you are not satisfied with the answer", med2: "you can refer the matter in writing, free of charge, to the banking mediator (contact details are displayed in branches and on the bank's website).", reply: "Your reply to the bank's message", send: "Send", sent: "Message sent.", msg: "Message from the bank", back: "Back", lang: "Language",
+      st: { received: "We received your complaint", analysis: "We are analysing your complaint", info: "We need information from you", internal: "We are checking with another department", closed: "Closed", mediator: "Your case is with the banking mediator" } }
+  };
+
+  // ---------- date helpers ----------
+  function d(s) { var p = s.split("-"); return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2])); }
+  function iso(dt) { return dt.toISOString().slice(0, 10); }
+  function fmt(s) { var p = s.split("-"); return p[2] + "/" + p[1] + "/" + p[0]; }
+  function isWork(dt) { var w = dt.getUTCDay(); return w !== 0 && w !== 6 && HOLIDAYS.indexOf(iso(dt)) < 0; }
+  function addWork(s, n) { var dt = d(s), k = 0; while (k < n) { dt.setUTCDate(dt.getUTCDate() + 1); if (isWork(dt)) k++; } return iso(dt); }
+  function workBetween(a, b) { // signed count of working days from a to b
+    if (a === b) return 0; var sign = 1, x = a, y = b; if (d(a) > d(b)) { sign = -1; x = b; y = a; }
+    var dt = d(x), n = 0; while (iso(dt) < y) { dt.setUTCDate(dt.getUTCDate() + 1); if (isWork(dt)) n++; } return sign * n;
+  }
+
+  // ---------- synthetic data ----------
+  var state;
+  function seed() {
+    var cases = [
+      { ref: "RC-2026-0412", type: "complaint", cat: "card", name: "Youssef M.", kind: "individual", g: "M", age: "b", chan: "branch", received: "2026-10-26", status: "analysis", owner: "Sana", amount: "120,000 TND", desc: "Paiement par carte contesté chez un commerçant.", inv: "Ticket de caisse reçu de l'agence le 28/10.", steps: "Demande de remboursement adressée au commerçant via le réseau monétique.", notes: "Commerçant : remboursement en attente." },
+      { ref: "RC-2026-0418", type: "complaint", cat: "noncard", name: "Salma K.", kind: "individual", g: "F", age: "b", chan: "form", received: "2026-11-11", status: "info", owner: "Sana", amount: "850,000 TND", desc: "Virement non reçu par le bénéficiaire.", inv: "", steps: "", notes: "", msgOut: "Merci d'envoyer le reçu du virement." },
+      { ref: "RC-2026-0421", type: "complaint", cat: "pricing", name: "Hichem B.", kind: "individual", g: "M", age: "c", chan: "email", received: "2026-11-02", status: "analysis", owner: "Sana", amount: "35,000 TND", desc: "Frais de tenue de compte jugés excessifs.", inv: "", steps: "", notes: "" },
+      { ref: "RC-2026-0430", type: "complaint", cat: "financing", name: "Société Atlas SARL", kind: "company", g: "", age: "", rne: "1234567X", chan: "post", received: "2026-11-05", status: "internal", owner: "Sana", amount: "", desc: "Échéancier de crédit non conforme à l'offre.", inv: "", steps: "", notes: "" },
+      { ref: "RC-2026-0433", type: "complaint", cat: "remote", name: "Ines B.", kind: "individual", g: "F", age: "a", chan: "form", received: "2026-11-17", status: "received", owner: "", amount: "", desc: "Accès impossible à l'application mobile.", inv: "", steps: "", notes: "" },
+      { ref: "RC-2026-0377", type: "complaint", cat: "account", name: "Mounir T.", kind: "professional", g: "", age: "", chan: "branch", received: "2026-09-29", status: "mediator", owner: "Karim", amount: "1 200,000 TND", desc: "Blocage de compte professionnel.", inv: "Analyse du dossier KYC.", steps: "Déblocage partiel le 08/10.", notes: "", decided: "2026-10-15", outcome: "partial", fav: false },
+      { ref: "RC-2026-0350", type: "complaint", cat: "card", name: "Amel R.", kind: "individual", g: "F", age: "c", chan: "phone", received: "2026-09-15", status: "closed", owner: "Sana", amount: "60,000 TND", desc: "Retrait non servi au DAB.", inv: "Journal DAB vérifié.", steps: "Recrédit du compte.", notes: "", decided: "2026-09-24", outcome: "upheld", fav: true },
+      { ref: "RC-2026-0361", type: "complaint", cat: "card", name: "Karim D.", kind: "individual", g: "M", age: "a", chan: "form", received: "2026-09-21", status: "closed", owner: "Sana", amount: "45,000 TND", desc: "Double débit carte.", inv: "Relevé monétique vérifié.", steps: "Annulation du double débit.", notes: "", decided: "2026-10-01", outcome: "upheld", fav: true },
+      { ref: "RC-2026-0368", type: "complaint", cat: "intl", name: "Leila S.", kind: "individual", g: "F", age: "b", chan: "email", received: "2026-09-25", status: "closed", owner: "Sana", amount: "300,000 TND", desc: "Retard d'un transfert de l'étranger.", inv: "Swift tracé.", steps: "Fonds crédités.", notes: "", decided: "2026-10-14", outcome: "partial", fav: false },
+      { ref: "RC-2026-0371", type: "complaint", cat: "pricing", name: "Association Nour", kind: "association", g: "", age: "", chan: "post", received: "2026-09-28", status: "closed", owner: "Sana", amount: "", desc: "Commission contestée.", inv: "Barème vérifié.", steps: "Explication du barème.", notes: "", decided: "2026-10-12", outcome: "rejected", fav: false },
+      { ref: "RQ-2026-0090", type: "service", cat: "account", name: "Nadia F.", kind: "individual", g: "F", age: "b", chan: "branch", received: "2026-11-16", status: "received", owner: "", amount: "", desc: "Demande d'attestation de solde.", inv: "", steps: "", notes: "" },
+      { ref: "RQ-2026-0012", type: "regulator", cat: "other", name: "BCT (fictif)", kind: "otherk", g: "", age: "", chan: "post", received: "2026-11-10", status: "analysis", owner: "Karim", amount: "", desc: "Demande d'information sur le dispositif de traitement des réclamations.", inv: "", steps: "", notes: "", from: "bct", respDue: "2026-11-30" }
+    ];
+    cases.forEach(function (c) {
+      c.ack = c.received;
+      c.due = c.type === "complaint" ? addWork(c.ack, 15) : null;
+      c.timeline = [{ d: c.received, t: "Reçu (" + T.fr.chans[c.chan] + ")" }, { d: c.received, t: "Accusé de réception émis automatiquement" }];
+      if (c.status === "info") c.timeline.push({ d: "2026-11-13", t: "Information demandée au client" });
+      if (c.decided) c.timeline.push({ d: c.decided, t: "Décision émise" });
+      if (c.status === "mediator") { c.timeline.push({ d: "2026-11-06", t: "Saisine du médiateur bancaire" }); c.from = "mediator"; c.respDue = "2026-11-22"; }
+    });
+    var cats = [
+      { id: "card", days: 10, alert: "70% · 90%" }, { id: "noncard", days: 5, alert: "70% · 90%" }, { id: "pricing", days: 15, alert: "80%" },
+      { id: "account", days: 10, alert: "70% · 90%" }, { id: "financing", days: 15, alert: "80%" }, { id: "intl", days: 10, alert: "70% · 90%" },
+      { id: "remote", days: 5, alert: "70% · 90%" }, { id: "other", days: 15, alert: "80%" }
+    ];
+    state = { cases: cases, cats: cats, pack: "RP-BCT-2022-08", seq: 434, audit: [], consoleLang: "fr", custLang: "fr", filter: "all", custCase: null };
+    log("Prototype initialisé avec des données synthétiques");
+  }
+  function log(msg) { state.audit.unshift({ d: TODAY, t: msg }); }
+  function find(ref) { for (var i = 0; i < state.cases.length; i++) if (state.cases[i].ref === ref) return state.cases[i]; return null; }
+  function left(c) { if (!c.due || c.status === "closed" || c.decided) return null; return workBetween(TODAY, c.due); }
+  function L() { return T[state.consoleLang]; }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (ch) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]; }); }
+  function say(msg) { var l = document.getElementById("live"); l.textContent = ""; setTimeout(function () { l.textContent = msg; }, 30); }
+  function badgeFor(c) {
+    var n = left(c);
+    if (n === null) return '<span class="badge b-neutral">—</span>';
+    var cls = n < 0 ? "b-over" : (n <= 3 ? "b-risk" : "b-ok");
+    return '<span class="badge ' + cls + '">' + esc(L().left(n)) + "</span>";
+  }
+
+  // ---------- chrome ----------
+  function chrome(route) {
+    var isCust = route === "status";
+    var BANK = { fr: "Banque Exemple (fictive)", ar: "البنك المثال (وهمي)", en: "Example Bank (fictitious)" };
+    var lang = isCust ? state.custLang : state.consoleLang;
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+    var t = L();
+    document.getElementById("banner").textContent = isCust && state.custLang === "ar" ? "نموذج اختبار — بيانات تجريبية — غير متّصل بأي منظومة — ليس منتوجا" : (isCust && state.custLang === "en" ? T.en.banner : t.banner);
+    document.getElementById("bankname").textContent = isCust ? BANK[state.custLang] : t.bank;
+    var mod = document.getElementById("modlink"); mod.hidden = !isCust; mod.textContent = state.consoleLang === "fr" ? "Console agent (modérateur)" : "Agent console (moderator)";
+    document.getElementById("reset").textContent = t.reset;
+    var ls = document.getElementById("langswitch");
+    var opts = isCust ? [["fr", "FR"], ["ar", "العربية"], ["en", "EN"]] : [["fr", "FR"], ["en", "EN"]];
+    ls.setAttribute("aria-label", isCust ? C[state.custLang].lang : (state.consoleLang === "fr" ? "Langue" : "Language"));
+    ls.innerHTML = opts.map(function (o) { return '<button type="button" class="small" data-lang="' + o[0] + '" aria-pressed="' + (o[0] === lang) + '"' + (o[0] === "ar" ? ' lang="ar"' : "") + ">" + o[1] + "</button>"; }).join("");
+    var nav = document.getElementById("nav");
+    nav.hidden = isCust;
+    var keys = ["queue", "intake", "escalations", "reports", "admin", "status"];
+    nav.setAttribute("aria-label", state.consoleLang === "fr" ? "Navigation principale" : "Main navigation");
+    nav.innerHTML = keys.map(function (k) { var cur = route === k || (route === "case" && k === "queue"); return '<a href="#' + k + '"' + (cur ? ' aria-current="page"' : "") + ">" + esc(t.nav[k]) + "</a>"; }).join("");
+    document.getElementById("foot").textContent = (isCust && state.custLang === "ar") ? "نموذج أوّلي لاختبار قابلية الاستخدام (المرحلة 1). بيانات تجريبية فقط." : ((isCust && state.custLang === "en") ? T.en.foot : t.foot);
+    document.getElementById("skip").textContent = lang === "ar" ? "انتقل إلى المحتوى" : (lang === "en" ? "Skip to content" : "Aller au contenu");
+  }
+
+  // ---------- views ----------
+  function viewQueue() {
+    var t = L();
+    var open = state.cases.filter(function (c) { return c.status !== "closed" && c.type !== "regulator"; });
+    var risk = open.filter(function (c) { var n = left(c); return n !== null && n >= 0 && n <= 3; }).length;
+    var over = open.filter(function (c) { var n = left(c); return n !== null && n < 0; }).length;
+    var rows = open.filter(function (c) {
+      var n = left(c);
+      switch (state.filter) {
+        case "risk": return n !== null && n >= 0 && n <= 3;
+        case "over": return n !== null && n < 0;
+        case "info": return c.status === "info";
+        case "med": return c.status === "mediator";
+        default: return true;
+      }
+    }).sort(function (a, b) { var x = left(a), y = left(b); if (x === null) return 1; if (y === null) return -1; return x - y; });
+    var f = ["all", "risk", "over", "info", "med"].map(function (k) { return '<button type="button" class="small" data-filter="' + k + '" aria-pressed="' + (state.filter === k) + '">' + esc(t.filters[k]) + "</button>"; }).join("");
+    var body = rows.length ? rows.map(function (c) {
+      return "<tr><td><button type=\"button\" class=\"ghost ref\" data-open=\"" + c.ref + "\">" + c.ref + "</button></td><td>" + esc(t.types[c.type]) + "</td><td>" + esc(t.cats[c.cat]) + "</td><td>" + esc(initials(c.name, c.kind)) + "</td><td>" + esc(t.chans[c.chan]) + "</td><td>" + esc(t.status[c.status]) + "</td><td>" + badgeFor(c) + "</td></tr>";
+    }).join("") : '<tr><td colspan="7">' + esc(t.noRows) + "</td></tr>";
+    return "<h1>" + esc(t.queueTitle) + "</h1><p class=\"muted\">" + esc(t.queueSum(open.length, risk, over)) + "</p>" +
+      '<div class="filters" role="group" aria-label="Filtres">' + f + "</div>" +
+      '<div class="tablewrap" tabindex="0" role="region" aria-label="' + esc(t.queueTitle) + '"><table><caption class="sr">' + esc(t.queueTitle) + "</caption><thead><tr>" + t.cols.map(function (h) { return '<th scope="col">' + esc(h) + "</th>"; }).join("") + "</tr></thead><tbody>" + body + "</tbody></table></div>" +
+      '<p class="hint">' + esc(t.sortNote) + "</p>";
+  }
+  function initials(name, kind) { if (kind !== "individual") return name; var p = name.split(" "); return p.map(function (x) { return x.charAt(0) + "."; }).join(" "); }
+
+  function viewIntake() {
+    var t = L();
+    var opt = function (obj, sel) { return Object.keys(obj).map(function (k) { return '<option value="' + k + '"' + (k === sel ? " selected" : "") + ">" + esc(obj[k]) + "</option>"; }).join(""); };
+    return "<h1>" + esc(t.intakeTitle) + "</h1>" +
+      '<form id="intake" class="card" novalidate>' +
+      '<div id="intake-err" role="alert"></div>' +
+      '<fieldset class="field"><legend>' + esc(t.fType) + ' *</legend>' +
+      ["complaint", "service", "info"].map(function (k, i) { return '<label class="radio"><input type="radio" name="type" value="' + k + '"' + (i === 0 ? " checked" : "") + "> " + esc(t.types[k]) + "</label>"; }).join("") +
+      '<p class="hint">' + esc(t.fTypeHint) + "</p></fieldset>" +
+      '<div class="field"><label for="f-scope">' + esc(t.fScope) + '</label><select id="f-scope">' + opt(t.scopeOpts, "none") + "</select></div>" +
+      '<div class="grid two"><div class="field"><label for="f-chan">' + esc(t.fChannel) + ' *</label><select id="f-chan">' + opt(t.chans, "branch") + "</select></div>" +
+      '<div class="field"><label for="f-cat">' + esc(t.fCat) + ' *</label><select id="f-cat"><option value="">—</option>' + opt(t.cats, "") + "</select></div></div>" +
+      '<div class="grid two"><div class="field"><label for="f-name">' + esc(t.fName) + ' *</label><input id="f-name" autocomplete="off"></div>' +
+      '<div class="field"><label for="f-ref">' + esc(t.fRef) + '</label><input id="f-ref" autocomplete="off"></div></div>' +
+      '<div class="field"><label for="f-contact">' + esc(t.fContact) + '</label><select id="f-contact">' + opt(t.contactOpts, "sms") + "</select></div>" +
+      '<div class="field"><label for="f-desc">' + esc(t.fDesc) + ' *</label><textarea id="f-desc" aria-describedby="f-desc-h"></textarea><p class="hint" id="f-desc-h">' + esc(t.fDescHint) + "</p></div>" +
+      '<button type="submit">' + esc(t.submit) + "</button></form>" +
+      '<div id="ack" class="card" hidden tabindex="-1"></div>';
+  }
+
+  function viewCase(ref) {
+    var t = L(), c = find(ref);
+    if (!c) return "<p>" + esc(t.noRows) + "</p>";
+    var internal = c.due ? addWork(c.ack, catDays(c.cat)) : null;
+    var canDecide = c.type === "complaint" && c.status !== "closed" && c.status !== "mediator";
+    var outOpts = Object.keys(t.outcomes).map(function (k) { return '<option value="' + k + '">' + esc(t.outcomes[k]) + "</option>"; }).join("");
+    var rOpts = Object.keys(t.reasons).map(function (k) { return '<option value="' + k + '">' + esc(t.reasons[k]) + "</option>"; }).join("");
+    var tl = c.timeline.slice().reverse().map(function (e) { return "<li><time>" + fmt(e.d) + "</time>" + esc(e.t) + "</li>"; }).join("");
+    var aud = state.audit.filter(function (a) { return a.t.indexOf(ref) >= 0; }).slice(0, 5).map(function (a) { return "<li><time>" + fmt(a.d) + "</time>" + esc(a.t) + "</li>"; }).join("");
+    return '<p><a href="#queue">← ' + esc(t.back) + "</a></p>" +
+      "<h1>" + esc(t.caseTitle) + ' <span class="ref">' + c.ref + "</span> · " + esc(t.cats[c.cat]) + "</h1>" +
+      '<div class="row">' + '<span class="badge b-info">' + esc(t.types[c.type]) + "</span> " + '<span class="badge b-neutral">' + esc(t.status[c.status]) + "</span> " + badgeFor(c) + "</div>" +
+      '<div class="grid two" style="margin-top:12px"><div class="stack">' +
+      '<section class="card"><dl class="kv">' +
+      "<dt>" + esc(t.customer) + "</dt><dd>" + esc(c.name) + (c.rne ? " · RNE " + esc(c.rne) : "") + "</dd>" +
+      "<dt>" + esc(t.channel) + "</dt><dd>" + esc(t.chans[c.chan]) + "</dd>" +
+      "<dt>" + esc(t.received) + "</dt><dd>" + fmt(c.received) + "</dd>" +
+      "<dt>" + esc(t.ack) + "</dt><dd>" + fmt(c.ack) + "</dd>" +
+      (c.due ? "<dt>" + esc(t.due) + "</dt><dd><strong>" + fmt(c.due) + "</strong></dd><dt>" + esc(t.internalDue) + "</dt><dd>" + (c.status === "info" ? "⏸ " : "") + fmt(internal) + "</dd>" : "") +
+      (c.amount ? "<dt>" + esc(t.amount) + "</dt><dd>" + esc(c.amount) + "</dd>" : "") +
+      "<dt>" + esc(t.owner) + "</dt><dd>" + esc(c.owner || "—") + "</dd></dl><p>" + esc(c.desc) + "</p></section>" +
+      '<section class="card"><h2>' + esc(t.annex1) + "</h2>" +
+      '<div class="field"><label for="c-inv">' + esc(t.investigations) + '</label><textarea id="c-inv">' + esc(c.inv) + "</textarea></div>" +
+      '<div class="field"><label for="c-steps">' + esc(t.steps) + '</label><textarea id="c-steps">' + esc(c.steps) + "</textarea></div>" +
+      '<button type="button" class="secondary" data-act="save-annex">' + esc(t.save) + '</button> <span id="annex-msg" role="status"></span></section>' +
+      (canDecide ? '<section class="card"><h2>' + esc(t.decision) + "</h2><form id=\"decide\" novalidate>" +
+        '<div id="dec-err" role="alert"></div>' +
+        '<div class="field"><label for="d-out">' + esc(t.outcome) + '</label><select id="d-out">' + outOpts + "</select></div>" +
+        '<div class="field"><label for="d-reason">' + esc(t.reason) + '</label><select id="d-reason">' + rOpts + "</select></div>" +
+        '<div class="field"><label for="d-expl">' + esc(t.expl) + '</label><textarea id="d-expl" aria-describedby="d-expl-h"></textarea><p class="hint" id="d-expl-h">' + esc(t.explHint) + "</p></div>" +
+        '<p class="note">' + esc(t.mediatorInfo) + "</p>" +
+        '<div class="row"><button type="submit">' + esc(t.issue) + "</button></div></form></section>" : "") +
+      "</div><div class=\"stack\">" +
+      (canDecide ? '<section class="card"><h2>' + esc(t.reqInfo) + "</h2>" +
+        '<div class="field"><label for="ri-msg">' + esc(t.reqInfoLabel) + '</label><textarea id="ri-msg"></textarea></div>' +
+        '<div class="row"><button type="button" class="secondary" data-act="reqinfo">' + esc(t.reqInfoSend) + '</button><button type="button" class="secondary" data-act="escalate">' + esc(t.escalate) + '</button></div><p id="ri-msg-out" role="status"></p></section>' : "") +
+      '<section class="card"><h2>' + esc(t.timeline) + '</h2><ol class="timeline">' + tl + "</ol></section>" +
+      '<section class="card"><h2>' + esc(t.audit) + '</h2><ol class="timeline">' + aud + "</ol></section>" +
+      "</div></div>";
+  }
+  function catDays(id) { for (var i = 0; i < state.cats.length; i++) if (state.cats[i].id === id) return state.cats[i].days; return 15; }
+
+  function viewEsc() {
+    var t = L();
+    var rows = state.cases.filter(function (c) { return c.status === "mediator" || c.type === "regulator"; });
+    var body = rows.map(function (c) { return "<tr><td class=\"ref\">" + c.ref + "</td><td>" + esc(t.types[c.type]) + "</td><td>" + esc(t.escFrom[c.from]) + "</td><td>" + fmt(c.respDue) + "</td><td>" + esc(t.status[c.status]) + "</td></tr>"; }).join("");
+    var items = Object.keys(t.exportItems).map(function (k) { return '<label class="check"><input type="checkbox" data-exp="' + k + '"' + (k === "notes" ? "" : " checked") + "> " + esc(t.exportItems[k]) + "</label>"; }).join("");
+    var refs = rows.map(function (c) { return '<option value="' + c.ref + '">' + c.ref + "</option>"; }).join("");
+    return "<h1>" + esc(t.escTitle) + '</h1><p class="muted">' + esc(t.escCorr) + "</p>" +
+      '<div class="tablewrap" tabindex="0" role="region" aria-label="' + esc(t.escTitle) + '"><table><caption class="sr">' + esc(t.escTitle) + "</caption><thead><tr>" + t.escCols.map(function (h) { return '<th scope="col">' + esc(h) + "</th>"; }).join("") + "</tr></thead><tbody>" + body + "</tbody></table></div>" +
+      '<section class="card" style="margin-top:16px"><h2>' + esc(t.exportTitle) + "</h2>" +
+      '<div class="field"><label for="exp-ref">' + esc(t.exportFor) + '</label><select id="exp-ref">' + refs + "</select></div>" +
+      '<fieldset><legend>' + esc(t.exportTitle) + "</legend>" + items + "</fieldset>" +
+      '<div class="row" style="margin-top:12px"><button type="button" data-act="export">' + esc(t.exportBtn) + '</button></div><div id="exp-out" role="status"></div></section>';
+  }
+
+  function stats() {
+    var cs = state.cases.filter(function (c) { return c.type === "complaint"; });
+    var by = function (key, vals) { var o = {}; vals.forEach(function (v) { o[v] = 0; }); cs.forEach(function (c) { if (o[c[key]] !== undefined) o[c[key]]++; }); return o; };
+    var kinds = by("kind", ["individual", "company", "professional", "association", "otherk"]);
+    var gen = { F: { a: 0, b: 0, c: 0 }, M: { a: 0, b: 0, c: 0 } };
+    cs.forEach(function (c) { if (c.kind === "individual" && gen[c.g]) gen[c.g][c.age]++; });
+    var chan = { email: 0, form: 0, branch: 0, other: 0 };
+    cs.forEach(function (c) { if (c.chan === "email" || c.chan === "form" || c.chan === "branch") chan[c.chan]++; else chan.other++; });
+    var subj = {};
+    Object.keys(T.fr.cats).forEach(function (k) { subj[k] = { n: 0, sum: 0, closedN: 0, open: 0, fav: 0 }; });
+    var closed = 0, onTime = 0, sumAll = 0, med = 0;
+    cs.forEach(function (c) {
+      var s = subj[c.cat]; s.n++;
+      if (c.decided) { var w = workBetween(c.ack, c.decided); s.sum += w; s.closedN++; sumAll += w; closed++; if (w <= 15) onTime++; if (c.fav) s.fav++; }
+      else s.open++;
+      if (c.status === "mediator") med++;
+    });
+    return { total: cs.length, kinds: kinds, gen: gen, chan: chan, subj: subj, closed: closed, onTime: onTime, avg: closed ? (sumAll / closed) : 0, med: med };
+  }
+  function viewReports() {
+    var t = L(), s = stats();
+    var kpi = function (label, val) { return '<div class="card kpi"><div class="muted">' + esc(label) + '</div><div class="num">' + esc(val) + "</div></div>"; };
+    var simple = function (title, obj, labels) {
+      return "<h3>" + esc(title) + '</h3><div class="tablewrap" tabindex="0" role="region" aria-label="' + esc(title) + '"><table><thead><tr><th scope="col"></th><th scope="col">' + esc(t.count) + "</th></tr></thead><tbody>" +
+        Object.keys(obj).map(function (k) { return '<tr><th scope="row">' + esc(labels[k]) + "</th><td>" + obj[k] + "</td></tr>"; }).join("") + "</tbody></table></div>";
+    };
+    var g = s.gen;
+    var secII = "<h3>" + esc(t.secII) + '</h3><div class="tablewrap" tabindex="0" role="region" aria-label="' + esc(t.secII) + '"><table><thead><tr><th scope="col"></th><th scope="col">' + esc(t.ages.a) + '</th><th scope="col">' + esc(t.ages.b) + '</th><th scope="col">' + esc(t.ages.c) + "</th></tr></thead><tbody>" +
+      ["F", "M"].map(function (k) { return '<tr><th scope="row">' + esc(t.genders[k]) + "</th><td>" + g[k].a + "</td><td>" + g[k].b + "</td><td>" + g[k].c + "</td></tr>"; }).join("") + "</tbody></table></div>";
+    var chanLabels = { email: t.chans.email, form: t.chans.form, branch: t.chans.branch, other: state.consoleLang === "fr" ? "Autres canaux (y compris courrier postal)" : "Other channels (incl. post)" };
+    var secIV = "<h3>" + esc(t.secIV) + '</h3><div class="tablewrap" tabindex="0" role="region" aria-label="' + esc(t.secIV) + '"><table><thead><tr>' + t.ivCols.map(function (h) { return '<th scope="col">' + esc(h) + "</th>"; }).join("") + "</tr></thead><tbody>" +
+      Object.keys(s.subj).map(function (k) { var x = s.subj[k]; return '<tr><th scope="row">' + esc(t.cats[k]) + "</th><td>" + x.n + "</td><td>" + (x.closedN ? (x.sum / x.closedN).toFixed(1) + " " + esc(t.days) : "—") + "</td><td>" + x.open + "</td><td>" + x.fav + "</td></tr>"; }).join("") + "</tbody></table></div>";
+    var maxN = 1; Object.keys(s.subj).forEach(function (k) { if (s.subj[k].n > maxN) maxN = s.subj[k].n; });
+    var bars = Object.keys(s.subj).map(function (k) { var n = s.subj[k].n; return '<div class="barrow"><span>' + esc(t.cats[k]) + '</span><span class="bar" style="width:' + Math.max(2, Math.round(100 * n / maxN)) + '%" aria-hidden="true"></span><span>' + n + "</span></div>"; }).join("");
+    return "<h1>" + esc(t.repTitle) + "</h1>" +
+      '<div class="grid kpi">' + kpi(t.kpiRecv, s.total) + kpi(t.kpiOnTime, s.closed ? Math.round(100 * s.onTime / s.closed) + " %" : "—") + kpi(t.kpiMedian, s.avg.toFixed(1) + " " + t.days) + kpi(t.kpiMed, s.med) + "</div>" +
+      '<section class="card" style="margin-top:16px"><h2>' + esc(t.secIV.replace(/^IV\. /, "")) + "</h2>" + bars + "</section>" +
+      '<section class="card" style="margin-top:16px"><h2>' + esc(t.rogs) + '</h2><p class="note">' + esc(t.rogsNote) + "</p>" +
+      simple(t.secI, s.kinds, t.kinds) + secII + simple(t.secIII, s.chan, chanLabels) + secIV +
+      '<div class="row" style="margin-top:12px"><button type="button" class="secondary" data-act="xml" aria-expanded="false" aria-controls="xml">' + esc(t.showXml) + '</button></div><pre id="xml" tabindex="0" role="region" aria-label="XML" hidden></pre></section>' +
+      '<section class="card" style="margin-top:16px"><h2>' + esc(t.board) + "</h2><ol>" + t.boardSteps.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ol></section>";
+  }
+  function xml() {
+    var s = stats(), out = ['<?xml version="1.0" encoding="UTF-8"?>', "<!-- ILLUSTRATIVE ONLY: official ROGS760 schema not public (Q-09). Synthetic data. -->", '<ROGS760 annee="2026" etablissement="BANQUE-EXEMPLE">', "  <ParNatureReclamant>"];
+    Object.keys(s.kinds).forEach(function (k) { out.push('    <Nature code="' + k + '" nombre="' + s.kinds[k] + '"/>'); });
+    out.push("  </ParNatureReclamant>", "  <Particuliers>");
+    ["F", "M"].forEach(function (g) { ["a", "b", "c"].forEach(function (a) { out.push('    <Groupe genre="' + g + '" tranche="' + a + '" nombre="' + s.gen[g][a] + '"/>'); }); });
+    out.push("  </Particuliers>", "  <ParCanal>");
+    Object.keys(s.chan).forEach(function (k) { out.push('    <Canal code="' + k + '" nombre="' + s.chan[k] + '"/>'); });
+    out.push("  </ParCanal>", "  <ParObjet>");
+    Object.keys(s.subj).forEach(function (k) { var x = s.subj[k]; out.push('    <Objet code="' + k + '" recues="' + x.n + '" delaiMoyen="' + (x.closedN ? (x.sum / x.closedN).toFixed(1) : "") + '" enCours="' + x.open + '" favorables="' + x.fav + '"/>'); });
+    out.push("  </ParObjet>", "</ROGS760>");
+    return out.join("\n");
+  }
+
+  function viewAdmin() {
+    var t = L();
+    var rows = state.cats.map(function (c) {
+      return '<tr><th scope="row">' + esc(t.cats[c.id]) + '</th><td><label class="sr" for="days-' + c.id + '">' + esc(t.admCols[1]) + " — " + esc(t.cats[c.id]) + '</label><input id="days-' + c.id + '" type="number" min="1" inputmode="numeric" value="' + c.days + '" style="max-width:110px"></td><td>' + esc(c.alert) + '</td><td><button type="button" class="small secondary" data-save-cat="' + c.id + '">' + esc(t.admSave) + "</button></td></tr>";
+    }).join("");
+    var packs = Object.keys(CEILING).map(function (p) { return '<option value="' + p + '"' + (p === state.pack ? " selected" : "") + ">" + p + " (≤ " + CEILING[p] + ")</option>"; }).join("");
+    return "<h1>" + esc(t.admTitle) + "</h1>" +
+      '<div class="field" style="max-width:360px"><label for="pack">' + esc(t.rulePack) + '</label><select id="pack">' + packs + "</select></div>" +
+      '<div id="adm-msg" role="alert"></div>' +
+      '<div class="tablewrap" tabindex="0" role="region" aria-label="' + esc(t.admTitle) + '"><table><caption class="sr">' + esc(t.admTitle) + "</caption><thead><tr>" + t.admCols.map(function (h) { return '<th scope="col">' + esc(h) + "</th>"; }).join("") + "</tr></thead><tbody>" + rows + "</tbody></table></div>" +
+      '<p class="hint">' + esc(t.admNote) + "</p>";
+  }
+
+  function viewStatus() {
+    var k = C[state.custLang], t = L();
+    var c = state.custCase ? find(state.custCase) : null;
+    if (!c) {
+      var lab = state.custLang === "ar" ? { title: "متابعة شكواي", ref: "الرقم المرجعي", code: "الرمز الوارد في الإرساليّة القصيرة", hint: "بيانات تجريبية: RC-2026-0418 و 482913", go: "عرض", } : (state.custLang === "en" ? { title: T.en.stTitle, ref: T.en.stRef, code: T.en.stCode, hint: T.en.stHint, go: T.en.stGo } : { title: T.fr.stTitle, ref: T.fr.stRef, code: T.fr.stCode, hint: T.fr.stHint, go: T.fr.stGo });
+      return '<div class="phone"><h1>' + esc(lab.title) + '</h1><form id="track" class="card" novalidate><div id="track-err" role="alert"></div>' +
+        '<div class="field"><label for="t-ref">' + esc(lab.ref) + '</label><input id="t-ref" dir="ltr" autocomplete="off"></div>' +
+        '<div class="field"><label for="t-code">' + esc(lab.code) + '</label><input id="t-code" dir="ltr" inputmode="numeric" autocomplete="one-time-code"></div>' +
+        '<p class="hint">' + esc(lab.hint) + '</p><button type="submit">' + esc(lab.go) + "</button></form></div>";
+    }
+    var order = ["received", "analysis", "info"];
+    var dates = { received: c.received, analysis: addWork(c.received, 1), info: "2026-11-13" };
+    var steps = order.filter(function (s, i) { return i <= order.indexOf(c.status) || c.status === "info"; }).map(function (s) { return '<li><span>' + esc(k.st[s]) + '</span><span dir="ltr">' + fmt(dates[s]).slice(0, 5) + "</span></li>"; }).join("");
+    var msg = c.msgOut ? (state.custLang === "ar" ? "يُرجى إرسال وصل التحويل." : (state.custLang === "en" ? "Please send the transfer receipt." : c.msgOut)) : "";
+    var BANKC = { fr: "Banque Exemple (fictive)", ar: "البنك المثال (وهمي)", en: "Example Bank (fictitious)" };
+    return '<div class="phone"><p class="muted">' + esc(BANKC[state.custLang]) + "</p><h1>" + esc(k.title) + '</h1><p>' + esc(k.ref) + ' <span class="ref" dir="ltr">' + c.ref + "</span></p>" +
+      '<section class="card stack"><div><span class="badge b-risk">' + esc(k.st[c.status]) + "</span></div>" +
+      (msg ? "<div><strong>" + esc(k.msg) + "</strong><p>" + esc(msg) + "</p></div>" : "") +
+      "<p>" + esc(k.due) + ' <strong dir="ltr">' + fmt(c.due) + "</strong></p>" +
+      '<div class="field"><label for="s-reply">' + esc(k.reply) + '</label><textarea id="s-reply"></textarea></div>' +
+      '<div class="row"><button type="button" data-act="cust-send">' + esc(k.send) + '</button><button type="button" class="secondary" data-act="cust-doc">' + esc(k.add) + '</button></div><p id="cust-out" role="status"></p></section>' +
+      '<section class="card" style="margin-top:12px"><h2>' + esc(k.steps) + '</h2><ul class="steps">' + steps + "</ul></section>" +
+      '<section class="card" style="margin-top:12px"><h2>' + esc(k.med1) + "</h2><p>" + esc(k.med2) + "</p></section>" +
+      '<p><button type="button" class="ghost" data-act="cust-back">' + esc(k.back) + "</button></p></div>";
+  }
+
+  // ---------- router ----------
+  function route() {
+    var h = (location.hash || "#queue").slice(1);
+    var parts = h.split("/"); var r = parts[0];
+    if (["queue", "intake", "case", "escalations", "reports", "admin", "status"].indexOf(r) < 0) r = "queue";
+    chrome(r);
+    if (r === "case" && state.lastRoute !== h) log("Consultation du dossier " + parts[1]);
+    state.lastRoute = h;
+    var m = document.getElementById("main");
+    if (r === "queue") m.innerHTML = viewQueue();
+    else if (r === "intake") m.innerHTML = viewIntake();
+    else if (r === "case") m.innerHTML = viewCase(parts[1]);
+    else if (r === "escalations") m.innerHTML = viewEsc();
+    else if (r === "reports") m.innerHTML = viewReports();
+    else if (r === "admin") m.innerHTML = viewAdmin();
+    else m.innerHTML = viewStatus();
+    document.title = "Workspace RF Prototype — " + (r === "case" ? parts[1] : (T[state.consoleLang].nav[r] || r));
+  }
+
+  // ---------- events ----------
+  document.addEventListener("click", function (e) {
+    if (e.target.id === "skip") { e.preventDefault(); document.getElementById("main").focus(); return; }
+    var b = e.target.closest("button"); if (!b) return;
+    var t = L();
+    if (b.id === "reset") { seed(); location.hash = "#queue"; route(); say(t.reset); return; }
+    if (b.dataset.lang) {
+      if ((location.hash || "").indexOf("#status") === 0) state.custLang = b.dataset.lang; else state.consoleLang = b.dataset.lang;
+      route(); return;
+    }
+    if (b.dataset.filter) { state.filter = b.dataset.filter; route(); return; }
+    if (b.dataset.open) { location.hash = "#case/" + b.dataset.open; return; }
+    if (b.dataset.saveCat) {
+      var id = b.dataset.saveCat, v = parseInt(document.getElementById("days-" + id).value, 10), box = document.getElementById("adm-msg"), ceil = CEILING[state.pack];
+      if (!(v >= 1)) { box.innerHTML = '<p class="err">1–' + ceil + "</p>"; return; }
+      if (v > ceil) { box.innerHTML = '<p class="err">' + esc(t.admCeil(ceil, state.pack)) + "</p>"; say(t.admCeil(ceil, state.pack)); return; }
+      state.cats.forEach(function (c) { if (c.id === id) c.days = v; });
+      log("Délai de la catégorie " + id + " fixé à " + v + " jours ouvrables");
+      box.innerHTML = '<p class="okmsg">' + esc(t.admOk) + "</p>"; say(t.admOk); return;
+    }
+    var act = b.dataset.act; if (!act) return;
+    var ref = (location.hash.split("/")[1] || "");
+    var c = find(ref);
+    if (act === "save-annex" && c) {
+      c.inv = document.getElementById("c-inv").value; c.steps = document.getElementById("c-steps").value;
+      log("Annexe 1 mise à jour pour " + c.ref); document.getElementById("annex-msg").textContent = t.saved; return;
+    }
+    if (act === "reqinfo" && c) {
+      var msg = document.getElementById("ri-msg").value.trim() || "—";
+      c.status = "info"; c.msgOut = msg; c.timeline.push({ d: TODAY, t: "Information demandée au client" }); log("Information demandée au client pour " + c.ref);
+      route(); var o = document.getElementById("ri-msg-out"); if (o) { o.textContent = t.reqInfoDone; } say(t.reqInfoDone); return;
+    }
+    if (act === "escalate" && c) {
+      c.status = "mediator"; c.from = "mediator"; c.respDue = addWork(TODAY, 10); c.timeline.push({ d: TODAY, t: "Saisine du médiateur bancaire" }); log("Dossier " + c.ref + " transmis au médiateur");
+      route(); say(t.escalated); return;
+    }
+    if (act === "export") {
+      var r = document.getElementById("exp-ref").value, inc = [];
+      document.querySelectorAll("[data-exp]").forEach(function (x) { if (x.checked) inc.push(x.dataset.exp); });
+      log("Export du dossier " + r + " (" + inc.join(", ") + ")");
+      var cc = find(r);
+      var json = { reference: r, generated: TODAY, included: inc, timeline: inc.indexOf("timeline") >= 0 ? cc.timeline : undefined, decision: inc.indexOf("decision") >= 0 ? { outcome: cc.outcome || null } : undefined, internalNotes: inc.indexOf("notes") >= 0 ? cc.notes : "excluded" };
+      document.getElementById("exp-out").innerHTML = '<p class="okmsg">' + esc(t.exported(r)) + "</p><pre>" + esc(JSON.stringify(json, null, 2)) + "</pre>";
+      say(t.exported(r)); return;
+    }
+    if (act === "xml") { var p = document.getElementById("xml"); var open = p.hidden; p.hidden = !open; b.setAttribute("aria-expanded", String(open)); if (open) p.textContent = xml(); return; }
+    if (act === "cust-send" || act === "cust-doc") {
+      var cs = find(state.custCase); var k = C[state.custLang];
+      cs.timeline.push({ d: TODAY, t: act === "cust-doc" ? "Document ajouté par le client" : "Réponse du client reçue" });
+      log((act === "cust-doc" ? "Document ajouté par le client pour " : "Réponse du client pour ") + cs.ref);
+      document.getElementById("cust-out").textContent = act === "cust-doc" ? k.added : k.sent; return;
+    }
+    if (act === "cust-back") { state.custCase = null; route(); return; }
+    if (act === "again") { route(); document.getElementById("main").focus(); return; }
+  });
+  document.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var t = L(), f = e.target;
+    if (f.id === "intake") {
+      var type = f.querySelector('input[name="type"]:checked').value, cat = document.getElementById("f-cat").value, name = document.getElementById("f-name").value.trim(), desc = document.getElementById("f-desc").value.trim();
+      var miss = []; if (!cat) miss.push(t.fCat); if (!name) miss.push(t.fName); if (!desc) miss.push(t.fDesc);
+      var err = document.getElementById("intake-err");
+      if (miss.length) { err.innerHTML = '<p class="err">' + esc(t.reqErr + miss.join(", ")) + "</p>"; (cat ? (name ? document.getElementById("f-desc") : document.getElementById("f-name")) : document.getElementById("f-cat")).focus(); return; }
+      err.innerHTML = "";
+      var scope = document.getElementById("f-scope").value, chan = document.getElementById("f-chan").value;
+      state.seq++; var ref = (type === "complaint" ? "RC" : "RQ") + "-2026-0" + state.seq;
+      var inScope = type === "complaint" && scope === "none";
+      var c = { ref: ref, type: type, cat: cat, name: name, kind: "individual", g: "", age: "", chan: chan, received: TODAY, ack: TODAY, status: "received", owner: "", amount: "", desc: desc, inv: "", steps: "", notes: "", outOfScope: scope !== "none" ? scope : null };
+      c.due = inScope ? addWork(TODAY, CEILING["RP-BCT-2022-08"]) : null;
+      c.timeline = [{ d: TODAY, t: "Reçu (" + T.fr.chans[chan] + ")" }, { d: TODAY, t: "Accusé de réception émis" }];
+      state.cases.push(c); log("Dossier " + ref + " enregistré (" + type + ")");
+      var a = document.getElementById("ack");
+      a.innerHTML = "<h2>" + esc(t.ackTitle) + '</h2><dl class="kv"><dt>' + esc(t.ackRef) + '</dt><dd class="ref" id="ack-ref">' + ref + "</dd><dt>" + esc(t.ackDate) + "</dt><dd>" + fmt(TODAY) + "</dd><dt>" + esc(t.ackDue) + '</dt><dd id="ack-due">' + (c.due ? "<strong>" + fmt(c.due) + "</strong>" : esc(t.ackNoDue)) + "</dd></dl>" +
+        (scope !== "none" ? '<p class="note">' + esc(t.ackOut) + "</p>" : "") +
+        '<div class="row"><button type="button" data-open="' + ref + '">' + esc(t.openCase) + '</button><button type="button" class="secondary" data-act="again">' + esc(t.newOne) + "</button></div>";
+      a.hidden = false; f.hidden = true; a.focus(); say(t.ackTitle + " " + ref); return;
+    }
+    if (f.id === "decide") {
+      var ref2 = location.hash.split("/")[1], cs = find(ref2);
+      var out = document.getElementById("d-out").value, rc = document.getElementById("d-reason").value, ex = document.getElementById("d-expl").value.trim();
+      var box = document.getElementById("dec-err");
+      if (!rc) { box.innerHTML = '<p class="err">' + esc(t.errReason) + "</p>"; document.getElementById("d-reason").focus(); say(t.errReason); return; }
+      if ((out === "rejected" || out === "partial") && ex.length < 30) { box.innerHTML = '<p class="err">' + esc(t.errExpl) + "</p>"; document.getElementById("d-expl").focus(); say(t.errExpl); log("Émission bloquée : explication manquante (" + cs.ref + ")"); return; }
+      cs.status = "closed"; cs.outcome = out; cs.reasonCode = rc; cs.explanation = ex; cs.decided = TODAY; cs.fav = out === "upheld";
+      cs.timeline.push({ d: TODAY, t: "Décision émise : " + T.fr.outcomes[out] + " (" + rc + ")" }); log("Décision émise pour " + cs.ref + " (" + out + ", " + rc + ")");
+      route(); var m = document.getElementById("main"); m.insertAdjacentHTML("afterbegin", '<p class="okmsg" role="status">' + esc(t.issued) + "</p>"); say(t.issued); return;
+    }
+    if (f.id === "track") {
+      var r = document.getElementById("t-ref").value.trim().toUpperCase(), code = document.getElementById("t-code").value.trim();
+      if (r === "RC-2026-0418" && code === "482913") { state.custCase = r; route(); return; }
+      document.getElementById("track-err").innerHTML = '<p class="err">' + esc(state.custLang === "ar" ? "المرجع أو الرمز غير صحيح." : T[state.custLang === "en" ? "en" : "fr"].stErr) + "</p>"; return;
+    }
+  });
+  document.addEventListener("change", function (e) { if (e.target.id === "pack") { state.pack = e.target.value; log("Pack de règles sélectionné : " + state.pack); route(); } });
+  window.addEventListener("hashchange", function () { route(); var m = document.getElementById("main"); if (m) m.focus({ preventScroll: false }); });
+  seed(); route();
+})();
+</script>
+</body>
+</html>

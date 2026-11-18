@@ -81,6 +81,19 @@ AR = Arabic as used in Tunisian administration. Derja = common spoken forms [ind
 | Personal data | المعطيات الشخصية | Données personnelles | Personal data | — |
 | Consent | الموافقة | Consentement | Consent | الموافقة |
 | Access log | سجلّ النفاذ | Journal des accès | Access log | — |
+| *Banking (Workspace RF; official terms verified 18 Nov 2026 against BCT Circular 2022-08, Arabic text)* | | | | |
+| Complaint | شكوى (pl. شكاوى) | Réclamation | Complaint | «شكاية» (common usage; **not** the regulatory term) |
+| Customer | الحريف (pl. الحرفاء) | Client(e) | Customer | الحريف |
+| Acknowledgement of receipt | وصل استلام | Accusé de réception | Acknowledgement | — |
+| Reference number | الرقم المرجعي | Numéro de référence | Reference number | — |
+| Banking mediator | الموفّق البنكي | Médiateur bancaire | Banking mediator | — |
+| Outcome of the complaint | مآل الشكوى | Sort de la réclamation | Outcome | — |
+| *Data protection (official terms, Law 2004-63)* | | | | |
+| Controller / processor | المسؤول عن المعالجة / المناول | Responsable du traitement / sous-traitant | Controller / processor | — |
+| Express and written consent | الموافقة الصريحة والكتابية | Consentement exprès et écrit | Express written consent | — |
+| Right of access / right to object | حقّ النفاذ / حقّ الاعتراض | Droit d'accès / droit d'opposition | Right of access / to object | — |
+
+Full verified glossary: [../validation/arabic-legal-terminology.md](../validation/arabic-legal-terminology.md).
 | Mandate (acting for someone) | تفويض | Mandat | Mandate | توكيل / تفويض |
 | Health insurance fund (CNAM) | الصندوق الوطني للتأمين على المرض | Caisse nationale d'assurance maladie | National Health Insurance Fund | الكنام |
 | Reimbursement | استرجاع المصاريف | Remboursement | Reimbursement | «le remboursement» |

@@ -22,7 +22,7 @@
 | **Top-10 pain points evidenced** | Pain hypotheses P1–P10 and scoring framework ([package](validation/fi-validation-package.md) §10); Government kit | Interview evidence | Interviews | Founder/team | Pains validated per thresholds (E-01, E-09) | ⛔ BLOCKED — FOUNDER ACTION REQUIRED |
 | Design system | [17](17-design-system-specification.md), [tokens](../../design/tokens/civora.tokens.json) | — | — | — | Specification and tokens exist | ✅ Complete |
 | **Design system passes WCAG contrast** | [contrast report](../../design/tokens/contrast-report.md) (computed) | — | — | — | All text pairs ≥ AA | ✅ Complete |
-| Prototypes | Government clickable prototype (class 4, synthetic; automated axe: 0 violations); 6 Workspace RF wireframes (reviewed and corrected 18 Nov 2026) | Workspace RF hi-fi prototype; user tests | Usability rounds | Founder/team | Prototype exists and has been tested | 🟡 Desk complete (prototype); testing blocked |
+| Prototypes | Government clickable prototype (class 4, synthetic; automated axe: 0 violations); 6 Workspace RF wireframes (reviewed and corrected 18 Nov 2026); **Workspace RF clickable prototype** (18 Nov 2026; 0 axe violations) | User tests | Usability rounds | Founder/team | Prototype exists and has been tested | 🟡 Desk complete (prototype); testing blocked |
 | **Prototype SUS ≥ 70** | None (no test held) | Two usability rounds | Recruit and test | Founder/team | SUS ≥ 70 (E-10) | ⛔ BLOCKED — FOUNDER ACTION REQUIRED |
 | Proposal documents | [government proposal](supporting/government-proposal.md), [executive presentation](supporting/executive-presentation.md), [pilot template](supporting/pilot-proposal-template.md), [one-pager](supporting/partnership-one-pager.md); design-partner proposal ([package](validation/design-partner-package.md) §1) | Counsel review of the commercial drafts | Send to counsel | Founder + counsel | Documents exist; counsel-reviewed before use | 🟡 Desk complete |
 
@@ -110,3 +110,23 @@
 | F12 | Phase 0 §11 summarised transfer rules as "adequacy **or** authorisation"; Art. 52 requires authorisation in all cases | Phase 0 §11 | Annotated (not rewritten) |
 | F13 | README source range and status lines out of date | Phase 1 README, root README | Updated |
 | F14 | Journey R2 allowed an "SLA pause" that could be read as pausing the regulatory deadline (Art. 8 has no suspension clause) | 14 | Clarified: only internal SLAs may pause (FR-61; counsel Q-07) |
+
+## G. Continuation mission — tasks completed without external participation
+
+The founder asked for everything that can be done independently to be completed, not planned. Each row is updated when its task is completed. The register is updated at the same time.
+
+| # | Independent task | Evidence item(s) served | Output | Status |
+|---|---|---|---|---|
+| G1 | Verify the Arabic legal terminology against the official Arabic texts; build the native-review workbook | E-13 | [arabic-legal-terminology.md](validation/arabic-legal-terminology.md); [native-language-review-pack.md](validation/native-language-review-pack.md); [workbook](data/native-review-workbook.csv); customer texts corrected (IA §15.9, wf-06, UX glossary, AR invitation); 2 FR/AR discrepancies → Q-12, Q-13; Law 2004-63 Art. 27/31 → Q-L1 | ✅ Complete (review itself needs an external reviewer) |
+| G2 | Outreach kit: official contact routes for the target institutions; public complaint-channel desk scan; outreach tracker; message templates FR/AR; participant information and consent FR/AR | E-01, E-03, E-05 | [outreach-kit.md](validation/outreach-kit.md); [public channel scan](data/fi-public-channel-scan.csv); [outreach tracker](data/outreach-tracker.csv); target list updated (12 of 15 official websites found; reserves not verified) | ✅ Complete (sending needs the founder) |
+| G3 | Desk scan of complaint-management vendors in Tunisia and the region | E-05, E-03 | [competitor-desk-scan.md](validation/competitor-desk-scan.md): STB procurement CD 23/2026 found; 6 vendor categories; positioning hypotheses for interviews | ✅ Complete (prices and incumbents need interviews) |
+| G4 | Usability-testing kit and a clickable Workspace RF prototype (synthetic data) for the agent SUS test | E-10 | [usability-testing-kit.md](validation/usability-testing-kit.md); [workspace-rf.html](../../design/prototype/workspace-rf.html) (0 axe violations, 9 task paths pass); [SUS template](data/sus-scoring-template.csv) | ✅ Complete (sessions need participants) |
+| G5 | Government-track research recruitment kit | E-09 | *pending* | In progress |
+| G6 | Counsel engagement brief, consolidated questions, request for proposal, comparison grid | E-02, E-12, E-14 | *pending* | Planned |
+| G7 | Design-partner agreement v0.2 incorporating the verified laws (still for counsel) | E-12 | *pending* | Planned |
+| G8 | Citizen Data Charter self-check against Law 2004-63; civil-society review pack | E-14 | *pending* | Planned |
+| G9 | Trademark attorney brief: classes, goods and services, search scope, request for proposal, INNORPI manual-search guide | E-11 | *pending* | Planned |
+| G10 | Quote requests for hosting and security audit / pen test, with candidate vendors from public lists and a comparison grid | E-07 | *pending* | Planned |
+| G11 | Financial check: break-even versus the size of the market under Circular 2022-08 | E-08 | *pending* | Planned |
+| G12 | INPDP declaration preparation (record of CIVORA's own research processing) | Legal matrix 4.1 | *pending* | Planned |
+| G13 | Founder action pack (only the actions the founder must take, with ready-to-send materials) | All | *pending* | Planned |

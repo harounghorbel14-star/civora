@@ -129,7 +129,7 @@ Placeholders in brackets. **"CIVORA" is a working name** (P1-D13); use the name 
 
 <div dir="rtl" lang="ar">
 
-> **الموضوع:** طلب مقابلة لمدة 45 دقيقة حول معالجة شكاوى الحرفاء (منشور البنك المركزي التونسي عدد 2022-08)
+> **الموضوع:** طلب مقابلة لمدة 45 دقيقة حول معالجة شكاوى الحرفاء (منشور البنك المركزي التونسي إلى البنوك والمؤسسات المالية عدد 08 لسنة 2022)
 >
 > حضرة السيدة / السيد المحترم(ة)،
 >
@@ -155,7 +155,7 @@ Placeholders in brackets. **"CIVORA" is a working name** (P1-D13); use the name 
 
 </div>
 
-*Both texts are drafts. The Arabic uses Tunisian institutional usage ("الحرفاء" for customers) and needs native review (E-13) before use.*
+*Both texts are drafts. The Arabic uses the official terms of the circular ("شكاوى الحرفاء"; [verified glossary](arabic-legal-terminology.md)) and needs native style review (E-13) before use.*
 
 ## 5. Interview recording and evidence template
 
