@@ -1,5 +1,7 @@
 # 18. MVP Recommendation
 
+> **Updated by Phase 1 v2.0 (18 Nov 2026):** the first commercial product is proposed to be **Workspace — Regulated Finance** (decision P1-D3), selected by weighted scoring across all divisions. The MVP below is retained as the **Government-track (Division A) prototype scope**. The AI Guide belongs to Phase 10 under the restored roadmap order. See [../phase-1/10-first-product-recommendation.md](../phase-1/10-first-product-recommendation.md).
+
 ## 18.1 What the MVP must prove
 
 The MVP is an **independent prototype on synthetic data**. Its purpose is to answer, with evidence, four questions:

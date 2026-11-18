@@ -1,0 +1,13 @@
+id,division,opportunity,mkt,dem,prob,comp,alt,wtp,cyc,reg,tech,cost,time,rev,intl,adv,lev,score_base,rank_base,score_speed,rank_speed,score_mission,rank_mission
+B1,Enterprise,Regulated complaints & case management for financial institutions (BCT 2022-08),3,3,3,2,2,4,3,4,4,4,3,3,4,3,5,66.6,1,66.6,1,68.0,1
+E2,AI,Arabic/French intelligent document processing,3,3,4,3,3,3,3,3,2,2,3,3,4,3,5,62.6,2,61.8,2,65.4,3
+E1,AI,Multilingual AI customer-service assistant for regulated enterprises,3,4,3,2,2,3,3,3,3,3,3,3,4,2,4,60.4,3,60.0,3,61.6,4
+A2,Government,Public-service case & appointment management (Workspace for institutions),3,3,4,3,3,2,1,3,4,4,1,4,4,3,5,59.6,4,56.0,7,65.8,2
+D1,Identity,e-KYC & e-signature onboarding orchestration,2,4,4,2,2,3,3,3,2,3,3,3,3,2,5,59.0,5,59.2,4,60.4,5
+D2,Identity,Verifiable diplomas & credentials,2,2,3,3,3,2,3,4,3,4,3,2,4,3,4,58.6,6,59.2,5,59.2,7
+A3,Government / AI,AI procedures assistant for institutions (Guide),2,2,4,2,3,2,2,4,3,4,2,2,4,4,4,57.4,7,56.6,6,60.2,6
+C1,Health,Private clinic & practice management,3,3,3,2,2,3,4,2,3,3,3,2,3,2,3,54.6,8,55.8,8,53.4,8
+B2,Enterprise,General ERP / HR / CRM suite for SMEs,4,3,2,1,1,2,3,5,1,1,2,3,3,1,2,48.6,9,47.2,10,49.8,10
+F1,Connect,Integration / API platform & interoperability adapters,2,2,3,2,2,2,2,3,2,3,2,2,3,2,5,47.8,10,47.4,9,50.6,9
+C2,Health,Public hospital information system / EHR,4,2,4,2,2,2,1,1,1,1,1,4,3,1,3,42.2,11,38.0,11,48.0,11
+A1,Government,National citizen super-app (Tunisia),2,1,3,1,1,1,1,1,1,1,1,2,2,1,3,28.6,12,26.8,12,32.4,12

@@ -1,0 +1,109 @@
+{
+ "criteria": [
+  {
+   "key": "mkt",
+   "label": "Market size (serviceable, Tunisia + near markets)",
+   "weight_base": 6,
+   "weight_speed": 4,
+   "weight_mission": 8
+  },
+  {
+   "key": "dem",
+   "label": "Customer demand (evidence of active buying)",
+   "weight_base": 8,
+   "weight_speed": 8,
+   "weight_mission": 7
+  },
+  {
+   "key": "prob",
+   "label": "Customer problem severity",
+   "weight_base": 7,
+   "weight_speed": 6,
+   "weight_mission": 8
+  },
+  {
+   "key": "comp",
+   "label": "Competitor intensity (5 = weak competition)",
+   "weight_base": 5,
+   "weight_speed": 5,
+   "weight_mission": 4
+  },
+  {
+   "key": "alt",
+   "label": "Existing alternatives (5 = poor alternatives)",
+   "weight_base": 4,
+   "weight_speed": 4,
+   "weight_mission": 3
+  },
+  {
+   "key": "wtp",
+   "label": "Willingness to pay",
+   "weight_base": 9,
+   "weight_speed": 10,
+   "weight_mission": 6
+  },
+  {
+   "key": "cyc",
+   "label": "Sales cycle (5 = short)",
+   "weight_base": 7,
+   "weight_speed": 10,
+   "weight_mission": 4
+  },
+  {
+   "key": "reg",
+   "label": "Regulatory feasibility (5 = few barriers)",
+   "weight_base": 9,
+   "weight_speed": 9,
+   "weight_mission": 8
+  },
+  {
+   "key": "tech",
+   "label": "Technical difficulty (5 = low difficulty)",
+   "weight_base": 5,
+   "weight_speed": 5,
+   "weight_mission": 4
+  },
+  {
+   "key": "cost",
+   "label": "MVP cost (5 = low cost)",
+   "weight_base": 4,
+   "weight_speed": 5,
+   "weight_mission": 3
+  },
+  {
+   "key": "time",
+   "label": "Time to first paying customer (5 = fast)",
+   "weight_base": 9,
+   "weight_speed": 12,
+   "weight_mission": 5
+  },
+  {
+   "key": "rev",
+   "label": "Revenue potential (3-5 yrs, recurring)",
+   "weight_base": 8,
+   "weight_speed": 5,
+   "weight_mission": 12
+  },
+  {
+   "key": "intl",
+   "label": "International scalability",
+   "weight_base": 7,
+   "weight_speed": 5,
+   "weight_mission": 10
+  },
+  {
+   "key": "adv",
+   "label": "Competitive advantage / defensibility",
+   "weight_base": 8,
+   "weight_speed": 8,
+   "weight_mission": 10
+  },
+  {
+   "key": "lev",
+   "label": "Shared-platform leverage (reuse across divisions)",
+   "weight_base": 4,
+   "weight_speed": 4,
+   "weight_mission": 8
+  }
+ ]
+}

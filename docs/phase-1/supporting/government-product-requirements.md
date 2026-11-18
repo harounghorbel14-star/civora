@@ -1,5 +1,8 @@
 # 2. Product Requirements — MVP
 
+> **Status (v2.0):** retained as **Division A (Government) requirements** for Phases 3, 4, 5, 6 and 10 (GD epics are Phase 10). The first product's PRD is [12-product-requirements-document.md](../12-product-requirements-document.md). Shared epics (ID, NT, CN, IN, PL) also apply to the first product where relevant.
+
+
 This is the build specification for Phases 3, 4, 5, 6 and 10a.
 
 **Story format:** `ID — As a <role>, I want <capability>, so that <benefit>.`

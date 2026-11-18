@@ -1,0 +1,1491 @@
+{
+ "version": "1.0",
+ "date": "2026-11-18",
+ "integration_status_classes": {
+  "1": "Verified official integration",
+  "2": "Authorized partner integration",
+  "3": "Technically possible but not yet authorized",
+  "4": "Independent prototype",
+  "5": "Future opportunity",
+  "6": "Not currently feasible"
+ },
+ "sectors": [
+  {
+   "id": "01",
+   "name": {
+    "en": "Digital Identity",
+    "fr": "Identité numérique",
+    "ar": "الهوية الرقمية"
+   },
+   "subcategories": {
+    "Identity & authentication": [
+     "Digital identity account",
+     "Secure authentication (MFA, passkeys)",
+     "Identity recovery"
+    ],
+    "Trust services": [
+     "Electronic signatures",
+     "Identity wallets / verifiable credentials",
+     "Identity verification APIs for authorised relying parties"
+    ]
+   },
+   "users": [
+    "Citizens",
+    "Residents",
+    "Diaspora",
+    "Relying-party institutions",
+    "Trust service providers"
+   ],
+   "institutional_responsibilities": "State identity issuer owns legal identity; trust service providers issue certificates; relying parties consume authentication under authorisation.",
+   "tunisia": {
+    "lead_institutions": [
+     "Ministry of Communication Technologies (Mobile ID / e-Houwiya)",
+     "Ministry of Interior (CIN, unique citizen identifier)",
+     "ANCE / TunTrust (PKI, certificates)"
+    ],
+    "existing_digital_services": [
+     [
+      "Mobile ID live since 2022; diaspora e-Houwiya since 2024",
+      "P",
+      "S1, S2 (Phase 0)"
+     ],
+     [
+      "Biometric CIN/passport legislated (Organic Laws 22 & 23 of 2024); rollout pending",
+      "P",
+      "S10, S12, S13 (Phase 0)"
+     ],
+     [
+      "Mobile ID mandatory for investors' online declarations from 1 Jul 2026",
+      "P",
+      "S76 (Phase 0)"
+     ]
+    ],
+    "integrations": [
+     [
+      "Mobile ID relying-party authentication",
+      3
+     ],
+     [
+      "TunTrust certificates & e-signature",
+      3
+     ],
+     [
+      "Direct unique-identifier (IUC) register access",
+      6
+     ],
+     [
+      "Biometric CIN chip authentication",
+      5
+     ],
+     [
+      "CIVORA accounts, passkeys, mandates (simulated eID)",
+      4
+     ]
+    ]
+   },
+   "implementation": {
+    "data_tier": "T1 (T0 if biometrics)",
+    "identity_assurance": "Substantial–High",
+    "legal_prerequisites": "Law 2000-83; IUC framework (2020); Law 2004-63; any relying-party agreement with MinCom/ANCE",
+    "roadmap_phases": [
+     "Phase 3",
+     "Phase 4",
+     "Phase 12"
+    ],
+    "civora_products": [
+     "Identity: broker, mandates, e-signature workflows"
+    ]
+   },
+   "civora_priority": "Platform foundation (needed by first product for staff/customer auth)",
+   "notes": ""
+  },
+  {
+   "id": "02",
+   "name": {
+    "en": "Civil Services",
+    "fr": "Services d'état civil et documents d'identité",
+    "ar": "الخدمات المدنية"
+   },
+   "subcategories": {
+    "Identity documents": [
+     "National identity cards",
+     "Passports"
+    ],
+    "Civil status certificates": [
+     "Birth certificates",
+     "Marriage certificates",
+     "Divorce certificates",
+     "Death certificates",
+     "Family records"
+    ],
+    "Civil status services": [
+     "Corrections & annotations",
+     "Translation of extracts",
+     "Consular civil status"
+    ]
+   },
+   "users": [
+    "Citizens",
+    "Diaspora",
+    "Municipal civil-status officers",
+    "Consular staff"
+   ],
+   "institutional_responsibilities": "Civil registry authority keeps the authoritative register; municipalities and consulates operate counters; issuing authorities sign documents.",
+   "tunisia": {
+    "lead_institutions": [
+     "Ministry of Interior (civil registry 'Madania', CIN, passports)",
+     "Municipalities (civil-status offices)",
+     "Ministry of Foreign Affairs (consulates)",
+     "Ministry of Justice (civil-status oversight)"
+    ],
+    "existing_digital_services": [
+     [
+      "Online birth extract with QR code via e-Bawaba, same legal value as municipal extract",
+      "P",
+      "S15 (Phase 0)"
+     ],
+     [
+      "Remote request for translated birth extract (Aug 2026)",
+      "P",
+      "S16 (Phase 0)"
+     ],
+     [
+      "Online appointments for passport, CIN and B3 announced from 2027",
+      "P",
+      "S13 (Phase 0)"
+     ]
+    ],
+    "integrations": [
+     [
+      "Civil registry (Madania) via national interoperability platform for an authorised member",
+      3
+     ],
+     [
+      "QR verification of online birth extracts",
+      3
+     ],
+     [
+      "Consular appointment & case Workspace",
+      5
+     ],
+     [
+      "Citizen request tracking (prototype)",
+      4
+     ]
+    ]
+   },
+   "implementation": {
+    "data_tier": "T1",
+    "identity_assurance": "Substantial",
+    "legal_prerequisites": "Civil-status law; inter-ministerial arrêté of 16 Aug 2022 (online extract); Law 2004-63; MoI mandate",
+    "roadmap_phases": [
+     "Phase 4",
+     "Phase 5",
+     "Phase 6",
+     "Phase 12"
+    ],
+    "civora_products": [
+     "Government Workspace (counters, consulates)",
+     "Citizen tracking (white-label)"
+    ]
+   },
+   "civora_priority": "High for Government track (after first product)",
+   "notes": ""
+  },
+  {
+   "id": "03",
+   "name": {
+    "en": "Tax & Finance",
+    "fr": "Fiscalité et finances",
+    "ar": "الجباية والمالية"
+   },
+   "subcategories": {
+    "Taxation": [
+     "Tax declarations",
+     "Tax payments",
+     "Tax registration"
+    ],
+    "Public payments": [
+     "Government fees",
+     "Public bills",
+     "Traffic fine payments",
+     "Financial receipts"
+    ],
+    "Authorised financial services": [
+     "Payment channels via licensed providers"
+    ]
+   },
+   "users": [
+    "Citizens",
+    "Businesses",
+    "Accountants",
+    "Tax officers"
+   ],
+   "institutional_responsibilities": "Tax administration assesses and collects; treasury receives; licensed payment providers move funds.",
+   "tunisia": {
+    "lead_institutions": [
+     "Ministry of Finance (DGI tax administration, Customs, Treasury)",
+     "Ministry of Interior (traffic fines)",
+     "La Poste Tunisienne (e-Dinar/D17)",
+     "SMT (ClicToPay)"
+    ],
+    "existing_digital_services": [
+     [
+      "DGI and Customs connected to the national interoperability platform (86 interconnected services reported)",
+      "P",
+      "S24 (Phase 0)"
+     ],
+     [
+      "DGI online 'patente' platform launched (Aug 2026)",
+      "P",
+      "S120"
+     ],
+     [
+      "Free e-Dinar wallet usable for some administrative fees",
+      "P",
+      "S72 (Phase 0)"
+     ],
+     [
+      "Khadamet app includes tax services",
+      "P",
+      "S18 (Phase 0)"
+     ]
+    ],
+    "integrations": [
+     [
+      "Authoritative tax / fines data",
+      5
+     ],
+     [
+      "Card and wallet payments via licensed providers",
+      3
+     ],
+     [
+      "Payment orchestration (simulated)",
+      4
+     ]
+    ]
+   },
+   "implementation": {
+    "data_tier": "T1",
+    "identity_assurance": "Substantial",
+    "legal_prerequisites": "Tax secrecy rules [A]; BCT payment regulations; CIVORA never holds funds",
+    "roadmap_phases": [
+     "Phase 8",
+     "Phase 12"
+    ],
+    "civora_products": [
+     "Payments orchestration (shared platform)"
+    ]
+   },
+   "civora_priority": "Low as standalone; payments capability needed later",
+   "notes": ""
+  },
+  {
+   "id": "04",
+   "name": {
+    "en": "Healthcare",
+    "fr": "Santé",
+    "ar": "الصحة"
+   },
+   "subcategories": {
+    "Records": [
+     "Medical records",
+     "Laboratory results",
+     "Medical imaging",
+     "Vaccinations",
+     "Prescriptions"
+    ],
+    "Access to care": [
+     "Medical appointments",
+     "Hospital services",
+     "Telemedicine"
+    ],
+    "Coverage": [
+     "Health insurance (CNAM)",
+     "Reimbursements"
+    ]
+   },
+   "users": [
+    "Patients",
+    "Doctors",
+    "Hospitals & clinics",
+    "Pharmacists",
+    "Insurers"
+   ],
+   "institutional_responsibilities": "Ministry of Health governs records and telemedicine authorisation; health insurer manages coverage; providers are controllers of clinical data.",
+   "tunisia": {
+    "lead_institutions": [
+     "Ministry of Health (national health ID, shared record, Sahetna.tn, PNDN)",
+     "CNAM (coverage, Labes card)",
+     "Public hospitals",
+     "Private clinics"
+    ],
+    "existing_digital_services": [
+     [
+      "Unique health identifier and shared record targeted nationwide by end-2026; Sahetna.tn in final audit",
+      "P",
+      "S67, S68, S69 (Phase 0)"
+     ],
+     [
+      "National birth declaration platform (PNDN) piloted April 2026",
+      "P",
+      "S70 (Phase 0)"
+     ],
+     [
+      "CNAM Labes card; documented reimbursement delays",
+      "P",
+      "S60, S62 (Phase 0)"
+     ]
+    ],
+    "integrations": [
+     [
+      "National health record / Sahetna",
+      5
+     ],
+     [
+      "Telemedicine platform authorisation",
+      3
+     ],
+     [
+      "Private clinic EHR integration",
+      3
+     ],
+     [
+      "Consent & break-glass prototype (synthetic)",
+      5
+     ]
+    ]
+   },
+   "implementation": {
+    "data_tier": "T0",
+    "identity_assurance": "High",
+    "legal_prerequisites": "Law 2004-63 (INPDP authorisation for health data); Decree 2022-318 telemedicine (MoH authorisation, hosting in Tunisia, ≥10-yr retention); medical secrecy",
+    "roadmap_phases": [
+     "Phase 7",
+     "Phase 12"
+    ],
+    "civora_products": [
+     "Health division (deferred): consent bridge, clinic scheduling"
+    ]
+   },
+   "civora_priority": "Deferred (regulatory barriers; national programme in place)",
+   "notes": ""
+  },
+  {
+   "id": "05",
+   "name": {
+    "en": "Education",
+    "fr": "Éducation",
+    "ar": "التعليم"
+   },
+   "subcategories": {
+    "Enrolment": [
+     "School enrolment",
+     "University enrolment"
+    ],
+    "Results & records": [
+     "Examination results",
+     "Student records",
+     "Academic certificates"
+    ],
+    "Support": [
+     "Scholarships",
+     "Educational administration"
+    ]
+   },
+   "users": [
+    "Students",
+    "Parents",
+    "Schools & universities",
+    "Employers (verification)"
+   ],
+   "institutional_responsibilities": "Education ministries own enrolment and results; institutions issue certificates; employers verify.",
+   "tunisia": {
+    "lead_institutions": [
+     "Ministry of Education",
+     "Ministry of Higher Education and Scientific Research",
+     "Public and private universities"
+    ],
+    "existing_digital_services": [
+     [
+      "Online school registration with La Poste card / e-Dinar payment (Aug 2025)",
+      "P",
+      "S73 (Phase 0)"
+     ],
+     [
+      "'Vie scolaire' portal to follow pupils' schooling remotely (Jul 2026)",
+      "P",
+      "S121"
+     ],
+     [
+      "Education connected to the national interoperability platform",
+      "P",
+      "S24 (Phase 0)"
+     ]
+    ],
+    "integrations": [
+     [
+      "Ministry enrolment / results data",
+      5
+     ],
+     [
+      "Private university verifiable diplomas",
+      3
+     ],
+     [
+      "Credential issuance & verification (synthetic)",
+      4
+     ]
+    ]
+   },
+   "implementation": {
+    "data_tier": "T1–T2 (minors: parental mandate)",
+    "identity_assurance": "Low–Substantial",
+    "legal_prerequisites": "Diploma regulations [A]; Law 2004-63 (minors)",
+    "roadmap_phases": [
+     "Phase 9",
+     "Phase 4"
+    ],
+    "civora_products": [
+     "Identity: verifiable credentials",
+     "Workspace: scholarship/administrative requests"
+    ]
+   },
+   "civora_priority": "Medium (credentials via private universities)",
+   "notes": ""
+  },
+  {
+   "id": "06",
+   "name": {
+    "en": "Transportation",
+    "fr": "Transport",
+    "ar": "النقل"
+   },
+   "subcategories": {
+    "Drivers": [
+     "Driving licences",
+     "Traffic violations"
+    ],
+    "Vehicles": [
+     "Vehicle registration",
+     "Vehicle ownership",
+     "Vehicle inspections",
+     "Insurance information"
+    ],
+    "Mobility": [
+     "Public transportation information"
+    ]
+   },
+   "users": [
+    "Drivers",
+    "Vehicle owners",
+    "Insurers",
+    "Transport operators"
+   ],
+   "institutional_responsibilities": "Transport agency issues licences and registrations; police enforce; insurers cover; operators run transit.",
+   "tunisia": {
+    "lead_institutions": [
+     "Ministry of Transport",
+     "ATTT (land transport technical agency)",
+     "Ministry of Interior (traffic police)",
+     "Insurers",
+     "Public transport operators"
+    ],
+    "existing_digital_services": [
+     [
+      "Khadamet road services: infractions, technical inspection",
+      "P",
+      "S18 (Phase 0), S122"
+     ],
+     [
+      "e-Dinar payment of technical inspection fees",
+      "P",
+      "S72 (Phase 0)"
+     ]
+    ],
+    "integrations": [
+     [
+      "ATTT / traffic data",
+      5
+     ],
+     [
+      "Expiry reminders from user-entered or credential data",
+      4
+     ]
+    ]
+   },
+   "implementation": {
+    "data_tier": "T1–T2",
+    "identity_assurance": "Substantial",
+    "legal_prerequisites": "Agreements with ATTT/MoI",
+    "roadmap_phases": [
+     "Phase 5",
+     "Phase 12",
+     "Phase 14"
+    ],
+    "civora_products": [
+     "Directory guidance; reminders"
+    ]
+   },
+   "civora_priority": "Low (covered by Khadamet)",
+   "notes": ""
+  },
+  {
+   "id": "07",
+   "name": {
+    "en": "Justice",
+    "fr": "Justice",
+    "ar": "العدالة"
+   },
+   "subcategories": {
+    "Courts": [
+     "Court services",
+     "Case tracking",
+     "Court appointments"
+    ],
+    "Documents": [
+     "Legal documents",
+     "Judicial administrative requests"
+    ],
+    "Information": [
+     "Public legal information"
+    ]
+   },
+   "users": [
+    "Citizens",
+    "Lawyers",
+    "Court clerks",
+    "Businesses"
+   ],
+   "institutional_responsibilities": "Ministry of Justice and courts own case management; bar and notaries are professional intermediaries.",
+   "tunisia": {
+    "lead_institutions": [
+     "Ministry of Justice",
+     "Courts",
+     "Administrative Tribunal",
+     "Bar association"
+    ],
+    "existing_digital_services": [
+     [
+      "Remote follow-up of civil litigation by file number",
+      "P",
+      "S123"
+     ],
+     [
+      "'Ishare' civil affairs platform; new criminal and land-justice information systems announced for 2026",
+      "P",
+      "S124"
+     ],
+     [
+      "Administrative tribunal 100% digital hearing in Gabès",
+      "P",
+      "S125"
+     ]
+    ],
+    "integrations": [
+     [
+      "Court case-management systems",
+      5
+     ],
+     [
+      "Public legal information in Directory",
+      3
+     ]
+    ]
+   },
+   "implementation": {
+    "data_tier": "T1 (sensitive)",
+    "identity_assurance": "Substantial–High",
+    "legal_prerequisites": "Judicial confidentiality; Law 2004-63",
+    "roadmap_phases": [
+     "Phase 5"
+    ],
+    "civora_products": [
+     "Directory guidance only"
+    ]
+   },
+   "civora_priority": "Low — information only; no court integrations planned",
+   "notes": ""
+  },
+  {
+   "id": "08",
+   "name": {
+    "en": "Business & Commerce",
+    "fr": "Entreprises et commerce",
+    "ar": "الأعمال والتجارة"
+   },
+   "subcategories": {
+    "Registration": [
+     "Company registration",
+     "Commercial registry",
+     "Tax registration"
+    ],
+    "Authorisations": [
+     "Business licences",
+     "Business permits"
+    ],
+    "Lifecycle": [
+     "Company administration",
+     "Commercial compliance"
+    ]
+   },
+   "users": [
+    "Entrepreneurs",
+    "Companies",
+    "Accountants",
+    "Investors"
+   ],
+   "institutional_responsibilities": "Company registry records legal entities; investment authority handles investor declarations; sector ministries issue licences.",
+   "tunisia": {
+    "lead_institutions": [
+     "National Register of Enterprises (RNE)",
+     "Tunisia Investment Authority (TIA)",
+     "Ministry of Commerce",
+     "Ministry of Industry",
+     "DGI"
+    ],
+    "existing_digital_services": [
+     [
+      "RNE procedures fully online from 1 Jul 2026 ('zero paper'); AI assistant 'Nourni' launched Nov 2026",
+      "P",
+      "S126, S127"
+     ],
+     [
+      "Mobile ID mandatory for investor declarations from Jul 2026",
+      "P",
+      "S76 (Phase 0)"
+     ],
+     [
+      "Ministry of Industry unified digital services platform (Aug 2026)",
+      "P",
+      "S128"
+     ],
+     [
+      "RNE and TIA targeted in UXP Phase 2",
+      "V",
+      "S23 (Phase 0)"
+     ]
+    ],
+    "integrations": [
+     [
+      "RNE data via national interoperability platform",
+      3
+     ],
+     [
+      "Business-verification (KYB) for regulated clients",
+      5
+     ]
+    ]
+   },
+   "implementation": {
+    "data_tier": "T2 (public register) / T1 (owners' personal data)",
+    "identity_assurance": "Substantial",
+    "legal_prerequisites": "Registry law; Law 2004-63",
+    "roadmap_phases": [
+     "Phase 5",
+     "Phase 12"
+    ],
+    "civora_products": [
+     "Directory; future KYB in Identity"
+    ]
+   },
+   "civora_priority": "Low–medium",
+   "notes": ""
+  },
+  {
+   "id": "09",
+   "name": {
+    "en": "Municipal Services",
+    "fr": "Services municipaux",
+    "ar": "الخدمات البلدية"
+   },
+   "subcategories": {
+    "Administration": [
+     "Municipal administration",
+     "Local licences",
+     "Municipal payments"
+    ],
+    "Urban": [
+     "Construction permits",
+     "Public infrastructure complaints",
+     "Waste management"
+    ]
+   },
+   "users": [
+    "Residents",
+    "Businesses",
+    "Municipal staff"
+   ],
+   "institutional_responsibilities": "Municipalities deliver local services under Interior/local-affairs supervision.",
+   "tunisia": {
+    "lead_institutions": [
+     "Municipalities (≈350 [A])",
+     "Ministry of Interior (local affairs) [A]"
+    ],
+    "existing_digital_services": [
+     [
+      "Civil-status counters in municipalities; digitisation of municipal services under way",
+      "P",
+      "S15 (Phase 0), S129"
+     ]
+    ],
+    "integrations": [
+     [
+      "Municipal case management (Workspace) for permits & complaints",
+      5
+     ],
+     [
+      "Request tracking & notifications (prototype)",
+      4
+     ]
+    ]
+   },
+   "implementation": {
+    "data_tier": "T2",
+    "identity_assurance": "Low–Substantial",
+    "legal_prerequisites": "Local-government law; procurement rules",
+    "roadmap_phases": [
+     "Phase 6",
+     "Phase 13"
+    ],
+    "civora_products": [
+     "Government Workspace (permits, complaints)"
+    ]
+   },
+   "civora_priority": "Medium — good pilot candidate after first product",
+   "notes": ""
+  },
+  {
+   "id": "10",
+   "name": {
+    "en": "Public Safety & Security",
+    "fr": "Sécurité publique",
+    "ar": "السلامة والأمن العام"
+   },
+   "subcategories": {
+    "Emergency": [
+     "Emergency services",
+     "Civil protection"
+    ],
+    "Reporting": [
+     "Crime reporting",
+     "Incident reporting",
+     "Public safety requests"
+    ],
+    "Authorised services": [
+     "Authorised security services"
+    ]
+   },
+   "users": [
+    "Citizens",
+    "Emergency responders",
+    "Police",
+    "Civil protection"
+   ],
+   "institutional_responsibilities": "Interior ministry, civil protection and emergency medical services operate critical systems under state control.",
+   "tunisia": {
+    "lead_institutions": [
+     "Ministry of Interior (National Guard, police)",
+     "National Civil Protection Office",
+     "Emergency medical services"
+    ],
+    "existing_digital_services": [
+     [
+      "No public digital service documentation reviewed",
+      "U",
+      ""
+     ]
+    ],
+    "integrations": [
+     [
+      "Emergency dispatch / crime reporting systems",
+      6
+     ],
+     [
+      "Non-emergency information in Directory",
+      3
+     ]
+    ]
+   },
+   "implementation": {
+    "data_tier": "T1 (sensitive)",
+    "identity_assurance": "High",
+    "legal_prerequisites": "State security rules; critical-system certification",
+    "roadmap_phases": [
+     "Phase 5"
+    ],
+    "civora_products": [
+     "Directory information only"
+    ]
+   },
+   "civora_priority": "Excluded — CIVORA does not build emergency or policing systems",
+   "notes": ""
+  },
+  {
+   "id": "11",
+   "name": {
+    "en": "Social Services",
+    "fr": "Services sociaux",
+    "ar": "الخدمات الاجتماعية"
+   },
+   "subcategories": {
+    "Social insurance": [
+     "Social security",
+     "Retirement",
+     "Pensions"
+    ],
+    "Assistance": [
+     "Social assistance",
+     "Family benefits",
+     "Unemployment support",
+     "Disability-related services"
+    ]
+   },
+   "users": [
+    "Insured persons",
+    "Retirees",
+    "Beneficiaries",
+    "Employers",
+    "Caregivers"
+   ],
+   "institutional_responsibilities": "Social security funds manage contributions and benefits; Ministry of Social Affairs runs assistance programmes.",
+   "tunisia": {
+    "lead_institutions": [
+     "Ministry of Social Affairs",
+     "CNSS",
+     "CNRPS",
+     "CNAM"
+    ],
+    "existing_digital_services": [
+     [
+      "CNSS online services for employers and non-salaried workers (TnsNet)",
+      "P",
+      "S63, S64 (Phase 0)"
+     ],
+     [
+      "CNRPS pension simulator (Jan 2026)",
+      "P",
+      "S65 (Phase 0)"
+     ],
+     [
+      "Khadamet social-protection services",
+      "P",
+      "S18 (Phase 0)"
+     ],
+     [
+      "World Bank GovTech project covers social protection services",
+      "V",
+      "S74 (Phase 0)"
+     ]
+    ],
+    "integrations": [
+     [
+      "Fund status data (CNAM/CNSS/CNRPS) via fund agreement",
+      3
+     ],
+     [
+      "Reimbursement tracking with mandates (prototype)",
+      4
+     ]
+    ]
+   },
+   "implementation": {
+    "data_tier": "T1",
+    "identity_assurance": "Substantial",
+    "legal_prerequisites": "Social-security laws; Law 2004-63; fund agreements",
+    "roadmap_phases": [
+     "Phase 9",
+     "Phase 12"
+    ],
+    "civora_products": [
+     "Government Workspace; status tracking; mandates"
+    ]
+   },
+   "civora_priority": "Medium–high for Government track",
+   "notes": ""
+  },
+  {
+   "id": "12",
+   "name": {
+    "en": "Housing & Property",
+    "fr": "Logement et propriété",
+    "ar": "السكن والملكية"
+   },
+   "subcategories": {
+    "Land": [
+     "Property registration",
+     "Property ownership",
+     "Land administration"
+    ],
+    "Housing": [
+     "Housing assistance",
+     "Social housing applications",
+     "Construction-related permits"
+    ]
+   },
+   "users": [
+    "Owners",
+    "Buyers",
+    "Notaries",
+    "Developers",
+    "Municipalities"
+   ],
+   "institutional_responsibilities": "Land registry and cadastre record rights; housing agencies run programmes; municipalities permit construction.",
+   "tunisia": {
+    "lead_institutions": [
+     "Ministry of State Domains and Land Affairs [A]",
+     "Land Registry (Conservation de la propriété foncière) [A]",
+     "Topography and Cadastre Office (OTC) [A]",
+     "Ministry of Equipment and Housing [A]",
+     "Municipalities"
+    ],
+    "existing_digital_services": [
+     [
+      "New information system for land/real-estate justice announced for 2026",
+      "P",
+      "S124"
+     ]
+    ],
+    "integrations": [
+     [
+      "Land registry / cadastre data",
+      5
+     ]
+    ]
+   },
+   "implementation": {
+    "data_tier": "T1",
+    "identity_assurance": "Substantial–High",
+    "legal_prerequisites": "Land-registration law; notarial rules",
+    "roadmap_phases": [
+     "Phase 5",
+     "Phase 6"
+    ],
+    "civora_products": [
+     "Directory; Workspace for housing applications"
+    ]
+   },
+   "civora_priority": "Low",
+   "notes": ""
+  },
+  {
+   "id": "13",
+   "name": {
+    "en": "Immigration & Residency",
+    "fr": "Immigration et résidence",
+    "ar": "الهجرة والإقامة"
+   },
+   "subcategories": {
+    "Residency": [
+     "Residency applications",
+     "Residency renewals",
+     "Foreign resident services"
+    ],
+    "Entry & work": [
+     "Visa-related services",
+     "Work permits",
+     "Immigration administration"
+    ]
+   },
+   "users": [
+    "Foreign residents",
+    "Employers",
+    "Consulates"
+   ],
+   "institutional_responsibilities": "Interior ministry issues residence cards; labour ministry approves foreign work contracts; foreign affairs handles visas.",
+   "tunisia": {
+    "lead_institutions": [
+     "Ministry of Interior [A]",
+     "Ministry of Employment and Vocational Training [A]",
+     "Ministry of Foreign Affairs"
+    ],
+    "existing_digital_services": [
+     [
+      "No public digital service documentation reviewed",
+      "U",
+      ""
+     ]
+    ],
+    "integrations": [
+     [
+      "Residency / work-permit systems",
+      5
+     ]
+    ]
+   },
+   "implementation": {
+    "data_tier": "T1",
+    "identity_assurance": "Substantial",
+    "legal_prerequisites": "Immigration law; Law 2004-63",
+    "roadmap_phases": [
+     "Phase 5"
+    ],
+    "civora_products": [
+     "Directory guidance"
+    ]
+   },
+   "civora_priority": "Low",
+   "notes": ""
+  },
+  {
+   "id": "14",
+   "name": {
+    "en": "Employment & Labour",
+    "fr": "Emploi et travail",
+    "ar": "التشغيل والشغل"
+   },
+   "subcategories": {
+    "Job seekers": [
+     "Employment services",
+     "Job applications",
+     "Unemployment services"
+    ],
+    "Employers": [
+     "Employer registration",
+     "Employment contracts",
+     "Work-related administrative requests"
+    ],
+    "Rights": [
+     "Labour rights information"
+    ]
+   },
+   "users": [
+    "Job seekers",
+    "Employers",
+    "Workers",
+    "Labour inspectors"
+   ],
+   "institutional_responsibilities": "Employment agency serves job seekers; labour inspection enforces rights; social security registers employers.",
+   "tunisia": {
+    "lead_institutions": [
+     "Ministry of Employment and Vocational Training",
+     "ANETI (national employment agency) [A]",
+     "Labour inspection [A]",
+     "CNSS (employer registration)"
+    ],
+    "existing_digital_services": [
+     [
+      "CNSS online employer declarations",
+      "P",
+      "S63 (Phase 0)"
+     ]
+    ],
+    "integrations": [
+     [
+      "Employment-agency systems",
+      5
+     ],
+     [
+      "Employer social declarations via CNSS",
+      5
+     ]
+    ]
+   },
+   "implementation": {
+    "data_tier": "T1–T2",
+    "identity_assurance": "Substantial",
+    "legal_prerequisites": "Labour code; Law 2004-63",
+    "roadmap_phases": [
+     "Phase 5",
+     "Phase 9"
+    ],
+    "civora_products": [
+     "Directory; Workspace for employer requests"
+    ]
+   },
+   "civora_priority": "Low",
+   "notes": ""
+  },
+  {
+   "id": "15",
+   "name": {
+    "en": "Environment & Agriculture",
+    "fr": "Environnement et agriculture",
+    "ar": "البيئة والفلاحة"
+   },
+   "subcategories": {
+    "Agriculture": [
+     "Agricultural administration",
+     "Farming licences",
+     "Agricultural support",
+     "Veterinary and agricultural inspections"
+    ],
+    "Environment": [
+     "Land and water services",
+     "Environmental permits",
+     "Environmental complaints"
+    ]
+   },
+   "users": [
+    "Farmers",
+    "Agri-businesses",
+    "Environmental agencies",
+    "Residents"
+   ],
+   "institutional_responsibilities": "Agriculture ministry and regional commissariats administer farming support; environmental agency issues permits and handles complaints.",
+   "tunisia": {
+    "lead_institutions": [
+     "Ministry of Agriculture, Water Resources and Fisheries [A]",
+     "Regional Agricultural Development Commissariats (CRDA) [A]",
+     "Environmental protection agency (ANPE) [A]",
+     "Agricultural investment agency (APIA) [A]"
+    ],
+    "existing_digital_services": [
+     [
+      "No public digital service documentation reviewed",
+      "U",
+      ""
+     ]
+    ],
+    "integrations": [
+     [
+      "Agriculture / environment systems",
+      5
+     ]
+    ]
+   },
+   "implementation": {
+    "data_tier": "T2",
+    "identity_assurance": "Low–Substantial",
+    "legal_prerequisites": "Sector laws",
+    "roadmap_phases": [
+     "Phase 5",
+     "Phase 6"
+    ],
+    "civora_products": [
+     "Directory; Workspace for permits/complaints"
+    ]
+   },
+   "civora_priority": "Low",
+   "notes": ""
+  },
+  {
+   "id": "16",
+   "name": {
+    "en": "Energy & Utilities",
+    "fr": "Énergie et services publics",
+    "ar": "الطاقة والمرافق"
+   },
+   "subcategories": {
+    "Services": [
+     "Electricity",
+     "Water",
+     "Gas",
+     "New service connections",
+     "Meter administration"
+    ],
+    "Customer": [
+     "Utility payments",
+     "Service complaints"
+    ]
+   },
+   "users": [
+    "Households",
+    "Businesses",
+    "Utility customer-service staff"
+   ],
+   "institutional_responsibilities": "State utilities operate networks, billing and customer service.",
+   "tunisia": {
+    "lead_institutions": [
+     "STEG (electricity & gas)",
+     "SONEDE (water)",
+     "ONAS (sanitation) [A]",
+     "Ministry of Industry, Mines and Energy [A]"
+    ],
+    "existing_digital_services": [
+     [
+      "STEG online bill payment since 2020 incl. operator USSD",
+      "P",
+      "S130"
+     ],
+     [
+      "SONEDE online payment; card terminals in all districts (2026)",
+      "P",
+      "S131"
+     ]
+    ],
+    "integrations": [
+     [
+      "Utility billing/complaints systems (commercial agreement with utility)",
+      3
+     ],
+     [
+      "Bill payment via licensed providers",
+      3
+     ]
+    ]
+   },
+   "implementation": {
+    "data_tier": "T2",
+    "identity_assurance": "Low–Substantial",
+    "legal_prerequisites": "Utility regulations; Law 2004-63",
+    "roadmap_phases": [
+     "Phase 6",
+     "Phase 8"
+    ],
+    "civora_products": [
+     "Workspace (utility complaints) — Enterprise/Government crossover"
+    ]
+   },
+   "civora_priority": "Medium — complaints management fits first product",
+   "notes": ""
+  },
+  {
+   "id": "17",
+   "name": {
+    "en": "Travel & Tourism",
+    "fr": "Voyage et tourisme",
+    "ar": "السفر والسياحة"
+   },
+   "subcategories": {
+    "Travel": [
+     "Travel-related government services",
+     "Border-related information",
+     "Authorised travel documents",
+     "Travel notifications"
+    ],
+    "Tourism": [
+     "Tourism licences",
+     "Tourism administration"
+    ]
+   },
+   "users": [
+    "Travellers",
+    "Diaspora",
+    "Tourism operators"
+   ],
+   "institutional_responsibilities": "Tourism ministry and office license operators; interior handles borders; foreign affairs issues advisories.",
+   "tunisia": {
+    "lead_institutions": [
+     "Ministry of Tourism [A]",
+     "National Tourism Office (ONTT) [A]",
+     "Ministry of Interior (borders)",
+     "Ministry of Foreign Affairs"
+    ],
+    "existing_digital_services": [
+     [
+      "No public digital service documentation reviewed",
+      "U",
+      ""
+     ]
+    ],
+    "integrations": [
+     [
+      "Border / tourism licensing systems",
+      5
+     ]
+    ]
+   },
+   "implementation": {
+    "data_tier": "T1–T2",
+    "identity_assurance": "Low–Substantial",
+    "legal_prerequisites": "Sector laws",
+    "roadmap_phases": [
+     "Phase 5"
+    ],
+    "civora_products": [
+     "Directory guidance (diaspora)"
+    ]
+   },
+   "civora_priority": "Low",
+   "notes": ""
+  },
+  {
+   "id": "18",
+   "name": {
+    "en": "Civic & Political Services",
+    "fr": "Services civiques et participation",
+    "ar": "الخدمات المدنية والمشاركة"
+   },
+   "subcategories": {
+    "Elections": [
+     "Voter registration where applicable",
+     "Election information"
+    ],
+    "Participation": [
+     "Civic participation",
+     "Public consultations",
+     "Petitions",
+     "Citizen participation programmes"
+    ]
+   },
+   "users": [
+    "Citizens",
+    "Election authority",
+    "Parliament",
+    "Municipalities"
+   ],
+   "institutional_responsibilities": "Independent election authority runs registration and elections; institutions run consultations.",
+   "tunisia": {
+    "lead_institutions": [
+     "Independent High Authority for Elections (ISIE) [A]",
+     "Assembly of the Representatives of the People",
+     "Municipalities"
+    ],
+    "existing_digital_services": [
+     [
+      "No public digital service documentation reviewed",
+      "U",
+      ""
+     ]
+    ],
+    "integrations": [
+     [
+      "Voter registration / electoral systems",
+      6
+     ],
+     [
+      "Public consultation tooling under mandate",
+      5
+     ]
+    ]
+   },
+   "implementation": {
+    "data_tier": "T1 (politically sensitive)",
+    "identity_assurance": "High",
+    "legal_prerequisites": "Electoral law; strict neutrality",
+    "roadmap_phases": [
+     "Phase 5"
+    ],
+    "civora_products": [
+     "Directory information only"
+    ]
+   },
+   "civora_priority": "Excluded for elections; consultations only on mandate with neutrality safeguards",
+   "notes": ""
+  },
+  {
+   "id": "19",
+   "name": {
+    "en": "Animal & Veterinary Services",
+    "fr": "Services vétérinaires et animaux",
+    "ar": "الخدمات البيطرية"
+   },
+   "subcategories": {
+    "Animals": [
+     "Animal registration",
+     "Vaccination records",
+     "Animal movement permits"
+    ],
+    "Veterinary": [
+     "Veterinary certificates",
+     "Veterinary appointments",
+     "Animal-related administration"
+    ]
+   },
+   "users": [
+    "Farmers",
+    "Pet owners",
+    "Veterinarians",
+    "Inspectors"
+   ],
+   "institutional_responsibilities": "Veterinary services directorate oversees animal health, certificates and movement permits.",
+   "tunisia": {
+    "lead_institutions": [
+     "Ministry of Agriculture (veterinary services) [A]",
+     "CRDA [A]",
+     "Veterinary order [A]"
+    ],
+    "existing_digital_services": [
+     [
+      "No public digital service documentation reviewed",
+      "U",
+      ""
+     ]
+    ],
+    "integrations": [
+     [
+      "Veterinary systems",
+      5
+     ]
+    ]
+   },
+   "implementation": {
+    "data_tier": "T2",
+    "identity_assurance": "Low",
+    "legal_prerequisites": "Sector laws",
+    "roadmap_phases": [
+     "Phase 5"
+    ],
+    "civora_products": [
+     "Directory guidance"
+    ]
+   },
+   "civora_priority": "Low",
+   "notes": ""
+  },
+  {
+   "id": "20",
+   "name": {
+    "en": "Government Communication",
+    "fr": "Communication gouvernementale",
+    "ar": "التواصل الحكومي"
+   },
+   "subcategories": {
+    "Inbound": [
+     "Citizen complaints",
+     "Citizen feedback",
+     "Administrative correspondence"
+    ],
+    "Outbound": [
+     "Official notifications",
+     "Government announcements",
+     "Official messaging"
+    ],
+    "Tracking": [
+     "Application tracking"
+    ]
+   },
+   "users": [
+    "Citizens",
+    "All institutions",
+    "Ombudsman-type bodies"
+   ],
+   "institutional_responsibilities": "Every institution handles complaints and correspondence; government communication units publish announcements.",
+   "tunisia": {
+    "lead_institutions": [
+     "Presidency of the Government (administrative reform; Dalil)",
+     "All ministries and agencies",
+     "Ministry of Communication Technologies (e-Bawaba, Khadamet notifications)"
+    ],
+    "existing_digital_services": [
+     [
+      "Dalil national procedures platform (~3,200 procedures inventoried)",
+      "P",
+      "S27 (Phase 0)"
+     ],
+     [
+      "Khadamet single app (Android Aug 2026; iOS Oct 2026)",
+      "P",
+      "S18, S20 (Phase 0)"
+     ]
+    ],
+    "integrations": [
+     [
+      "Complaint & request case management (Workspace) for an institution",
+      5
+     ],
+     [
+      "Notifications & tracking (prototype)",
+      4
+     ]
+    ]
+   },
+   "implementation": {
+    "data_tier": "T2",
+    "identity_assurance": "Low–Substantial",
+    "legal_prerequisites": "Law 2004-63; institution's procedures",
+    "roadmap_phases": [
+     "Phase 6",
+     "Phase 13"
+    ],
+    "civora_products": [
+     "Workspace (complaints, correspondence, tracking) — same engine as first product"
+    ]
+   },
+   "civora_priority": "High — direct bridge from first product to Government",
+   "notes": ""
+  }
+ ]
+}

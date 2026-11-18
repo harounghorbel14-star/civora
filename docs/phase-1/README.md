@@ -1,36 +1,83 @@
-# CIVORA — Phase 1: Product Strategy and UX/UI
+# CIVORA — Phase 1: Product Strategy, Market Validation, Product Architecture & UX/UI
 
 | | |
 |---|---|
-| **Version** | 1.0 — design deliverables complete; field research pending |
-| **Date** | 18 November 2026 |
-| **Basis** | Phase 0 approved by founder on 18 Nov 2026 (D1–D10 as recommended; see [decision register](../phase-0/21-founder-decisions.md)) |
-| **Status** | **Desk deliverables done. Validation with real users has NOT happened yet.** Personas, journeys and prototype are hypotheses until the research in [08-user-research-kit.md](08-user-research-kit.md) is run |
-| **Code** | No product code. The clickable prototype is a design artefact on synthetic data |
+| **Version** | 2.0, updated to the founder's *Master Project Directive — Phase 1* (18 Nov 2026) |
+| **Previous version** | 1.0 (same day). All content preserved and restructured; see [change-record.md](change-record.md) |
+| **Status** | **Awaiting founder approval.** Phase 2 and all coding are on hold until approval |
+| **Roadmap** | Original 15-phase roadmap unchanged and in original order (Phase 0 D8 re-sequencing superseded) |
+| **Evidence labels** | [V] verified · [P] press/secondary · [A] assumption · [U] unverified (as in Phase 0). Sources: [sources.md](sources.md) (S120–S153) + [Phase 0 sources](../phase-0/sources.md) (S1–S119) |
 
-## Deliverables
+## Required deliverables (directive §12)
 
-| # | Deliverable | Location | Status |
+| # | Deliverable | File |
+|---|---|---|
+| 1 | Executive Summary | [01-executive-summary.md](01-executive-summary.md) |
+| 2 | Updated CIVORA Company Strategy | [02-company-strategy.md](02-company-strategy.md) |
+| 3 | Global Product Portfolio | [03-global-product-portfolio.md](03-global-product-portfolio.md) |
+| 4 | Business Division Strategy | [04-business-division-strategy.md](04-business-division-strategy.md) |
+| 5 | Government Master Service Catalog — 20 Sectors | [05-government-master-service-catalog.md](05-government-master-service-catalog.md) · data: [government-service-catalog.json](data/government-service-catalog.json) |
+| 6 | Tunisia Government Service Mapping | [06-tunisia-government-service-mapping.md](06-tunisia-government-service-mapping.md) |
+| 7 | Global Market Opportunity Analysis | [07-global-market-opportunity-analysis.md](07-global-market-opportunity-analysis.md) |
+| 8 | Competitor Analysis | [08-competitor-analysis.md](08-competitor-analysis.md) |
+| 9 | Product Opportunity Scoring Matrix | [09-opportunity-scoring-matrix.md](09-opportunity-scoring-matrix.md) · data: [opportunity-scoring.csv](data/opportunity-scoring.csv), [weights](data/opportunity-scoring-weights.json) |
+| 10 | First Product Recommendation | [10-first-product-recommendation.md](10-first-product-recommendation.md) |
+| 11 | Target Customer Profiles | [11-target-customer-profiles.md](11-target-customer-profiles.md) |
+| 12 | Product Requirements Document | [12-product-requirements-document.md](12-product-requirements-document.md) |
+| 13 | MVP Scope and Specification | [13-mvp-scope-and-specification.md](13-mvp-scope-and-specification.md) |
+| 14 | User Journeys | [14-user-journeys.md](14-user-journeys.md) |
+| 15 | Information Architecture | [15-information-architecture.md](15-information-architecture.md) |
+| 16 | UX/UI Design Strategy (incl. wireframes, mobile & web strategy, accessibility) | [16-ux-ui-design-strategy.md](16-ux-ui-design-strategy.md) · [wireframes](../../design/wireframes/) |
+| 17 | Design System Specification | [17-design-system-specification.md](17-design-system-specification.md) · [tokens](../../design/tokens/civora.tokens.json) · [contrast report](../../design/tokens/contrast-report.md) |
+| 18 | Shared Platform Requirements | [18-shared-platform-requirements.md](18-shared-platform-requirements.md) |
+| 19 | Commercial and Pricing Strategy | [19-commercial-and-pricing-strategy.md](19-commercial-and-pricing-strategy.md) |
+| 20 | Updated Financial Assumptions | [20-updated-financial-assumptions.md](20-updated-financial-assumptions.md) · data: [financial-model-monthly-v2.csv](data/financial-model-monthly-v2.csv) |
+| 21 | Risks and Regulatory Requirements | [21-risks-and-regulatory-requirements.md](21-risks-and-regulatory-requirements.md) |
+| 22 | 90-Day Execution Plan | [22-90-day-execution-plan.md](22-90-day-execution-plan.md) |
+| 23 | Founder Approval Decisions | [23-founder-approval-decisions.md](23-founder-approval-decisions.md) |
+
+## Supporting materials (retained from v1.0)
+
+| Material | File |
+|---|---|
+| Government product strategy (personas, JTBD, principles) | [supporting/government-product-strategy-v1.md](supporting/government-product-strategy-v1.md) |
+| Government product requirements (12 epics, acceptance criteria) | [supporting/government-product-requirements.md](supporting/government-product-requirements.md) |
+| Brand identity concept + naming finding (D12) | [supporting/brand-identity.md](supporting/brand-identity.md) |
+| UX writing & terminology (AR/FR/EN/Derja) | [supporting/ux-writing-and-terminology.md](supporting/ux-writing-and-terminology.md) |
+| User research kit (Government track + first-product discovery §8.12) | [supporting/user-research-kit.md](supporting/user-research-kit.md) |
+| Citizen Data Charter v1 (EN/FR/AR) | [supporting/citizen-data-charter.md](supporting/citizen-data-charter.md) |
+| Government proposal, executive presentation, pilot template, partnership one-pager | [supporting/](supporting/) |
+| Clickable Government-track prototype (independent prototype, class 4) | [design/prototype/index.html](../../design/prototype/index.html) · published (private): https://claude.ai/artifact/8mSSc8wUoiG5b2bpg6QQ5Y |
+| v1.0 exit checklist (superseded) | [supporting/v1-exit-checklist.md](supporting/v1-exit-checklist.md) |
+
+## Acceptance checklist
+
+Status of the directive §15 final acceptance criteria as of 18 Nov 2026.
+
+| # | Criterion | Status | Evidence |
 |---|---|---|---|
-| 1 | Product strategy (positioning, personas, JTBD, principles, metrics, MVP scope) | [01-product-strategy.md](01-product-strategy.md) | Done (hypotheses) |
-| 2 | Product requirements for MVP modules (epics, user stories, acceptance criteria) | [02-product-requirements.md](02-product-requirements.md) | Done; feeds Phase 2–10a |
-| 3 | Information architecture & catalogue content model | [03-information-architecture.md](03-information-architecture.md) | Done |
-| 4 | Service blueprints (5 journeys) | [04-service-blueprints.md](04-service-blueprints.md) | Done (hypotheses) |
-| 5 | Design system v1 (principles, tokens, typography, RTL, components, accessibility) | [05-design-system.md](05-design-system.md), [tokens](../../design/tokens/civora.tokens.json), [contrast report](../../design/tokens/contrast-report.md) | Done. 44/44 colour pairs pass WCAG 2.2 AA |
-| 6 | Brand identity concept (incl. naming finding) | [06-brand-identity.md](06-brand-identity.md), [logo SVGs](../../design/brand/) | Concept only. **Blocked on D12 / trademark clearance** |
-| 7 | UX writing guidelines & terminology (AR/FR/EN/Derja) | [07-ux-writing-and-terminology.md](07-ux-writing-and-terminology.md) | Done; needs native legal-language review |
-| 8 | User research kit (plan, screener, guides, consent, usability script, SUS) | [08-user-research-kit.md](08-user-research-kit.md) | Ready to run |
-| 9 | Citizen Data Charter v1 (EN/FR/AR) | [09-citizen-data-charter.md](09-citizen-data-charter.md) | Draft for civil-society review |
-| 10 | Government proposal (draft) | [10-government-proposal.md](10-government-proposal.md) | Draft |
-| 11 | Executive presentation (slide-by-slide content) | [11-executive-presentation.md](11-executive-presentation.md) | Content ready; deck not built |
-| 12 | Pilot proposal template | [12-pilot-proposal-template.md](12-pilot-proposal-template.md) | Done |
-| 13 | Partnership one-pager (donors, primes) | [13-partnership-one-pager.md](13-partnership-one-pager.md) | Done |
-| 14 | Clickable prototype (web, responsive; AR/FR/EN; RTL/LTR) | [design/prototype/index.html](../../design/prototype/index.html) · published (private): https://claude.ai/artifact/8mSSc8wUoiG5b2bpg6QQ5Y | Done; synthetic data; 0 axe violations in 21 states |
-| 15 | Phase 1 exit checklist | [14-phase-1-exit-checklist.md](14-phase-1-exit-checklist.md) | 10 of 16 criteria met; 6 need fieldwork, review or founder action |
+| 1 | Global company vision clearly documented | ✅ Met | [02](02-company-strategy.md) |
+| 2 | All six business divisions defined | ✅ Met | [04](04-business-division-strategy.md) |
+| 3 | The 20 government sectors included | ✅ Met | [05](05-government-master-service-catalog.md), JSON data, IA in [15](15-information-architecture.md) §15.8 |
+| 4 | Tunisia's existing digital infrastructure considered | ✅ Met | [06](06-tunisia-government-service-mapping.md) (44 integration points classified) |
+| 5 | Global expansion requirements defined | ✅ Met | [07](07-global-market-opportunity-analysis.md) §7.4, [05](05-government-master-service-catalog.md) §5.1, Phase 0 §13 |
+| 6 | First product supported by a defensible opportunity analysis | ✅ Met (desk evidence) | [09](09-opportunity-scoring-matrix.md), [10](10-first-product-recommendation.md). **Field validation pending** (90-day plan) |
+| 7 | MVP has a clear scope | ✅ Met | [13](13-mvp-scope-and-specification.md) |
+| 8 | Customer profiles and user journeys exist | ✅ Met (hypotheses) | [11](11-target-customer-profiles.md), [14](14-user-journeys.md) |
+| 9 | UX/UI requirements documented | ✅ Met | [16](16-ux-ui-design-strategy.md), [17](17-design-system-specification.md), 6 wireframes |
+| 10 | Financial assumptions reviewed | ✅ Met | [20](20-updated-financial-assumptions.md) |
+| 11 | Legal and regulatory risks identified | ✅ Met | [21](21-risks-and-regulatory-requirements.md) (+ Phase 0 §11, §17) |
+| 12 | All required documents created and linked | ✅ Met | This index |
+| 13 | Original 15-phase roadmap intact | ✅ Met | Phase 0 D8 superseded; Phase 0 §19.1 annotated; phases mapped in [10](10-first-product-recommendation.md) §10.5 and [13](13-mvp-scope-and-specification.md) §13.5 |
+| 14 | All major decisions requiring founder approval listed | ✅ Met | [23](23-founder-approval-decisions.md) |
 
-## What the founder must do for Phase 1 to close
+### Validation items still open (cannot be completed at a desk)
 
-1. **Run the research** (≥ 30 citizens, ≥ 10 civil servants, ≥ 10 B2B, 2 usability rounds) using the kit. Claude cannot interview people.
-2. **Decide D12 (brand):** clear the trademark and resolve the Arabic transliteration issue in [06-brand-identity.md](06-brand-identity.md).
-3. **Have a native legal-language editor review** the Arabic and French texts (charter, glossary, consent forms).
-4. **Approve or amend** the proposal pack before any external use.
+| Item | Owner | Plan |
+|---|---|---|
+| Discovery with ≥ 15 financial institutions; ≥ 2 design-partner agreements | Founder | [22](22-90-day-execution-plan.md) |
+| Official BCT 2022-08 text; counsel answers Q1–Q18 | Founder + counsel | [22](22-90-day-execution-plan.md) |
+| Government-track user research (≥ 30 citizens, ≥ 10 civil servants) and usability tests | Founder/team | [supporting/user-research-kit.md](supporting/user-research-kit.md) |
+| Brand decision D12 and trademark clearance | Founder | [supporting/brand-identity.md](supporting/brand-identity.md) |
+| Native AR/FR legal-language review | Founder | — |
+| Citizen Data Charter review by counsel and civil society | Founder | — |

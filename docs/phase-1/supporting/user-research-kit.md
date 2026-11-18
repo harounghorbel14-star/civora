@@ -1,4 +1,4 @@
-# 8. User Research Kit
+# User Research Kit (Phase 1 supporting material; sections numbered 8.x from v1.0)
 
 Everything needed to run Phase 1 field research. **Claude cannot conduct interviews.** The founder/team runs these sessions, and the outputs replace the hypotheses in Sections 1 and 4.
 
@@ -195,3 +195,44 @@ Use a **validated translation** where available. Validated French and Arabic SUS
 - Updated personas and blueprints.
 - Prioritised design changes.
 - Go/no-go input to the Day-90 gate (Phase 0, Section 20.4).
+
+## 8.12 First-product discovery module — Workspace, Regulated Finance (added in v2.0)
+
+**Objective:** validate or reject the first-product recommendation ([10](../10-first-product-recommendation.md)) with ≥ 15 financial institutions within 60 days.
+
+### Hypotheses
+
+| ID | Hypothesis | Confirm if | Refute if |
+|---|---|---|---|
+| H-R1 | Complaint handling under BCT 2022-08 is a recurring operational pain | ≥ 8 of 15 describe manual work, missed deadlines or report pain | Most report mature, satisfactory tooling |
+| H-R2 | Payment providers and specialised FIs lack dedicated complaint tooling | ≥ 3 of 5 PSPs/FIs use email or spreadsheets | Already equipped |
+| H-R3 | Institutions value Tunisian hosting / on-prem and Arabic/French templates enough to switch or buy | ≥ 5 rate these "must-have" | Indifferent |
+| H-R4 | Willingness to pay matches tiers in [19](../19-commercial-and-pricing-strategy.md) | Stated budgets overlap tier ranges | Budgets far below |
+| H-R5 | Design partners will join a paid sandbox programme | ≥ 2 sign | None |
+
+### Screener (organisations)
+
+1. Type: bank / financial institution / payment provider / microfinance / insurer.
+2. Interviewee role: customer relations, complaints, compliance, IT.
+3. Approximate monthly complaint volume.
+4. Current tool, if any.
+
+**Exclude** competitors and consultants selling competing tools.
+
+### Interview guide (45 min, FR/AR/EN)
+
+1. Walk me through the life of a complaint, from receipt to closure. Where does it get stuck?
+2. How do you track deadlines? What share closes on time? How do you know?
+3. How do you write and approve rejection reasons? Who checks consistency?
+4. How do customers learn the status of their complaint?
+5. What happens when a case goes to the banking mediator? How long does it take to compile the file?
+6. How do you prepare the annual report to the board? How long does it take?
+7. Which tools do you use (CRM, ticketing, core-banking module, spreadsheets)? What do you like or dislike?
+8. What hosting or security requirements would a vendor need to meet (hosting location, on-premises, audits)?
+9. Who would decide to buy a solution, and how (budget, procurement steps, timing)?
+10. Would you join a 3-month sandbox design-partner programme (no production data) to shape the product?
+
+### Ethics
+
+- Do not collect real complaint content or customer personal data in interviews.
+- Anonymised examples only, and only with the institution's consent.

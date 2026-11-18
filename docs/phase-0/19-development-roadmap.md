@@ -2,6 +2,8 @@
 
 ## 19.1 Recommended re-sequencing (founder decision D8)
 
+> **SUPERSEDED (18 Nov 2026).** The founder's Phase 1 directive (§13) requires the original 15-phase order to stay unchanged; phases must not be renamed, removed, reordered or replaced. The execution order below and the Gantt chart are kept for traceability only. The canonical order is Phase 0 → 15. Phase 1 decision **P1-D4** proposes a first-product track with light passes for Phases 7–10 instead ([../phase-1/13-mvp-scope-and-specification.md](../phase-1/13-mvp-scope-and-specification.md) §13.5). The per-phase content below (objectives, deliverables, endpoints, budgets) remains valid as phase scope.
+
 The brief's phase numbering is kept for traceability, but the **execution order changes**:
 
 | Change | Reason |

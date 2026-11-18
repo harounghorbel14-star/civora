@@ -1,5 +1,8 @@
 # 1. Product Strategy
 
+> **Status (v2.0):** retained as the **Division A (Government) product strategy**. Company-level strategy is now in [02-company-strategy.md](../02-company-strategy.md). The MVP MoSCoW in §1.7 describes the Government product, not the first commercial product (see [10](../10-first-product-recommendation.md)).
+
+
 ## 1.1 Positioning statement
 
 > **For** public institutions and regulated organisations that must serve citizens securely, **CIVORA** is a sovereign service-delivery platform that turns official procedures into clear, trackable, accessible digital journeys, plugging into national identity and data systems instead of replacing them.
@@ -92,4 +95,4 @@ The bar comes from the reference platforms (Phase 0, Section 4):
 - Estonia-level transparency on data access.
 - Absher-level breadth of status tracking.
 
-It must be delivered with Maghrebi language fluency and assisted channels. The prototype ([design/prototype](../../design/prototype/index.html)) is the first expression of this bar.
+It must be delivered with Maghrebi language fluency and assisted channels. The prototype ([design/prototype](../../../design/prototype/index.html)) is the first expression of this bar.

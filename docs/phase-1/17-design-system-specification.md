@@ -1,11 +1,11 @@
-# 5. CIVORA Design System v1
+# 17. Design System Specification — CIVORA Design System v1.1
 
 **Sources of truth:**
 - Tokens: [`design/tokens/civora.tokens.json`](../../design/tokens/civora.tokens.json), in W3C Design Tokens Community Group format.
 - Contrast verification: [`design/tokens/contrast-report.md`](../../design/tokens/contrast-report.md). **44/44 colour pairs pass WCAG 2.2 AA in light and dark themes.**
 - Reference implementation: the [clickable prototype](../../design/prototype/index.html).
 
-## 5.1 Design principles
+## 17.1 Design principles
 
 1. **Calm authority.** Trustworthy without imitating the state. No flags, crests, eagles, crescents or national red as brand colours.
 2. **Clarity over density.** One primary action per screen; plain language; progressive disclosure.
@@ -14,7 +14,7 @@
 5. **Honest states.** Show what is real, simulated, pending or unknown. Never fake progress.
 6. **Light on the network.** System fonts as fallback, small assets, no decorative video.
 
-## 5.2 Colour
+## 17.2 Colour
 
 **Palette (base tokens):**
 
@@ -33,7 +33,7 @@
 - Status is **never** communicated by colour alone: icon + text label is always present.
 - White-label themes (L3 countries, institutions) must re-run the contrast script before release.
 
-## 5.3 Typography
+## 17.3 Typography
 
 | Script | Family | Fallbacks | Licence |
 |---|---|---|---|
@@ -63,7 +63,7 @@ The Plex families share proportions and stroke logic, so mixed Arabic–French s
 - Avoid italic for Arabic. Use weight or colour for emphasis.
 - Mixed-script lines (e.g. "مضمون ولادة (extrait de naissance)") use bidi isolation (`<bdi>`) around Latin segments.
 
-## 5.4 Spacing, layout and sizing
+## 17.4 Spacing, layout and sizing
 
 - 4 px base grid. Tokens `space.1`–`space.16` (4 → 64 px).
 - Layout:
@@ -73,7 +73,7 @@ The Plex families share proportions and stroke logic, so mixed Arabic–French s
 - **Touch targets ≥ 44 × 44 px.** This exceeds WCAG 2.2 SC 2.5.8, which requires 24 px. Control height is 48 px.
 - Radius: `sm` 4 (inputs), `md` 8 (buttons), `lg` 12 (cards), `xl` 16 (sheets), `full` (pills).
 
-## 5.5 RTL / LTR rules
+## 17.5 RTL / LTR rules
 
 | Topic | Rule |
 |---|---|
@@ -88,7 +88,7 @@ The Plex families share proportions and stroke logic, so mixed Arabic–French s
 | Mixed content | Phone/email inputs are `dir="ltr"` even in RTL UI. Text inputs use `dir="auto"` |
 | Animation | Slide transitions follow reading direction |
 
-## 5.6 Core components (v1)
+## 17.6 Core components (v1)
 
 Each component spec covers anatomy, states (default, hover, focus, active, disabled, error, loading), RTL notes and accessibility notes. Summary:
 
@@ -117,7 +117,7 @@ Each component spec covers anatomy, states (default, hover, focus, active, disab
 | **Bottom tab bar** (mobile) | Primary nav | 5 items max; labels always visible; mirrors in RTL |
 | **Language switcher** | Language | Shows language names in their own script: العربية · Français · English |
 
-## 5.7 Accessibility specification (WCAG 2.2 AA + additions)
+## 17.7 Accessibility specification (WCAG 2.2 AA + additions)
 
 - **Keyboard:** all functions operable; logical focus order follows the visual order in both directions; no keyboard traps; skip link.
 - **Focus:** always visible; not obscured by sticky headers (SC 2.4.11); 3 px ring with ≥ 3:1 contrast.
@@ -129,18 +129,18 @@ Each component spec covers anatomy, states (default, hover, focus, active, disab
 - **Senior mode (CIVORA addition):** base 18 px, increased spacing, simplified home with 3 primary tasks, larger tap targets (56 px).
 - **Plain-language mode (CIVORA addition):** shorter sentences; key terms explained.
 
-## 5.8 Motion
+## 17.8 Motion
 
 - Durations: 120 ms (micro), 200 ms (standard), 300 ms (sheets/dialogs).
 - Easing: `cubic-bezier(0.2, 0, 0, 1)`.
 - Under `prefers-reduced-motion: reduce`, transitions become instant or opacity-only.
 
-## 5.9 Iconography and imagery
+## 17.9 Iconography and imagery
 
 - Outline icon set at 24 px with a 1.5–2 px stroke, from one open-licence family (e.g. Lucide or Material Symbols) [A — select in Phase 2].
 - Illustrations: simple, inclusive, regionally realistic people and settings. **No stock imagery of officials or uniforms; no imagery of state buildings or symbols.**
 
-## 5.10 Content density modes
+## 17.10 Content density modes
 
 | Mode | Where | Base size | Row height |
 |---|---|---|---|
@@ -148,8 +148,45 @@ Each component spec covers anatomy, states (default, hover, focus, active, disab
 | Senior | Citizen app (setting) | 18 px | 64 px |
 | Compact | Workspace tables | 14 px | 44 px |
 
-## 5.11 Governance
+## 17.11 Governance
 
 - The design system is versioned with the tokens (semver). Breaking changes need design + engineering approval.
 - Every new component ships with RTL screenshots, an accessibility checklist and usage guidance.
 - Contrast and RTL visual-regression tests run in CI from Phase 2.
+
+## 17.12 v1.1 additions — enterprise consoles and multi-division use
+
+### One brand, many products
+
+- All divisions use the **same tokens and components**. Division identity comes from product names and content, not colour schemes.
+- This keeps one accessible, maintained system (directive: "CIVORA must have its own unique visual identity"; see [supporting/brand-identity.md](supporting/brand-identity.md), still pending D12).
+- **White-label** deployments, for institutions and countries, override only the `bg.brand*`, `text.brand` and `text.link` semantic tokens and the logo. The contrast script must pass before release.
+
+### Density modes (extended)
+
+| Mode | Products | Base size | Row height | Notes |
+|---|---|---|---|---|
+| Comfortable | Citizen app, customer status page | 16 px | 56 px | Default |
+| Senior | Citizen app (setting) | 18 px | 64 px | — |
+| **Compact** | **Workspace consoles (RF and Government)** | 14 px | 44 px | Keyboard-first; sticky table headers |
+
+### New components for Workspace
+
+| Component | Purpose | Key rules |
+|---|---|---|
+| **Deadline timer / SLA badge** | Remaining time to deadline | Text + icon + colour ("Overdue by 1 day", "6 h left"); working-day aware; announced to screen readers on change |
+| **Queue table with saved views** | Dense work lists | `aria-sort`; keyboard row navigation; filters as chips; collapses to cards < 1024 px |
+| **Decision panel** | Outcome, reason code, explanation, template, channel | Blocks issuing a rejection without explanation; inline error with fix instruction |
+| **Reason-code picker** | Consistent decisions | Searchable; shows code + label in AR/FR |
+| **Template editor (AR/FR)** | Approved response texts | Bidirectional editing (`dir="auto"` per paragraph); variables shown as tokens; approval status chip |
+| **Timeline (case)** | Audit-friendly history | Actor + action + timestamp (monospace, LTR-isolated) |
+| **Sub-task card** | Internal requests (e.g. to branch) | Own deadline; owner; status |
+| **Export dialog** | Case-file export | Checklist of contents; default excludes internal notes |
+| **Report wizard** | Annual board report | Stepper; preview; export PDF/DOCX |
+| **Metric tile & simple charts** | Dashboards | Tabular numerals; charts follow the dataviz rules (single scale, labelled axes, theme tokens) |
+| **Status page card** (customer) | Status, deadline, next step | Mobile-first; mediator information block always available |
+
+### Wireframes and prototype references
+
+- Wireframes: [16-ux-ui-design-strategy.md](16-ux-ui-design-strategy.md) §16.3 ([design/wireframes](../../design/wireframes/)).
+- Reference implementation of v1 components: [design/prototype/index.html](../../design/prototype/index.html).

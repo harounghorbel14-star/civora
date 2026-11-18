@@ -42,14 +42,14 @@ On **18 November 2026** the founder instructed: *"Okay do next phase."* This is 
 
 | Decision | Status | Date | Notes |
 |---|---|---|---|
-| D1 | Approved (as recommended) | 2026-11-18 | Founder go-ahead |
-| D2 | Approved (as recommended) | 2026-11-18 | Founder go-ahead |
+| D1 | Approved → **extended** | 2026-11-18 | Phase 1 P1-D1: global technology & infrastructure company with six divisions |
+| D2 | Approved → **revised** | 2026-11-18 | Phase 1 P1-D3: B2B first product becomes Workspace — Regulated Finance (not e-KYC); B2G pipeline unchanged |
 | D3 | Approved (as recommended) | 2026-11-18 | Staged funding; pre-seed sizing to be confirmed with real quotes |
 | D4 | Approved (as recommended) | 2026-11-18 | Counsel engagement is a 90-day-plan action |
-| D5 | Approved (as recommended) | 2026-11-18 | MVP scope per Section 18 |
+| D5 | Approved → **proposed superseded** | 2026-11-18 | Phase 1 P1-D3; Section 18 retained as Government-track prototype scope |
 | D6 | Approved (as recommended) | 2026-11-18 | Citizen Data Charter v1 drafted in Phase 1 |
 | D7 | Approved (as recommended) | 2026-11-18 | Stack confirmed for Phase 2 ADRs |
-| D8 | Approved (as recommended) | 2026-11-18 | Re-sequenced roadmap |
+| D8 | **Superseded** | 2026-11-18 | Phase 1 directive §13: original roadmap order must not change; see P1-D4 |
 | D9 | Approved (as recommended) | 2026-11-18 | Hosting policy |
 | D10 | Approved (as recommended) | 2026-11-18 | AI model policy |
 | D11 | Pending | | Tier 2 |

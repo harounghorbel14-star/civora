@@ -1,6 +1,13 @@
-# 3. Information Architecture
+# 15. Information Architecture
 
-## 3.1 Citizen app (web + mobile)
+This document covers three things:
+- **Sections 15.1–15.7:** the Government citizen app and back office. Retained from v1.0 and still the Division A IA.
+- **Section 15.8:** the **20-sector Government catalog** taxonomy.
+- **Section 15.9:** the **first product**, Workspace — Regulated Finance.
+- **Section 15.10:** product structures for the other divisions.
+
+
+## 15.1 Citizen app (web + mobile)
 
 **Primary navigation:**
 - **Mobile:** bottom tab bar, 5 items. In RTL the order mirrors and Home stays at the start edge.
@@ -39,7 +46,7 @@ flowchart TB
 - Help entry.
 - Skip-to-content link.
 
-## 3.2 Workspace (officer back office, web)
+## 15.2 Workspace (officer back office, web)
 
 | Area | Contents | Roles |
 |---|---|---|
@@ -51,7 +58,7 @@ flowchart TB
 | Configuration | Case types, forms, SLAs, offices, calendars, templates | Tenant admin |
 | Audit | Case histories, access reports | Auditor (read-only) |
 
-## 3.3 Platform admin console (CIVORA operators / client IT)
+## 15.3 Platform admin console (CIVORA operators / client IT)
 
 | Area | Contents |
 |---|---|
@@ -61,7 +68,7 @@ flowchart TB
 | Security | Key status, policy bundles, alerts (read-only links to SIEM) |
 | Guide | Corpus sources, evaluation runs, flagged answers |
 
-## 3.4 Canonical request status model
+## 15.4 Canonical request status model
 
 Every case type maps its internal states to these **citizen-visible** states. This keeps the meaning consistent across institutions.
 
@@ -78,7 +85,7 @@ Every case type maps its internal states to these **citizen-visible** states. Th
 | Withdrawn | You cancelled | — |
 | Closed | Finished | — |
 
-## 3.5 Catalogue content model (service version)
+## 15.5 Catalogue content model (service version)
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
@@ -101,7 +108,7 @@ Every case type maps its internal states to these **citizen-visible** states. Th
 | `caseType` | reference | — | Link to Workspace case type if the service is digitised in a CIVORA deployment |
 | `status` | enum | ✓ | draft / in-review / published / retired |
 
-## 3.6 URL patterns (web)
+## 15.6 URL patterns (web)
 
 | Page | Pattern | Example |
 |---|---|---|
@@ -114,7 +121,7 @@ Every case type maps its internal states to these **citizen-visible** states. Th
 
 The language prefix is explicit (no IP-based guessing). `hreflang` alternates are published for public pages.
 
-## 3.7 Notification taxonomy
+## 15.7 Notification taxonomy
 
 | Event | Default channels | Template content (no sensitive data) |
 |---|---|---|
@@ -125,3 +132,107 @@ The language prefix is explicit (no IP-based guessing). `hreflang` alternates ar
 | Document expiring | Push, email | Document type, expiry date, official renewal link |
 | Mandate granted/revoked/used | Push, email (principal) | Who, scope, when |
 | Security event | Email, push | New device sign-in, passkey added, recovery started |
+
+## 15.8 CIVORA Government — 20-sector catalog taxonomy
+
+The Directory taxonomy is **Sector → Subcategory → Service**. Each service also carries:
+- life-event tags
+- the responsible institution (country-specific)
+- channels
+- sources
+
+Sector codes are global (01–20). Services are defined per country pack. Source: [05](05-government-master-service-catalog.md) and [data/government-service-catalog.json](data/government-service-catalog.json).
+
+```mermaid
+flowchart LR
+  ROOT["Government Services Directory"] --> P["People & identity"]
+  ROOT --> L["Life & wellbeing"]
+  ROOT --> E["Economy & work"]
+  ROOT --> T["Territory & environment"]
+  ROOT --> C["Civic & communication"]
+  P --> S01["01 Digital Identity"]
+  P --> S02["02 Civil Services"]
+  P --> S13["13 Immigration & Residency"]
+  P --> S17["17 Travel & Tourism"]
+  L --> S04["04 Healthcare"]
+  L --> S05["05 Education"]
+  L --> S11["11 Social Services"]
+  L --> S12["12 Housing & Property"]
+  E --> S03["03 Tax & Finance"]
+  E --> S08["08 Business & Commerce"]
+  E --> S14["14 Employment & Labour"]
+  E --> S06["06 Transportation"]
+  T --> S09["09 Municipal Services"]
+  T --> S15["15 Environment & Agriculture"]
+  T --> S16["16 Energy & Utilities"]
+  T --> S19["19 Animal & Veterinary"]
+  C --> S07["07 Justice"]
+  C --> S10["10 Public Safety & Security"]
+  C --> S18["18 Civic & Political"]
+  C --> S20["20 Government Communication"]
+```
+
+**Navigation in the citizen Directory** (web and app):
+- Browse by **life event** (primary for citizens).
+- Browse by **sector** (the 5 groups above, then 20 sectors).
+- Browse by **institution**.
+- **Search**: AR/FR/EN with Arabic normalisation; Derja synonyms via the Phase 10 Guide later.
+
+Every service page follows the content model in Section 15.5.
+
+**URL pattern:**
+- `/{lang}/services/{sector}/{subcategory}/{service-code}`
+- e.g. `/fr/services/02-civil/civil-status-certificates/tn.civil-status.birth-extract`
+
+## 15.9 Workspace — Regulated Finance edition
+
+### Agent console (desktop-first web)
+
+| Area | Contents | Roles |
+|---|---|---|
+| **My queue** | Assigned cases sorted by remaining time; at-risk/overdue filters | Handler |
+| **Team queues** | By team, category, branch; unassigned | Supervisor |
+| **Case** | Header (reference, category, status, deadline timer) · customer summary (minimum data) · timeline · documents · notes & sub-tasks · decision panel · communications | Handler, supervisor |
+| **New case** | Intake form (agent) | Branch staff, handler |
+| **Escalations** | Mediator/regulator cases; exports | Correspondent |
+| **Dashboard** | Volumes, deadline performance, categories, branches, root causes | Head of customer relations |
+| **Reports** | Annual board report wizard; regulator statistics | Head of customer relations, compliance |
+| **Administration** | Users, teams, branches, categories & SLAs, templates, holidays, retention, SSO, API keys | Tenant admin |
+| **Audit** | Access and change logs; integrity check; export | Compliance / auditor (read-only) |
+
+### Customer status page (mobile-first web, no account)
+
+1. Enter reference + receive a one-time code.
+2. Status page shows:
+   - status in plain language
+   - deadline
+   - next step
+   - messages and replies
+   - documents shared by the institution
+3. Decision with reasons, and how to contact the mediator.
+4. Satisfaction survey (optional).
+
+### Canonical complaint states (customer-visible wording)
+
+| Internal state | Customer sees (EN) | FR | AR |
+|---|---|---|---|
+| Received | We received your complaint | Réclamation reçue | تمّ استلام شكايتك |
+| In analysis | We are analysing your complaint | En cours d'analyse | قيد الدراسة |
+| Information requested | We need information from you | Information demandée | نحتاج إلى معلومات منك |
+| Pending internal | We are checking with another department | Vérification interne en cours | تحقّق داخلي جارٍ |
+| Decision issued | A decision has been issued | Décision rendue | صدر القرار |
+| Closed | Closed | Clôturée | مُغلقة |
+| Escalated to mediator | Your case is with the banking mediator | Dossier transmis au médiateur bancaire | الملف لدى الموفّق المصرفي |
+
+*AR/FR wording requires native review (see the UX writing guidelines). The Tunisian banking-sector Arabic term for "complaint" (شكاية vs تظلّم vs مطلب) must be confirmed with design partners.*
+
+## 15.10 Product structures for other divisions (future; top-level only)
+
+| Division | Product | Top-level structure |
+|---|---|---|
+| D — Identity | Mandates & e-signature (embedded) | Principal ↔ agent mandates · signature requests · certificates · evidence |
+| D — Identity | Verifiable credentials (later) | Issuer console (templates, issuance, revocation) · holder wallet · verifier page |
+| E — AI | Document processing (Phase 10) | Pipelines · document types · extraction review queue · accuracy dashboard · model policy |
+| E — AI | Guide (Phase 10) | Corpus sources · evaluation runs · flagged answers · channel embeds |
+| F — Connect | Integration console (internal → product) | Adapters · credentials (vault refs) · call logs · health · integration register (classes 1–6) |
+| C — Health | Health bridge (Phase 7 prototype) | Consents · access requests · break-glass review · clinic schedules · patient access log |

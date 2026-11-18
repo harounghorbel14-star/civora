@@ -52,8 +52,8 @@
 
 - **Mark:** a rounded-square tile in Civora Teal (`#0F5551`) holding a white open **C**, which embraces a jasmine-gold dot (`#F2C25C`). The dot stands for the citizen at the centre of service. The opening suggests an open door.
 - **Files:**
-  - [`design/brand/civora-mark.svg`](../../design/brand/civora-mark.svg)
-  - [`design/brand/civora-logo-horizontal.svg`](../../design/brand/civora-logo-horizontal.svg)
+  - [`design/brand/civora-mark.svg`](../../../design/brand/civora-mark.svg)
+  - [`design/brand/civora-logo-horizontal.svg`](../../../design/brand/civora-logo-horizontal.svg)
 - **Rules:**
   - The mark never mirrors in RTL.
   - Minimum size 24 px (mark) / 96 px wide (horizontal).

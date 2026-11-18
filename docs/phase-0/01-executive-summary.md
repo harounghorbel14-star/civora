@@ -1,5 +1,7 @@
 # 1. Executive Summary
 
+> **Note (Phase 1 v2.0, 18 Nov 2026):** CIVORA is now positioned as a multi-division technology & infrastructure company. The proposed first product is **Workspace — Regulated Finance**, and the original roadmap order is restored. The Phase 0 analysis below remains the foundation; see [../phase-1/01-executive-summary.md](../phase-1/01-executive-summary.md) for what changed.
+
 ## 1.1 Bottom line
 
 **CIVORA is viable as a company, but not in the form described in the master brief.** A privately owned "national super-app" that holds Tunisians' digital identity, civil records, health records and documents in one place is not feasible in Tunisia in 2026–2028. Three reasons, each verified below:
