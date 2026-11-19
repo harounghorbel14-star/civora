@@ -10,6 +10,7 @@
 ## Read in this order
 
 1. [Readiness report](phase-2-readiness-report.md): what is done, what is open, what the founder needs to do.
+   - **For decision P2-D1:** [plain-language review of all 29 ADRs](founder-review/P2-D1-adr-review-package.md) and the [decision form](founder-review/P2-D1-decision-form.csv).
 2. [00 Specification and constraint audit](00-specification-and-constraint-audit.md): the original Phase 2 scope, word for word, and every inherited constraint.
 3. [01 Architecture overview](01-architecture-overview.md): context, containers, principles, document map.
 4. [ADR index](adr/README.md): 29 decisions.

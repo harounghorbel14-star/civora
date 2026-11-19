@@ -6,6 +6,7 @@
 | Numbering | ADR-001 to ADR-014 keep the topics of the Phase 0 §8.12 backlog **unchanged** (original deliverable O-D1). ADR-015 to ADR-029 are new decisions needed by the Phase 2 mission and the roadmap's additive items R-1 to R-5 |
 | How to approve | The founder records approval, rejection or change requests per ADR in the [readiness report](../phase-2-readiness-report.md) §4 (decision P2-D1). An approved ADR changes status to **Accepted** with the date; a rejected one to **Rejected** with the reason |
 | Template | Context, Decision, Consequences, Alternatives, Validation, Revisit when |
+| Plain-language explanation for the founder | [../founder-review/P2-D1-adr-review-package.md](../founder-review/P2-D1-adr-review-package.md) |
 
 | ADR | Title | Origin | Covers |
 |---|---|---|---|
