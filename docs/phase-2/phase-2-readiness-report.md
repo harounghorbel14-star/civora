@@ -44,6 +44,9 @@
 | Package tests were not actually executed (`node --test dist/` ran one file) | Test globs fixed; all suites now run (24 tests) |
 | Keycloak 26 rejected a realm attribute | Removed; realm files are validated by real import (nightly) |
 | `@cedar-policy/cedar-wasm@4.14.1` was an empty publish | Pinned 4.14.0; recorded as a supply-chain lesson |
+| First GitHub CI run: Checkov failed on default namespaces and on skip annotations placed where Checkov does not read them | Explicit namespaces; skip annotations at resource level; CI green from run 2 |
+| Database role: pgBackRest checks certificates by name; `tls-server-auth` syntax; drill config paths; **missing local replication rule blocked `pg_rewind` rejoin after a crash** | All fixed; suite 17/17 |
+| CI runs 4–6 failed on Checkov findings in the test-node Dockerfile (I had run a narrower local scan) | Justified inline skips; local scan now uses CI's exact command |
 
 ## 3. Acceptance-criteria status
 
@@ -62,11 +65,14 @@ Partially met original items (details in [19](19-traceability-matrix.md) §19.1)
 
 Closed on 19 Nov 2026 (second session): **O-D5** (CI observed green on GitHub), **O-A6** (tracing with a privacy allow-list), **O-API3** (OpenAPI 3.1 with schema validation).
 
+Advanced: **O-AC1** remaining work fell from 15–23 to 11.5–18 engineer-days. The database tier (ADR-003/029, still Proposed) is written and tested on containers: 17/17 checks, crash failover 29 s, verified restore drill.
+
 ## 4. Unresolved decisions (founder)
 
 | ID | Decision | Options | Recommendation | Needed by |
 |---|---|---|---|---|
 | **P2-D1** | Approve the 29 ADRs (individually or as a set). **Review package:** [founder-review/P2-D1-adr-review-package.md](founder-review/P2-D1-adr-review-package.md); decision form: [P2-D1-decision-form.csv](founder-review/P2-D1-decision-form.csv) | Approve / approve with changes / reject per ADR | Approve as a set. Read first the ADRs that commit money or exclude options: ADR-003 (DB on VMs with Patroni + pgBackRest), ADR-006 (Cedar), ADR-016 (tenancy tiers), ADR-019 (customer-hosted), ADR-020 (no MinIO) | Week 2 |
+| *(within P2-D1)* | ADR-003: 2 or 3 database servers per production site (testing showed that 2 servers in synchronous mode can block automatic failover in a short window) | 2 (lower cost) / 3 (RPO 0 **and** automatic failover) | 3 for bank production; 2 acceptable for staging | With P2-D1 |
 | **P2-D2** | Interim exception to the 2-reviewer rule while there is one engineer | (a) time-limited waiver with founder self-review; (b) external reviewer for `infra/`, migrations and policies; (c) pause merges | **(b)** for security-relevant paths + (a) for documentation; end the waiver when engineer #2 joins | Week 2 |
 | **P2-D3** | Engage an external security adviser to review the threat model (O-AC3) | Separate engagement / add to the ANCS audit RFQ | Add it as a line item to the ANCS-auditor quote requests already prepared (2–3 days) | Week 2 |
 | **P2-D4** | Hosting provider for staging (and later pilot) | Per quotes (E-07) | Choose on the criteria in [13](13-cloud-and-deployment-architecture.md) §13.6; staging may start on any host with synthetic data (D9) if the Tunisian provider is slow to contract | Week 3 |
@@ -92,6 +98,7 @@ Open questions for counsel that affect the architecture (already in the Phase 1 
 | R2-6 | Counsel concludes SaaS is not possible for banks without BCT approval | Medium / Medium | Tier 4 (customer-hosted) designed and rehearsable air-gapped | Founder / counsel |
 | R2-7 | Tunisian GPU capacity unknown (Phase 10) | Medium / Medium | Location policy; decision deferred to Phase 10 | — |
 | R2-8 | Fast-moving dependencies (NestJS 12, TypeScript 7, Keycloak) | Medium / Low | Pins, Dependabot, ADR-002 revisit in Phase 3 | Engineering |
+| R2-10 | With 2 database servers in synchronous mode, automatic failover is refused while no synchronous standby is designated (measured: 120 s with no promotion; no data loss, no split-brain) | Low / Medium | 3 database servers per production site, or documented manual failover in the runbook | Founder (P2-D1) / engineering |
 | R2-9 | Over-engineering for an unvalidated market (O-RISK) | Medium / Medium | Design-only ADRs for later phases; nothing built beyond Phase 0 §19 items | Engineering |
 
 ## 6. Quality checks run for this report
