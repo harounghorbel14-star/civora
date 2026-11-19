@@ -112,7 +112,7 @@ You can decide all 29 at once, in groups, or one at a time.
 
 **Disadvantages.**
 - More servers to manage.
-- We must write and test one more Ansible role (estimated **4–6 engineer-days** [A]).
+- One more Ansible role is needed. **Update 19 Nov 2026:** it has been written and tested on containers in advance (see "Work already done" below).
 - Database upgrades are done by us, not automated by an operator.
 
 **Security implications.**
@@ -122,7 +122,7 @@ You can decide all 29 at once, in groups, or one at a time.
 **Financial implications.**
 - **Servers:** per staging cell, 2 database servers + 1 backup server out of 8 servers in total ([16](../16-infrastructure-plan.md) §16.2). Production needs a second Tunisian site, so roughly double.
 - **Prices:** real costs depend on the hosting quotes you are collecting (E-07). No price is assumed here.
-- **Engineering:** 4–6 days once [A], then routine maintenance.
+- **Engineering:** the role was estimated at 4–6 days; it has now been written (about one engineer-day, as provider-independent preparation). Routine maintenance remains.
 
 **Operational implications.**
 - Someone on the team must be comfortable with PostgreSQL operations (failover tests, upgrades, restore drills every month).
@@ -136,6 +136,29 @@ You can decide all 29 at once, in groups, or one at a time.
 - Option B (operator) would be proposed instead: it would also change the backup tool named in Phase 0 and needs reachable images.
 - Option C needs a provider that offers it.
 - Rejecting the row-level-security part would weaken tenant isolation. A database per tenant (option D) would then be the safe alternative, at higher cost.
+
+**Work already done, pending your decision (19 Nov 2026).**
+
+The Ansible role `postgresql_ha` was written so that staging can be built quickly once a provider is chosen. It was tested on three containers, not on real servers. The test covered:
+- a cluster with automatic failover;
+- encrypted backups to a separate node;
+- a restore drill that verifies data checksums.
+
+Writing it does **not** approve ADR-003. If you reject ADR-003, the role is set aside and the alternative is designed instead. Results: [17](../17-technical-validation-strategy.md) §17.2.
+
+**A choice the testing revealed: two or three database servers per site.**
+
+The platform runs PostgreSQL in "synchronous" mode, so a confirmed save is never lost when a server fails. The test showed the price of that guarantee with only two database servers:
+- if the leader fails while the second server is not yet fully in step (for example, just after a restart), automatic failover is **refused**;
+- a human must then choose between waiting and forcing a failover that may lose the last few seconds of saves.
+
+| Option | Data safety | Automatic recovery | Cost |
+|---|---|---|---|
+| 2 database servers, synchronous (current staging design) | No confirmed save lost | Blocked in the rare case above | Lowest |
+| **3 database servers**, synchronous (engineering recommendation for bank production) | No confirmed save lost | Still automatic if one server is unavailable | One more database server per site (in hosting quotes) |
+| 2 servers, asynchronous | May lose the last seconds of saves | Always automatic | Lowest |
+
+You can approve ADR-003 with a condition such as "3 database servers per production site".
 
 **Questions you may want answered first.**
 - Do the hosting providers you are asking for quotes offer managed PostgreSQL in Tunisia with backups in a second Tunisian site?

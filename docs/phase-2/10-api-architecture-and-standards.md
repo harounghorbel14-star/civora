@@ -4,7 +4,7 @@
 |---|---|
 | Decision | ADR-015 (API standards); builds on Phase 0 §8.9 |
 | Original items | **O-API1** `GET /health`, **O-API2** `GET /v1/meta/locales`, **O-API3** OpenAPI pipeline |
-| Built in Phase 2 | Three public operations (`/health`, `/health/ready`, `/v1/meta/locales`); the internal `/metrics`; RFC 9457 errors; request ids; contract generation with a drift check in CI ([services/core/openapi/core.openapi.json](../../services/core/openapi/core.openapi.json)) |
+| Built in Phase 2 | Three public operations (`/health`, `/health/ready`, `/v1/meta/locales`); the internal `/metrics`; RFC 9457 errors; request ids; OpenAPI **3.1** contract generation with drift check and schema validation in CI ([services/core/openapi/core.openapi.json](../../services/core/openapi/core.openapi.json)) |
 
 ## 10.1 Style
 
@@ -12,7 +12,7 @@
 |---|---|---|
 | Protocol | REST over HTTPS, JSON (`application/json`; errors `application/problem+json`) | Applied |
 | Contract | OpenAPI is the reviewed contract for every public API. Generated from code annotations, sorted deterministically, committed. **CI fails if the committed contract differs from the generated one** | Applied. The check caught a real change on 19 Nov 2026 (Swagger upgrade) |
-| OpenAPI version | **Target 3.1** (Phase 0 §8.9). `@nestjs/swagger` 11 emits **3.0.0**. Phase 3 adds a 3.0 → 3.1 conversion step and a Spectral lint gate | Gap recorded (ADR-015) |
+| OpenAPI version | **3.1.0** (Phase 0 §8.9). `@nestjs/swagger` emits 3.0; the pipeline converts to 3.1 (JSON Schema 2020-12) and validates the result against the official 3.1 schema plus house rules (`scripts/validate-openapi.mjs`) | Applied 19 Nov 2026; the previous 3.0 contract is rejected by the gate (negative test) |
 | Versioning | URL major version (`/v1/...`). Additive changes stay in the same version; breaking changes need `/v2` and a deprecation window of at least 6 months for B2B (`Deprecation` and `Sunset` headers, RFC 9745/8594) | Applied to `/v1/meta/locales` |
 | Platform endpoints | `/health`, `/health/ready` are unversioned (operational). `/metrics` is internal and excluded from the public contract | Applied |
 | Naming | Plural nouns, kebab-case paths, camelCase JSON fields, ISO 8601 timestamps with offset, ISO 4217 currency with integer minor units | Applied |
@@ -68,6 +68,6 @@
 ## 10.6 Contract governance
 
 1. A change to a public API starts with the contract diff in the pull request; reviewers approve the diff.
-2. Breaking-change detection (`oasdiff`) is added in Phase 3 when the first business endpoint exists.
+2. Breaking-change detection (`oasdiff`) is added in Phase 3 when the first business endpoint exists. House rules already enforced: unique `operationId`, summary and tag on every operation, `/v1` versioning for business paths, no OpenAPI 3.0 keywords, no internal endpoints.
 3. Client SDKs (TypeScript) are generated from the contract for the apps in this monorepo. External SDKs come only after Phase 12.
 4. The contract states it is a synthetic-data skeleton with no production integrations (generator description).

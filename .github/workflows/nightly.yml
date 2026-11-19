@@ -31,3 +31,19 @@ jobs:
         run: docker build -f services/core/Dockerfile -t civora-core:dev .
       - name: Air-gapped k3s cell from scratch, timed
         run: infra/scripts/deploy-from-scratch.sh | tee -a "$GITHUB_STEP_SUMMARY"
+
+  postgresql-ha-role:
+    name: PostgreSQL HA role on systemd containers (failover, backup, restore drill)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - name: Ansible with the docker connection plugin (test harness only)
+        run: |
+          python3 -m venv "$RUNNER_TEMP/ansible"
+          "$RUNNER_TEMP/ansible/bin/pip" install --quiet "ansible==11.13.0"
+      - name: Run the role test
+        env:
+          ANSIBLE_PLAYBOOK: ${{ runner.temp }}/ansible/bin/ansible-playbook
+        run: infra/ansible/tests/postgresql-ha/run.sh | tee -a "$GITHUB_STEP_SUMMARY"

@@ -42,7 +42,7 @@ Addresses are RFC 5737 placeholders.
 | pnpm | 10.28.0 | `packageManager` | Install scripts blocked |
 | TypeScript | 5.9.3 | `package.json` | TS 7 not adopted (decorators) |
 | NestJS | 11.2.8; Swagger 11.4.8 | `services/core/package.json` | NestJS 12 not adopted yet |
-| PostgreSQL | 16 (`postgres:16-alpine`) | compose, rehearsal | Patroni + pgBackRest on nodes (planned role) |
+| PostgreSQL | 16 (`postgres:16-alpine` in dev; Ubuntu 24.04 packages on nodes: PostgreSQL 16.15, Patroni 3.2.2, etcd 3.4.30, pgBackRest 2.50) | compose, rehearsal, role `postgresql_ha` | Role tested on containers (ADR-003 still Proposed) |
 | node-pg-migrate | 8.0.4 | core | ADR-024 |
 | Redis | 7 (`redis:7-alpine`) | compose | |
 | Keycloak | 26.0 | compose | ADR-005 |
@@ -134,11 +134,11 @@ Details are in [07](07-security-and-privacy-architecture.md) §7.7.
 | Work item | Estimate |
 |---|---|
 | Hosting adapter for the chosen provider (OpenTofu provider, networks, VMs, volumes, DNS) | 3–5 days |
-| Ansible role: PostgreSQL 16 + Patroni + pgBackRest (+ etcd/Consul DCS for Patroni) | 4–6 days |
+| ~~Ansible role: PostgreSQL 16 + Patroni + pgBackRest (+ etcd DCS)~~ **Written and container-tested 19 Nov 2026** (role `postgresql_ha`); remaining: first run on real hosts | 0.5–1 day (was 4–6) |
 | Platform services via Argo CD: ingress controller, cert-manager, External Secrets, OpenBao HA, Keycloak HA, Redis Sentinel, observability stack | 5–7 days |
 | Signature verification at admission (Sigstore policy controller or Kyverno) | 1–2 days |
 | End-to-end timed rebuild, fixes, runbook | 2–3 days |
-| **Total** | **15–23 engineer-days** |
+| **Total** | **11.5–18 engineer-days** (was 15–23) |
 
 **Six-week plan (O-TIME), started 19 Nov 2026:**
 

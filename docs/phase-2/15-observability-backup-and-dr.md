@@ -6,13 +6,14 @@
 | Original item | **O-A6** observability stack |
 | Targets | RPO ≤ 15 min, RTO ≤ 4 h (pilot; PRD §12.7, Phase 0 §8.10); two in-country sites in production; monthly restore drill; quarterly DR test (Phase 0 §10.11) |
 | Built in Phase 2 | OTel collector + Prometheus + Loki + Tempo + Grafana (`grafana/otel-lgtm` 0.11.0) in the dev cell, login required; `civora-core` exposes Prometheus metrics (`civora_core_*`) and writes structured JSON logs; health and readiness probes |
-| Not yet built | Trace instrumentation in the application (OTel SDK, Phase 3 — the endpoint variable is already wired); backup jobs (need database nodes); alerting rules; status page |
+| Built 19 Nov 2026 | **Tracing** in `civora-core` (OpenTelemetry 3.0: HTTP, Express, NestJS, pg) exported through an attribute allow-list; e2e scrubbing test; dev-cell check that traces reach Tempo without request data. **Backups** as code: role `postgresql_ha` (pgBackRest TLS repository, timers, restore drill) tested on containers |
+| Not yet built | Alerting rules; status page; backups on real database nodes (need a provider) |
 
 ## 15.1 Observability architecture (per cell, in-country)
 
 ```mermaid
 flowchart LR
-  CORE["civora-core<br/>/metrics, JSON logs, OTLP traces (Ph.3)"] --> COL["OTel collector<br/>(scrub + allow-list attributes)"]
+  CORE["civora-core<br/>/metrics, JSON logs, OTLP traces (allow-list)"] --> COL["OTel collector<br/>(scrub + allow-list attributes)"]
   KC["Keycloak metrics/events"] --> COL
   PG["PostgreSQL / Patroni exporters"] --> COL
   K8S["Kubernetes, node exporters"] --> COL
@@ -90,7 +91,7 @@ flowchart LR
 |---|---|
 | Observability stack | Running in the dev cell; Grafana requires login (smoke test) |
 | Application metrics and logs | Built and tested (`/metrics` exposed; e2e test) |
-| Tracing in the application | Not built (Phase 3) |
-| Backups | Designed; needs database nodes from a hosting provider |
+| Tracing in the application | **Built and tested** (allow-list exporter; e2e scrubbing test; spans reach Tempo in the dev cell) |
+| Backups | **Role written and tested on systemd containers** (encrypted repository, WAL archiving, weekly full + daily differential timers, restore drill with checksum verification). Real database nodes need a hosting provider |
 | etcd snapshots | In the RKE2 configuration template |
-| Drills | Scheduled from the first staging deployment |
+| Drills | Restore-drill script in the role (`civora-restore-drill`); first drill on staging after provider selection |

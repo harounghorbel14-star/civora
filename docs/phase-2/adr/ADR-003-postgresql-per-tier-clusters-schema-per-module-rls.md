@@ -46,6 +46,13 @@
 
 - Dev cell runs three separate clusters with SCRAM and checksums; smoke tests pass.
 - Base schemas `iam`, `config`, `audit` created by migration; up/down/up test passes.
+- Role `postgresql_ha` (19 Nov 2026), integration test on three systemd containers:
+  - Patroni + etcd (mutual TLS) cluster with a synchronous standby;
+  - encrypted pgBackRest repository on the backup node, with WAL archiving;
+  - planned and unplanned failover with no lost commits, and rejoin via `pg_rewind`;
+  - restore drill with page-checksum verification;
+  - idempotent re-run.
+- Finding: with two database nodes in synchronous mode, Patroni refuses automatic failover when no synchronous standby is designated (for example, right after a rejoin). This protects commits, at the cost of automatic recovery. Option to decide: 3 database nodes per production site.
 
 ## Revisit when
 

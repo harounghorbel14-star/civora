@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Managed by Ansible (CIVORA, role postgresql_ha). Restore drill (ADR-029; Phase 0 §9.9: "a backup is only
+# verified once restored"). Runs as the postgres OS user on the backup node, in an isolated scratch directory:
+#   restore latest backup → start on a private socket → smoke query → stop → verify page checksums → clean up.
+# Patroni writes absolute hba/ident paths (production data directory) into the configuration: the drill overrides them.
+# Prints one JSON line; exits non-zero on any failure. Optional argument: SQL query whose single value is reported.
+set -euo pipefail
+stanza="{{ postgresql_ha_stanza }}"
+bin="{{ postgresql_ha_bin_dir }}"
+dir="/var/lib/postgresql/restore-drill"
+query="${1:-select count(*) from pg_database}"
+start=$(date +%s)
+cleanup() { "$bin/pg_ctl" -D "$dir" -m immediate stop >/dev/null 2>&1 || true; rm -rf "$dir"; }
+trap cleanup EXIT
+rm -rf "$dir"
+pgbackrest --stanza="$stanza" --pg1-path="$dir" --reset-pg1-host --type=immediate --target-action=promote \
+  --archive-mode=off --log-level-console=warn restore
+"$bin/pg_ctl" -D "$dir" -w -t 300 -l "$dir/drill.log" \
+  -o "-p 5499 -c listen_addresses='' -c unix_socket_directories=/tmp -c ssl=off -c archive_mode=off -c hba_file=$dir/pg_hba.conf -c ident_file=$dir/pg_ident.conf" start >/dev/null \
+  || { tail -20 "$dir/drill.log" >&2; exit 1; }
+for _ in $(seq 1 60); do
+  [ "$(psql -h /tmp -p 5499 -U postgres -d postgres -Atc 'select pg_is_in_recovery()' 2>/dev/null)" = "f" ] && break
+  sleep 1
+done
+value=$(psql -h /tmp -p 5499 -U postgres -d postgres -Atc "$query")
+"$bin/pg_ctl" -D "$dir" -m fast -w stop >/dev/null
+"$bin/pg_checksums" --check -D "$dir" >/dev/null
+label=$(pgbackrest --stanza="$stanza" info --output=json | python3 -c 'import json,sys;print(json.load(sys.stdin)[0]["backup"][-1]["label"])')
+printf '{"drill":"ok","stanza":"%s","backup":"%s","query_result":"%s","checksums":"verified","seconds":%d}\n' \
+  "$stanza" "$label" "$value" "$(( $(date +%s) - start ))"

@@ -1,0 +1,44 @@
+---
+- name: Secrets and certificates are provided (from OpenBao, never from Git)
+  ansible.builtin.assert:
+    that:
+      - postgresql_ha_superuser_password | length >= 16
+      - postgresql_ha_replication_password | length >= 16
+      - postgresql_ha_rewind_password | length >= 16
+      - postgresql_ha_restapi_password | length >= 16
+      - postgresql_ha_repo_cipher_pass | length >= 32
+      - postgresql_ha_tls_ca is search('BEGIN CERTIFICATE')
+      - postgresql_ha_tls_cert is search('BEGIN CERTIFICATE')
+      - postgresql_ha_tls_key is search('PRIVATE KEY')
+    fail_msg: "Database secrets or TLS material missing or too short. Supply them from OpenBao (see role README)."
+    quiet: true
+  no_log: true
+
+- name: Inventory has 2+ database nodes and a backup node, and an odd etcd quorum
+  ansible.builtin.assert:
+    that:
+      - groups['db_nodes'] | length >= 2
+      - groups['backup'] | length >= 1
+      - postgresql_ha_etcd_members | length is odd
+    quiet: true
+
+- name: Packages (Ubuntu 24.04 archive)
+  ansible.builtin.apt:
+    name: "{{ postgresql_ha_packages }}"
+    state: present
+    update_cache: "{{ postgresql_ha_apt_update_cache }}"
+
+- name: TLS material
+  ansible.builtin.import_tasks: tls.yml
+
+- name: Configure the etcd cluster
+  ansible.builtin.import_tasks: etcd.yml
+
+- name: Configure pgBackRest servers and repository
+  ansible.builtin.import_tasks: pgbackrest.yml
+
+- name: Patroni and PostgreSQL
+  ansible.builtin.import_tasks: patroni.yml
+
+- name: First backup and backup schedule
+  ansible.builtin.import_tasks: backup.yml

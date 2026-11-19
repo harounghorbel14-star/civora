@@ -1,0 +1,60 @@
+---
+# Patroni owns PostgreSQL on database nodes: the package's default cluster is removed once.
+- name: Remove the package's default cluster (Patroni manages PostgreSQL)
+  ansible.builtin.command:
+    cmd: "pg_dropcluster --stop {{ postgresql_ha_version }} main"
+    removes: "/etc/postgresql/{{ postgresql_ha_version }}/main"
+  when: inventory_hostname in groups['db_nodes']
+
+- name: Package's PostgreSQL units stay disabled
+  ansible.builtin.systemd_service:
+    name: postgresql
+    state: stopped
+    enabled: false
+  when: inventory_hostname in groups['db_nodes']
+
+- name: Patroni configuration directory
+  ansible.builtin.file:
+    path: /etc/patroni
+    state: directory
+    owner: root
+    group: postgres
+    mode: "0750"
+  when: inventory_hostname in groups['db_nodes']
+
+- name: Patroni configuration
+  ansible.builtin.template:
+    src: patroni.yml.j2
+    dest: /etc/patroni/config.yml
+    owner: root
+    group: postgres
+    mode: "0640"
+  register: postgresql_ha_patroni_config
+  when: inventory_hostname in groups['db_nodes']
+  notify: Reload patroni
+
+- name: Patroni enabled and running
+  ansible.builtin.systemd_service:
+    name: patroni
+    state: started
+    enabled: true
+  when: inventory_hostname in groups['db_nodes']
+
+- name: Apply configuration changes before checking the cluster
+  ansible.builtin.meta: flush_handlers
+
+- name: Cluster has one leader and every replica streaming
+  ansible.builtin.command:
+    cmd: patronictl -c /etc/patroni/config.yml list --format json
+  register: postgresql_ha_cluster
+  until: >-
+    postgresql_ha_cluster.rc == 0 and
+    (postgresql_ha_cluster.stdout | from_json | selectattr('Role', 'equalto', 'Leader') | list | length) == 1 and
+    (postgresql_ha_cluster.stdout | from_json | rejectattr('Role', 'equalto', 'Leader') | rejectattr('State', 'equalto', 'streaming') | list | length) == 0 and
+    (postgresql_ha_cluster.stdout | from_json | length) == (groups['db_nodes'] | length)
+  retries: 60
+  delay: 3
+  changed_when: false
+  become: true
+  become_user: postgres
+  when: inventory_hostname == groups['db_nodes'][0]

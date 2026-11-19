@@ -1,0 +1,46 @@
+---
+# etcd stores Patroni's leader lock. Mutual TLS for clients and peers; its own data directory, so the package's
+# default single-node data is never reused.
+- name: Create the etcd data directory
+  ansible.builtin.file:
+    path: /var/lib/etcd/civora
+    state: directory
+    owner: etcd
+    group: etcd
+    mode: "0700"
+
+- name: Write the etcd configuration
+  ansible.builtin.template:
+    src: etcd.env.j2
+    dest: /etc/default/etcd
+    owner: root
+    group: etcd
+    mode: "0640"
+  register: postgresql_ha_etcd_config
+
+- name: Restart etcd on configuration change, on all members together  # noqa: no-handler
+  ansible.builtin.systemd_service:
+    name: etcd
+    state: restarted
+    enabled: true
+  when: postgresql_ha_etcd_config is changed
+
+- name: Keep etcd enabled and running
+  ansible.builtin.systemd_service:
+    name: etcd
+    state: started
+    enabled: true
+
+- name: Wait until the etcd cluster is healthy
+  ansible.builtin.command:
+    cmd: >-
+      etcdctl --endpoints=https://{{ ansible_host }}:2379
+      --cacert={{ postgresql_ha_tls_dir }}/ca.crt --cert={{ postgresql_ha_tls_dir }}/node.crt
+      --key={{ postgresql_ha_tls_dir }}/node.key endpoint health --cluster
+  environment:
+    ETCDCTL_API: "3"
+  register: postgresql_ha_etcd_health
+  until: postgresql_ha_etcd_health.rc == 0
+  retries: 30
+  delay: 2
+  changed_when: false

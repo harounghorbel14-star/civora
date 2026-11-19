@@ -1,0 +1,79 @@
+---
+# Runs on the repository node: stanza, first full backup, weekly full + daily differential timers (ADR-029).
+- name: Stanza exists
+  ansible.builtin.command:
+    cmd: "pgbackrest --stanza={{ postgresql_ha_stanza }} stanza-create"
+    creates: "{{ postgresql_ha_repo_path }}/backup/{{ postgresql_ha_stanza }}/backup.info"
+  become: true
+  become_user: pgbackrest
+  when: inventory_hostname in groups['backup']
+
+- name: WAL archiving works end to end
+  ansible.builtin.command:
+    cmd: "pgbackrest --stanza={{ postgresql_ha_stanza }} check"
+  become: true
+  become_user: pgbackrest
+  changed_when: false
+  when: inventory_hostname in groups['backup']
+
+- name: Existing backups
+  ansible.builtin.command:
+    cmd: "pgbackrest --stanza={{ postgresql_ha_stanza }} info --output=json"
+  become: true
+  become_user: pgbackrest
+  register: postgresql_ha_backup_info
+  changed_when: false
+  when: inventory_hostname in groups['backup']
+
+- name: First full backup
+  ansible.builtin.command:
+    cmd: "pgbackrest --stanza={{ postgresql_ha_stanza }} backup --type=full"
+  become: true
+  become_user: pgbackrest
+  changed_when: true
+  when:
+    - inventory_hostname in groups['backup']
+    - (postgresql_ha_backup_info.stdout | from_json)[0].backup | length == 0
+
+- name: Backup units (weekly full, daily differential)
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "/etc/systemd/system/{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - { src: pgbackrest-backup@.service.j2, dest: pgbackrest-backup@.service }
+    - { src: pgbackrest-backup-full.timer.j2, dest: pgbackrest-backup-full.timer }
+    - { src: pgbackrest-backup-diff.timer.j2, dest: pgbackrest-backup-diff.timer }
+  loop_control:
+    label: "{{ item.dest }}"
+  register: postgresql_ha_backup_units
+  when: inventory_hostname in groups['backup']
+
+- name: Backup timers enabled
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    state: started
+    enabled: true
+    daemon_reload: "{{ postgresql_ha_backup_units is changed }}"
+  loop:
+    - pgbackrest-backup-full.timer
+    - pgbackrest-backup-diff.timer
+  when: inventory_hostname in groups['backup']
+
+- name: Restore drills may read the repository (postgres joins the repository group on the backup node)
+  ansible.builtin.user:
+    name: postgres
+    groups: pgbackrest
+    append: true
+  when: inventory_hostname in groups['backup']
+
+- name: Restore-drill script (monthly drill; run by hand or by its timer)
+  ansible.builtin.template:
+    src: civora-restore-drill.sh.j2
+    dest: /usr/local/sbin/civora-restore-drill
+    owner: root
+    group: root
+    mode: "0755"
+  when: inventory_hostname in groups['backup']

@@ -1,0 +1,53 @@
+---
+- name: Group allowed to read the node key
+  ansible.builtin.group:
+    name: civora-tls
+    system: true
+
+- name: Service accounts that use the node certificate
+  ansible.builtin.user:
+    name: "{{ item }}"
+    groups: civora-tls
+    append: true
+  loop: [etcd, postgres]   # the pgbackrest account (backup node) joins the group in pgbackrest.yml
+
+- name: Database-tier node names resolve (pgBackRest verifies certificates by name)
+  ansible.builtin.blockinfile:
+    path: /etc/hosts
+    marker: "# {mark} CIVORA database tier (role postgresql_ha)"
+    block: |
+      {% for h in postgresql_ha_etcd_members %}
+      {{ hostvars[h]['ansible_host'] }} {{ h }}
+      {% endfor %}
+    unsafe_writes: true   # /etc/hosts can be a bind mount (containers); atomic replace is not possible there
+  when: postgresql_ha_manage_hosts_file
+
+- name: TLS directory
+  ansible.builtin.file:
+    path: "{{ postgresql_ha_tls_dir }}"
+    state: directory
+    owner: root
+    group: civora-tls
+    mode: "0750"
+
+- name: CA certificate and node certificate
+  ansible.builtin.copy:
+    dest: "{{ postgresql_ha_tls_dir }}/{{ item.name }}"
+    content: "{{ item.content }}"
+    owner: root
+    group: civora-tls
+    mode: "0644"
+  loop:
+    - { name: ca.crt, content: "{{ postgresql_ha_tls_ca }}" }
+    - { name: node.crt, content: "{{ postgresql_ha_tls_cert }}" }
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Node private key
+  ansible.builtin.copy:
+    dest: "{{ postgresql_ha_tls_dir }}/node.key"
+    content: "{{ postgresql_ha_tls_key }}"
+    owner: root
+    group: civora-tls
+    mode: "0640"
+  no_log: true

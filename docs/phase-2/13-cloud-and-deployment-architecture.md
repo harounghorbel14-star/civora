@@ -37,7 +37,7 @@
 flowchart TB
   L0["L0 Hosting adapter (OpenTofu)<br/>static nodes today; provider adapter after E-07"] --> L1["L1 OS baseline (Ansible)<br/>SSH, auditd, chrony, sysctl, updates"]
   L1 --> L2["L2 Kubernetes (Ansible → RKE2, CIS profile)<br/>3 servers + agents; etcd snapshots"]
-  L1 --> L2b["L2b PostgreSQL nodes (Ansible → Patroni + pgBackRest)<br/>planned role"]
+  L1 --> L2b["L2b PostgreSQL nodes (Ansible → Patroni + etcd + pgBackRest)<br/>role postgresql_ha, container-tested"]
   L2 --> L3["L3 GitOps (Argo CD, pinned release)"]
   L3 --> L4["L4 Platform services (Helm via Argo CD)<br/>ingress, Keycloak, OpenBao, External Secrets,<br/>Redis, object storage, OTel stack"]
   L4 --> L5["L5 Applications (Helm via Argo CD)<br/>civora-core, later health-bridge, guide"]
@@ -47,6 +47,7 @@ flowchart TB
 |---|---|---|
 | L0 | `infra/tofu/modules/{cell,hosting-static}`, `envs/staging-tn` | `tofu validate` and `plan`/`apply` offline. Residency precondition rejects a node in another country (negative test) |
 | L1–L3 | `infra/ansible` (`site.yml`, roles `base_hardening`, `rke2`, `argocd_bootstrap`) | `--syntax-check`; `ansible-lint` production profile: 0 failures. **Not run against real hosts** (none exist) |
+| L2b | Role `postgresql_ha` (PostgreSQL 16, Patroni, etcd, pgBackRest, restore drill) | Integration test on three systemd containers: replication, failover, backup, restore drill, idempotence ([17](17-technical-validation-strategy.md) §17.2) |
 | L4 | Platform charts (upstream, pinned) listed in [16](16-infrastructure-plan.md) §16.3 | Same images run in the dev cell |
 | L5 | `infra/helm/civora-core` | `helm lint`; server-side dry-run on Kubernetes 1.33 under restricted Pod Security; Checkov |
 | GitOps objects | `infra/argocd/project.yaml`, `apps/staging-tn.yaml` | Server-side dry-run against the Argo CD v3.4.13 CRD schemas |

@@ -1,0 +1,49 @@
+---
+# PostgreSQL 16 high availability on dedicated database nodes (ADR-003) with backups to a separate node (ADR-029).
+#   db_nodes : PostgreSQL + Patroni (automatic failover) + etcd member + pgBackRest TLS server
+#   backup   : etcd member (quorum) + pgBackRest repository (TLS server) + scheduled backups + restore drills
+# All packages come from the Ubuntu 24.04 archive, so an air-gapped site can install from a local mirror.
+
+postgresql_ha_version: 16
+postgresql_ha_scope: "civora-{{ civora_cell_id }}"
+postgresql_ha_bin_dir: "/usr/lib/postgresql/{{ postgresql_ha_version }}/bin"
+postgresql_ha_data_dir: "/var/lib/postgresql/{{ postgresql_ha_version }}/patroni"
+postgresql_ha_apt_update_cache: true
+postgresql_ha_packages:
+  - "postgresql-{{ postgresql_ha_version }}"
+  - patroni
+  - etcd-server
+  - etcd-client
+  - pgbackrest
+  - python3-psycopg2
+
+# etcd quorum: every database node plus the backup node (3 members in 3 zones in staging).
+postgresql_ha_etcd_members: "{{ groups['db_nodes'] + groups['backup'] }}"
+
+# Network rules (pg_hba). Application access only from these CIDRs (Kubernetes nodes); everything else is rejected.
+postgresql_ha_app_cidrs: []
+postgresql_ha_synchronous_mode: true   # no acknowledged write is lost on failover (RPO 0 for node loss)
+
+# pgBackRest
+postgresql_ha_stanza: civora
+postgresql_ha_repo_path: /var/lib/pgbackrest
+postgresql_ha_retention_full: 4
+postgresql_ha_backup_full_schedule: "Sun *-*-* 01:00:00"
+postgresql_ha_backup_diff_schedule: "Mon..Sat *-*-* 01:00:00"
+
+# Add database-tier names to /etc/hosts (set false where DNS already resolves them).
+postgresql_ha_manage_hosts_file: true
+
+# TLS: one certificate per node from the cell CA (OpenBao PKI in staging/production, ADR-012).
+# Used by etcd (client and peer), Patroni → etcd, PostgreSQL connections, and pgBackRest TLS servers.
+postgresql_ha_tls_dir: /etc/civora/tls
+postgresql_ha_tls_ca: ""      # PEM
+postgresql_ha_tls_cert: ""    # PEM, CN = inventory hostname, SAN = hostname + IP
+postgresql_ha_tls_key: ""     # PEM
+
+# Secrets: no defaults on purpose. Supplied from OpenBao at run time (never from Git).
+postgresql_ha_superuser_password: ""
+postgresql_ha_replication_password: ""
+postgresql_ha_rewind_password: ""
+postgresql_ha_restapi_password: ""
+postgresql_ha_repo_cipher_pass: ""

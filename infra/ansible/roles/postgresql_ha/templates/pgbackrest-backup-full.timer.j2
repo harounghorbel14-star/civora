@@ -1,0 +1,11 @@
+# Managed by Ansible (CIVORA, role postgresql_ha)
+[Unit]
+Description=Weekly full backup
+
+[Timer]
+OnCalendar={{ postgresql_ha_backup_full_schedule }}
+Persistent=true
+Unit=pgbackrest-backup@full.service
+
+[Install]
+WantedBy=timers.target

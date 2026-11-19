@@ -1,0 +1,11 @@
+# Managed by Ansible (CIVORA, role postgresql_ha)
+[Unit]
+Description=Daily differential backup
+
+[Timer]
+OnCalendar={{ postgresql_ha_backup_diff_schedule }}
+Persistent=true
+Unit=pgbackrest-backup@diff.service
+
+[Install]
+WantedBy=timers.target

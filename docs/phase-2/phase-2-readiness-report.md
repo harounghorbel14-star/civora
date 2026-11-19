@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Date | 19 November 2026 (Phase 2 week 1) |
+| Date | 19 November 2026 (Phase 2 week 1; updated the same day after the P2-D1 review package and further independent work) |
 | Verdict | **IN PROGRESS — NOT READY FOR ACCEPTANCE.** All Phase 2 work that could be done without a hosting provider, an external adviser or founder approvals is complete and verified. Three acceptance criteria remain open (§3) |
 | Phase 1 | **Not approved** (P1-D12 pending). Phase 2 cannot be accepted before Phase 1 (acceptance in order, P1-D4). Phase 1 evidence is unchanged and tracked in [../phase-1/validation-evidence-register.md](../phase-1/validation-evidence-register.md) |
 | Roadmap | Unchanged: 16 phases (0–15), original names and order. Phase 2 scope kept word for word ([00](00-specification-and-constraint-audit.md) §2) |
@@ -55,12 +55,12 @@
 | Additive R-1 to R-5 | ADR coverage of FI tenants, on-premises, financial data, rule packs, Tunisian hosting | **MET in design** ([19](19-traceability-matrix.md) §19.2) | — (R-2 rehearsal confirmed when CI runs) |
 
 Partially met original items (details in [19](19-traceability-matrix.md) §19.1):
-- **O-D5 / O-SEC2.** First run on GitHub not yet observed.
-- **O-D6.** Staging IaC not applied.
-- **O-A6.** Application tracing comes in Phase 3.
-- **O-API3.** The contract is OpenAPI 3.0; 3.1 comes in Phase 3.
-- **O-T3.** The k3s rehearsal could not run in this sandbox.
+- **O-SEC2.** Signing and provenance run only on `main`; not yet observed (needs a merge).
+- **O-D6.** Staging IaC written, database tier container-tested, not applied (no provider); platform-service charts still to write.
+- **O-T3.** The k3s rehearsal could not run in this sandbox; it runs nightly from `main`.
 - **O-SEC4/O-SEC5.** Repository settings are a founder action.
+
+Closed on 19 Nov 2026 (second session): **O-D5** (CI observed green on GitHub), **O-A6** (tracing with a privacy allow-list), **O-API3** (OpenAPI 3.1 with schema validation).
 
 ## 4. Unresolved decisions (founder)
 
@@ -87,7 +87,7 @@ Open questions for counsel that affect the architecture (already in the Phase 1 
 | R2-1 | **No hosting provider** blocks O-AC1 and every later phase that needs staging | High / High | Provider-agnostic IaC done; D9 allows synthetic staging on any host as a stopgap | Founder (E-07) |
 | R2-2 | **One engineer**: no second reviewer; key custody concentrated (threat model T-30, T-26, T-52) | High / High | P2-D2 interim reviewer; branch protection; M-of-N ceremonies before pilot; hire (Phase 1 action 11) | Founder |
 | R2-3 | Threat model not externally reviewed; ratings may be wrong | Medium / High | P2-D3 | Founder |
-| R2-4 | CI not yet observed running on GitHub; workflow defects possible | Medium / Medium | First run in week 2; fix forward | Engineering |
+| R2-4 | ~~CI not yet observed running on GitHub~~ **Closed 19 Nov 2026**: run 1 exposed one Checkov defect (fixed); run 2 green | — | — | — |
 | R2-5 | Phase 1 outcome changes the first product (P1-D3) | Medium / Medium | Shared-engine design; sensitivity table ([00](00-specification-and-constraint-audit.md) §4) | Founder |
 | R2-6 | Counsel concludes SaaS is not possible for banks without BCT approval | Medium / Medium | Tier 4 (customer-hosted) designed and rehearsable air-gapped | Founder / counsel |
 | R2-7 | Tunisian GPU capacity unknown (Phase 10) | Medium / Medium | Location policy; decision deferred to Phase 10 | — |
@@ -124,7 +124,7 @@ Open questions for counsel that affect the architecture (already in the Phase 1 
 
 ### 7.3 After a provider is chosen
 
-- Engineering builds the provider adapter, the PostgreSQL role and the platform services (15–23 engineer-days).
+- Engineering builds the provider adapter and the platform services, and runs the already-tested PostgreSQL role on the real hosts (11.5–18 engineer-days).
 - Engineering then runs the timed staging rebuild for O-AC1.
 
 **Phase 2 is not accepted by this report, and Phase 1 remains not approved.**

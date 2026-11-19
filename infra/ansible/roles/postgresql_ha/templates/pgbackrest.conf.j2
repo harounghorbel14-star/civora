@@ -1,0 +1,49 @@
+# Managed by Ansible (CIVORA, role postgresql_ha). ADR-029.
+# Hosts are addressed by name: pgBackRest verifies the certificate's CN/DNS names (not IP addresses).
+[global]
+log-level-console=warn
+log-level-file=info
+log-path=/var/log/pgbackrest
+spool-path=/var/spool/pgbackrest
+start-fast=y
+tls-server-address=*
+tls-server-ca-file={{ postgresql_ha_tls_dir }}/ca.crt
+tls-server-cert-file={{ postgresql_ha_tls_dir }}/node.crt
+tls-server-key-file={{ postgresql_ha_tls_dir }}/node.key
+{% if inventory_hostname in groups['backup'] %}
+# Repository node: accepts archive-push/get from the database nodes only (one tls-server-auth line per client
+# certificate name; commas in the value separate stanzas, not clients).
+{% for h in groups['db_nodes'] %}
+tls-server-auth={{ h }}={{ postgresql_ha_stanza }}
+{% endfor %}
+repo1-path={{ postgresql_ha_repo_path }}
+repo1-retention-full={{ postgresql_ha_retention_full }}
+repo1-cipher-type=aes-256-cbc
+repo1-cipher-pass={{ postgresql_ha_repo_cipher_pass }}
+compress-type=zst
+process-max=2
+
+[{{ postgresql_ha_stanza }}]
+{% for h in groups['db_nodes'] %}
+pg{{ loop.index }}-host={{ h }}
+pg{{ loop.index }}-host-type=tls
+pg{{ loop.index }}-host-ca-file={{ postgresql_ha_tls_dir }}/ca.crt
+pg{{ loop.index }}-host-cert-file={{ postgresql_ha_tls_dir }}/node.crt
+pg{{ loop.index }}-host-key-file={{ postgresql_ha_tls_dir }}/node.key
+pg{{ loop.index }}-path={{ postgresql_ha_data_dir }}
+{% endfor %}
+{% else %}
+# Database node: accepts backup/restore commands from the repository node only.
+{% for h in groups['backup'] %}
+tls-server-auth={{ h }}={{ postgresql_ha_stanza }}
+{% endfor %}
+repo1-host={{ groups['backup'][0] }}
+repo1-host-type=tls
+repo1-host-ca-file={{ postgresql_ha_tls_dir }}/ca.crt
+repo1-host-cert-file={{ postgresql_ha_tls_dir }}/node.crt
+repo1-host-key-file={{ postgresql_ha_tls_dir }}/node.key
+archive-async=y
+
+[{{ postgresql_ha_stanza }}]
+pg1-path={{ postgresql_ha_data_dir }}
+{% endif %}
