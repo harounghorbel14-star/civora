@@ -612,7 +612,7 @@ Each table answers the same eight questions. "[A]" marks an estimate.
 | Why necessary | Banks' IT teams need stable, documented interfaces |
 | Alternatives | GraphQL; writing the contract by hand first |
 | Advantages | Predictable for customers; contract changes visible in review |
-| Disadvantages | The contract tool produces OpenAPI 3.0, not yet the 3.1 target (being added in Phase 2) |
+| Disadvantages | Contract quality depends on annotations in the code (now checked automatically: the contract is OpenAPI 3.1 and validated on every build) |
 | Security | Strong authentication for bank systems (mutual TLS); every endpoint tested against cross-customer access |
 | Financial / operational | Lower integration cost per bank |
 | Reversible? | Yes before customers integrate; costly after (customers must change their systems) |

@@ -64,6 +64,20 @@ check "object store rejects anonymous"       "! curl -fsS localhost:8333/"
 check "openbao unsealed"                     "curl -fsS localhost:8200/v1/sys/health | grep -q '\"sealed\":false'"
 check "grafana requires login"               "test \"\$(curl -s -o /dev/null -w '%{http_code}' localhost:3001/api/dashboards/home)\" = 401"
 check "pg-consent-audit separate cluster"    "docker compose exec -T pg-consent-audit psql -U civora_audit -d civora_audit -Atc 'select 1'"
+# Tracing: a request carrying a synthetic CIN in its query string must reach Tempo, without the CIN (ADR-011).
+curl -fsS -o /dev/null "localhost:3000/v1/meta/locales?cin=99123456" || true
+traces_ok() {
+  for _ in $(seq 1 30); do
+    tid=$(docker compose exec -T observability sh -c 'curl -s "http://127.0.0.1:3200/api/search?tags=service.name%3Dcivora-core%20http.route%3D%2Fv1%2Fmeta%2Flocales&limit=1"' | sed -n 's/.*"traceID":"\([0-9a-f]*\)".*/\1/p')
+    if [ -n "$tid" ]; then
+      body=$(docker compose exec -T observability sh -c "curl -s http://127.0.0.1:3200/api/traces/$tid")
+      echo "$body" | grep -q 'http.route' && ! echo "$body" | grep -q '99123456' && return 0
+    fi
+    sleep 2
+  done
+  return 1
+}
+check "traces reach Tempo, without request data" "traces_ok"
 
 end=$(date +%s)
 echo "Dev cell up in $((end - start)) s (fail=$fail)"

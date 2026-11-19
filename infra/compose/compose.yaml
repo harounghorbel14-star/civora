@@ -146,6 +146,7 @@ services:
       APP_VERSION: dev-cell
       DATABASE_URL: postgres://civora_core:${PG_CORE_PASSWORD}@pg-core:5432/civora_core
       OTEL_EXPORTER_OTLP_ENDPOINT: http://observability:4318
+      OTEL_BSP_SCHEDULE_DELAY: "1000"   # dev only: export spans within a second
     ports: ["127.0.0.1:3000:3000"]
     read_only: true
     tmpfs: ["/tmp"]

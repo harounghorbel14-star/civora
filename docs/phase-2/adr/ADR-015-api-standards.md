@@ -16,7 +16,7 @@
 ## Decision
 
 - REST/JSON; URL major versioning `/v1`; OpenAPI generated from code, sorted, committed, and **drift-checked in CI**.
-- OpenAPI 3.1 is the target; the generator emits 3.0.0 today, so a conversion and lint step is added in Phase 3.
+- OpenAPI 3.1: the generated 3.0 document is converted to 3.1.0 (JSON Schema 2020-12) and validated against the official 3.1 schema plus house rules (operationId, summary, tag, `/v1` versioning, no 3.0 keywords, no internal endpoints).
 - RFC 9457 problem details; `X-Request-Id`; `Accept-Language` / `Content-Language`; cursor pagination; `Idempotency-Key` on creating POSTs; `ETag`/`If-Match` on updates.
 - OAuth 2.0: PKCE for apps, client credentials + mTLS for B2B; signed webhooks with replay protection.
 - Deprecation via `Deprecation`/`Sunset` headers, ≥ 6 months for B2B.
@@ -41,7 +41,8 @@
 ## Validation
 
 - Three operations live; e2e tests; drift check caught a real change.
+- Contract is OpenAPI 3.1.0 and passes schema validation in CI; the previous 3.0 contract is rejected by the gate (negative test).
 
 ## Revisit when
 
-Phase 3 (OpenAPI 3.1 tooling).
+Phase 3 (breaking-change detection when the first business endpoint exists).
