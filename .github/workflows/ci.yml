@@ -114,7 +114,7 @@ jobs:
       - name: Checkov (Kubernetes, Helm, Dockerfile, Terraform, Ansible, GitHub Actions)
         run: |
           mkdir -p rendered
-          helm template civora-core infra/helm/civora-core --kube-version 1.33.4 -f infra/helm/civora-core/values-staging.yaml \
+          helm template civora-core infra/helm/civora-core --kube-version 1.33.4 -n civora-tn -f infra/helm/civora-core/values-staging.yaml \
             --set image.digest=sha256:0000000000000000000000000000000000000000000000000000000000000000 > rendered/staging.yaml
           docker run --rm -v "$PWD:/repo:ro" "$CHECKOV_IMAGE" \
             -d /repo/infra -d /repo/rendered -d /repo/.github -f /repo/services/core/Dockerfile \

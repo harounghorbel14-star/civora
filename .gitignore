@@ -11,3 +11,4 @@ infra/compose/.data/
 services/core/openapi/.generated.json
 infra/compose/.env
 infra/compose/.generated/
+rendered/

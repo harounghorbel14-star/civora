@@ -50,7 +50,6 @@ capabilities:
 {{- define "civora-core.checkovSkips" -}}
 checkov.io/skip1: CKV_K8S_11=No CPU limit by design (avoids CFS throttling); CPU requests and HPA bound usage
 checkov.io/skip2: CKV_K8S_15=Images are deployed by immutable digest; IfNotPresent cannot run a different image
-checkov.io/skip3: CKV_K8S_21=Namespace is set by Helm/Argo CD at install time, never default
 {{- end -}}
 
 {{/* Database URL is mounted as a file from the Secret (not an environment variable). */}}

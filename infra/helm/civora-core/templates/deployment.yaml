@@ -3,7 +3,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "civora-core.name" . }}
+  namespace: {{ .Release.Namespace }}
   labels: {{- include "civora-core.labels" . | nindent 4 }}
+  annotations: {{- include "civora-core.checkovSkips" . | nindent 4 }}
 spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}

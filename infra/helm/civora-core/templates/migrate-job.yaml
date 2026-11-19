@@ -4,9 +4,11 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: {{ include "civora-core.name" . }}-migrate-{{ .Release.Revision }}
+  namespace: {{ .Release.Namespace }}
   labels: {{- include "civora-core.labels" . | nindent 4 }}
     app.kubernetes.io/component: migrate
   annotations:
+    {{- include "civora-core.checkovSkips" . | nindent 4 }}
     helm.sh/hook: pre-install,pre-upgrade
     helm.sh/hook-weight: "0"
     helm.sh/hook-delete-policy: before-hook-creation
