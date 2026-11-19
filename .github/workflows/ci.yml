@@ -5,7 +5,7 @@ name: ci
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: ["**"]   # every branch, so work branches are checked before a pull request exists
   workflow_dispatch:
 
 permissions:
@@ -66,7 +66,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { fetch-depth: 0, persist-credentials: false }
       - name: gitleaks (full history)
-        run: docker run --rm -v "$PWD:/repo:ro" "$GITLEAKS_IMAGE" git /repo --redact --no-banner --exit-code 1
+        # The checkout belongs to the runner user, not the container's root: mark it safe for git inside the container.
+        run: |
+          docker run --rm -v "$PWD:/repo:ro" \
+            -e GIT_CONFIG_COUNT=1 -e GIT_CONFIG_KEY_0=safe.directory -e GIT_CONFIG_VALUE_0=/repo \
+            "$GITLEAKS_IMAGE" git /repo --redact --no-banner --exit-code 1
 
   codeql:
     runs-on: ubuntu-24.04
@@ -98,7 +102,10 @@ jobs:
           cd infra/tofu/envs/staging-tn && tofu init -backend=false -input=false && tofu validate && tofu plan -input=false
       - name: Ansible syntax + lint (production profile)
         run: |
-          python3 -m pip install --user "ansible-core==2.18.10" "ansible-lint==25.9.2"
+          # Ubuntu 24.04 marks the system Python as externally managed: use a virtual environment.
+          python3 -m venv "$RUNNER_TEMP/ansible"
+          "$RUNNER_TEMP/ansible/bin/pip" install --quiet "ansible-core==2.18.10" "ansible-lint==25.9.2"
+          export PATH="$RUNNER_TEMP/ansible/bin:$PATH"
           cd infra/ansible
           ansible-playbook --syntax-check -i inventories/staging-tn.example.yml site.yml
           ansible-lint --offline site.yml roles
