@@ -52,7 +52,8 @@
   - planned and unplanned failover with no lost commits, and rejoin via `pg_rewind`;
   - restore drill with page-checksum verification;
   - idempotent re-run.
-- Finding: with two database nodes in synchronous mode, Patroni refuses automatic failover when no synchronous standby is designated (for example, right after a rejoin). This protects commits, at the cost of automatic recovery. Option to decide: 3 database nodes per production site.
+- Final suite run: 17/17 checks in 162 s; crash failover 29 s; old leader rejoins via `pg_rewind`.
+- Finding (confirmed by a controlled experiment): with two database nodes in synchronous mode, Patroni refuses automatic failover when no synchronous standby is designated (for example, right after a restart). The standby was not promoted for 120 s; no split-brain. This protects commits, at the cost of automatic recovery. Option to decide: 3 database nodes per production site.
 
 ## Revisit when
 

@@ -71,9 +71,14 @@
 - Patroni writes absolute `pg_hba`/`pg_ident` paths, which the restore drill must override.
 - Patroni reads the local timeline over a replication connection to `127.0.0.1`. Without a `pg_hba` entry for it, a failed leader could not decide on `pg_rewind` and never rejoined. Entry added.
 
-**Finding recorded for a decision:**
-- With two database nodes in synchronous mode, Patroni refuses automatic failover while no synchronous standby is designated (observed: a leader frozen seconds after the other node rejoined; etcd showed `sync_standby: null`).
-- This protects commits, at the cost of automatic recovery.
+**Finding recorded for a decision (confirmed by a controlled experiment):**
+- With two database nodes in synchronous mode, Patroni refuses automatic failover while no synchronous standby is designated.
+- First seen when a leader was frozen seconds after the other node rejoined (etcd showed `sync_standby: null`). That run also had the `pg_hba` defect above, so it was re-tested separately with `sync-safety-experiment.sh`:
+  - the synchronous standby's Patroni was restarted, so no standby was designated;
+  - the leader was frozen 6 s later;
+  - the standby was **not promoted for 120 s** ("not the healthiest node");
+  - after the leader was unfrozen, the cluster recovered by itself with no split-brain (leader plus synchronous standby streaming within 14 s).
+- This protects commits, at the cost of automatic recovery during that window.
 - Option for production: 3 database nodes per site ([role README](../../infra/ansible/roles/postgresql_ha/README.md); ADR-003; review package §3.1).
 
 ## 17.3 Test strategy by layer (Phase 3 onward)

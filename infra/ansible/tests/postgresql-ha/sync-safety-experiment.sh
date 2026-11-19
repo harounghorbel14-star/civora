@@ -7,8 +7,14 @@
 # Prints a timeline. Reads cluster state over the REST API without certificate verification (local experiment only).
 set -euo pipefail
 declare -A ip=([tn-t-db1]=172.31.240.11 [tn-t-db2]=172.31.240.12)
-cluster() { curl -sk --noproxy '*' --max-time 3 "https://${ip[$1]}:8008/cluster"; }
-field() { python3 -c "import json,sys;d=json.load(sys.stdin);print(next((m['name'] for m in d['members'] if m['role']=='$1'),''))"; }
+cluster() { curl -sk --noproxy '*' --max-time 3 "https://${ip[$1]}:8008/cluster" || true; }
+# Tolerant probe: an API that is restarting or frozen returns nothing, which counts as "unknown" (empty).
+field() { python3 -c "
+import json,sys
+try:
+    d=json.load(sys.stdin); print(next((m['name'] for m in d['members'] if m['role']=='$1'),''))
+except Exception:
+    print('')" || true; }
 L=$(cluster tn-t-db1 | field leader); S=$(cluster tn-t-db1 | field sync_standby)
 [[ -n "$L" && -n "$S" ]] || { echo "cluster not in steady state (leader=$L sync=$S)"; exit 2; }
 echo "start: leader=$L sync_standby=$S"

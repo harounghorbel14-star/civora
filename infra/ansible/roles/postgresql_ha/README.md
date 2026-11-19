@@ -32,10 +32,12 @@ The role refuses to run if a secret or certificate is missing or too short.
 
 With `postgresql_ha_synchronous_mode: true`, Patroni promotes a standby **only if it is the designated synchronous standby**. That is what guarantees that an acknowledged commit is never lost.
 
-What testing showed:
-- The test froze the leader a few seconds after the other node had rejoined, before Patroni had designated it as synchronous standby (etcd showed `"sync_standby": null`).
-- Patroni then **refused to fail over automatically**, as designed.
+What testing showed (`tests/postgresql-ha/sync-safety-experiment.sh`, 19 Nov 2026):
+- Patroni on the synchronous standby was restarted, so for a moment no synchronous standby was designated.
+- The leader was frozen 6 s later. The standby was **not promoted for 120 s**, as designed.
+- After the leader was unfrozen, the cluster recovered by itself, with no split-brain.
 - An operator can still force a failover (`patronictl failover`), accepting possible loss of the last commits.
+- In steady state (a synchronous standby designated), the same crash leads to automatic promotion in 29 s with no lost commits.
 
 Consequences for production:
 
