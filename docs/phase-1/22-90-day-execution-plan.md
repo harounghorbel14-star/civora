@@ -2,7 +2,7 @@
 
 **Scope guard:**
 - These 90 days complete **Phase 1 only**: validation, research, design, legal, commercial groundwork.
-- **No Phase 2 work and no application code** (directive §14). Phase 2 starts only after founder approval of Phase 1 at the Day-90 gate, or earlier if the founder explicitly approves.
+- **No Phase 2 work and no application code** (directive §14). Phase 2 starts only after founder approval of Phase 1 at the Day-90 gate, or earlier if the founder explicitly approves. *(Annotated 19 Nov 2026: Phase 2 was started by the founder's explicit decision **P2-D0** under P1-D4. Phase 1 approval (P1-D12) is still pending and Phase 1 evidence is tracked separately. See [../phase-2/00-specification-and-constraint-audit.md](../phase-2/00-specification-and-constraint-audit.md) §1.)*
 - This plan **supersedes** the engineering stream in Phase 0 §20, which assumed Phase 2 would run in parallel (conflict C2).
 
 > **Founder review (18 Nov 2026):** the evidence items E-01–E-15 in [validation-evidence-register.md](validation-evidence-register.md) are the checklist for this plan. Phase 1 approval (P1-D12) remains **pending** until they are documented as met or explicitly waived.

@@ -1,6 +1,6 @@
 # 20. First 90-Day Execution Plan
 
-> **Updated by Phase 1 v2.0:** the engineering stream below (Phase 2 ADRs, CI, skeleton) must **not** start before founder approval of Phase 1 (directive §14). The current plan is [../phase-1/22-90-day-execution-plan.md](../phase-1/22-90-day-execution-plan.md).
+> **Updated by Phase 1 v2.0:** the engineering stream below (Phase 2 ADRs, CI, skeleton) must **not** start before founder approval of Phase 1 (directive §14). The current plan is [../phase-1/22-90-day-execution-plan.md](../phase-1/22-90-day-execution-plan.md). *(Annotated 19 Nov 2026: the founder started Phase 2 by explicit decision P2-D0; see [../phase-2/00-specification-and-constraint-audit.md](../phase-2/00-specification-and-constraint-audit.md) §1.)*
 
 **Day 0 = founder approval of Phase 0** (decisions D1–D10 in Section 21). Production code begins only after approval and is limited to Phase 2 scaffolding in this window. The 90 days are about **validation, foundations and funding**.
 

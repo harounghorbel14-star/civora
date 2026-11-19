@@ -53,7 +53,7 @@ Each item gets an ID used in the [traceability matrix](19-traceability-matrix.md
 | **O-SEC3** | Security: SBOM | CI |
 | **O-SEC4** | Security: branch protection | [16](16-infrastructure-plan.md) §16.5 (repository settings; **founder action**) |
 | **O-SEC5** | Security: 2-reviewer rule | [16](16-infrastructure-plan.md) §16.5 (**founder action**; needs 2 engineers) |
-| **O-T1** | Testing: pipeline runs unit/integration test scaffolds | CI + `services/core/test` |
+| **O-T1** | Testing: pipeline runs unit/integration test scaffolds | CI + `services/core/src/*.test.ts`, `packages/*/src/*.test.ts` |
 | **O-T2** | Testing: IaC scanning | CI (checkov) |
 | **O-T3** | Testing: a deploy-from-scratch test | `infra/scripts/deploy-from-scratch.sh` ([17](17-technical-validation-strategy.md)) |
 | **O-AC1** | Acceptance: staging cell reproducible from IaC in < 2 h | [Readiness report](phase-2-readiness-report.md) §3 |

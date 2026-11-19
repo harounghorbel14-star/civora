@@ -76,3 +76,8 @@ Each completed independent task is logged here when it finishes.
 | G11: Market-size break-even check (derived from v4 inputs only); risks R39–R41 added | E-08 (evidence for P1-D3, P1-D7) | E-08 desk evidence extended; status unchanged |
 | G12: INPDP declaration draft for CIVORA's own processing (research, contacts, staff) | E-02 (legal matrix 4.1, 4.5a, 4.5b) | Prepared for counsel B13; filing depends on counsel A1 and A4 |
 | G13: Founder action pack; readiness report §0 | All | **Summary after the continuation mission:** met 1 (E-15); in progress 5 (E-02, E-10, E-12, E-13, E-14); desk evidence only 4 (E-05, E-07, E-08, E-11); blocked on the founder 5 (E-01, E-03, E-04, E-06, E-09) |
+
+## Note — Phase 2 start (19 Nov 2026)
+
+The founder started Phase 2 (decision P2-D0). **No evidence item changed status.** No interviews, quotes, legal opinions or institutional commitments were obtained by Phase 2 work. Phase 2 depends on E-07 (hosting quotes) for its staging criterion and adds one professional engagement: an external review of the Phase 2 threat model, which can be requested together with the security-audit quotes (founder action 10).
+

@@ -46,4 +46,4 @@
 |---|---|---|
 | Actions 1–14; decisions in §B | Counsel (Tiers A/B/C); trademark attorney; language reviewer; hosting providers; certified auditors; accessibility auditor; CTO reviewer | 15 financial institutions; usability participants; 30 citizens and 10 civil servants; ≥ 2 civil-society organisations; design partners (ROGS760 XML schema) |
 
-Phase 2 and all coding stay on hold until you approve Phase 1.
+Phase 2 and all coding stay on hold until you approve Phase 1. *(Annotated 19 Nov 2026: Phase 2 was started by the founder's explicit decision **P2-D0** under P1-D4. Phase 1 approval (P1-D12) is still pending and Phase 1 evidence is tracked separately. See [../phase-2/00-specification-and-constraint-audit.md](../phase-2/00-specification-and-constraint-audit.md) §1.)*

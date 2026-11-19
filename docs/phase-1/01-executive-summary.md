@@ -130,4 +130,4 @@ There are 12 Phase 1 decisions, listed in [23-founder-approval-decisions.md](23-
 - **P1-D5:** sandbox-only design-partner programme before Phase 13 (approved: synthetic or properly authorised test data).
 - **P1-D13:** company name. **Approved 18 Nov 2026 as an evaluation of KELORA, TELORA and NASAQ; no final name selected.**
 
-**Phase 2 and all coding remain on hold until the founder approves Phase 1.**
+**Phase 2 and all coding remain on hold until the founder approves Phase 1.** *(Annotated 19 Nov 2026: Phase 2 was started by the founder's explicit decision **P2-D0** under P1-D4. Phase 1 approval (P1-D12) is still pending and Phase 1 evidence is tracked separately. See [../phase-2/00-specification-and-constraint-audit.md](../phase-2/00-specification-and-constraint-audit.md) §1.)*

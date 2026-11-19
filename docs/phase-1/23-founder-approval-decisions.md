@@ -65,3 +65,12 @@
 | Decisions the founder will need later (not now) | Final company name after attorney clearance (follow-up to P1-D13). Confirmation or revision of P1-D3 at the Day-90 gate. Funding commitment (P1-D7), now informed by the market-size check (§20.7.7: Workspace RF alone cannot carry the Moderate plan). Citizen Data Charter wording (Phase 0 D6 follow-up; 5 proposals in [validation/charter-review-pack.md](validation/charter-review-pack.md)) |
 
 The founder actions needed to move P1-D3, P1-D7 and P1-D12 are listed in the [readiness report](phase-1-readiness-report.md) §7. **Phase 1 is not approved by this document.**
+
+## 23.6 Decisions recorded after 18 November 2026
+
+| ID | Decision | Status | Effect on Phase 1 |
+|---|---|---|---|
+| **P2-D0** | Start Phase 2 — Technical Architecture, keeping the original 15-phase roadmap, all approved requirements and Phase 1 validation open | ✅ **Taken by the founder, 19 Nov 2026** ("I have decided to begin Phase 2 — Technical Architecture") | **None on Phase 1 status.** P1-D12 stays **pending**. Phase 2 may start under P1-D4 because its own dependency ("P1 IA outputs, partially") is met, but it **cannot be accepted before Phase 1** (acceptance in order). Phase 2 decisions P2-D1 onwards are tracked in the [Phase 2 readiness report](../phase-2/phase-2-readiness-report.md) |
+
+**Phase 1 is still not approved.**
+

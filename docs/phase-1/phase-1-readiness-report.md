@@ -123,7 +123,7 @@ Only 1 of the 15 evidence items is met (E-15, the execution-model decision). The
 | Consistency across documents | ✅ 14 contradictions corrected ([completion matrix](completion-matrix.md) §F); stale figures searched and fixed |
 | Roadmap protection | ✅ 16 phases (0–15) in the original order with original names in the [matrix](roadmap-protection-matrix.md); no phase renamed, removed, reordered, merged, split or replaced; all scope additions are additive |
 | Six divisions and 20-sector catalogue with exclusions | ✅ Unchanged |
-| No Phase 2 work started | ✅ No `docs/phase-2/`; no architecture ADRs, infrastructure or code produced |
+| No Phase 2 work started | ✅ No `docs/phase-2/`; no architecture ADRs, infrastructure or code produced. *True on 18 Nov 2026. On 19 Nov 2026 the founder started Phase 2 (P2-D0); Phase 2 work is tracked in [../phase-2/](../phase-2/README.md) and does not change this Phase 1 status* |
 | No application code | ✅ New files are Markdown and CSV, plus one **design prototype** (`design/prototype/workspace-rf.html`: static, synthetic data, no backend or network calls), like the v1.0 Government prototype. Wireframe SVG text edits only. Analysis and test scripts stayed outside the repository |
 | No original requirement disappeared | ✅ All FR-01–FR-53 retained (FR-60–FR-66 added); all E-01–E-15 retained; all decision IDs retained; replaced tables carry the same IDs with updated status |
 | No fabricated evidence | ✅ Interview log is empty; commitments = 0; quotations = 0; integrations class 1–2 = 0 |

@@ -143,3 +143,17 @@ It also required every desk-completable validation task to be finished. The road
 | INPDP declaration draft for CIVORA's own processing | Legal matrix 4.1 | validation/inpdp-declaration-draft.md |
 | Founder action pack; readiness report §0; registers updated after each task (completion matrix §G; register progress log) | Founder instruction | founder-action-pack.md; phase-1-readiness-report.md; completion-matrix.md; validation-evidence-register.md |
 | Sources S181–S200 | — | sources.md |
+
+## 8. v2.3 → v2.4 (Phase 2 start, 19 Nov 2026)
+
+**Trigger:** the founder decided to begin Phase 2 (P2-D0) while Phase 1 validation stays open.
+
+| Change | Where |
+|---|---|
+| P2-D0 recorded; Phase 1 status unchanged (P1-D12 pending) | [23](23-founder-approval-decisions.md) §23.6 |
+| Statements that put Phase 2 "on hold until Phase 1 approval" are **annotated, not deleted** | 01 (end), README (status), founder-action-pack (end), 22 (rules), 18 §18.4, readiness report (checklist row), Phase 0 §20 note |
+| Evidence register: note that no evidence item changed | [validation-evidence-register.md](validation-evidence-register.md) |
+| Conflict C2 ("do not start Phase 2 before Phase 1 approval") is resolved by the founder's explicit instruction, as the 90-day plan foresaw ("or earlier if the founder explicitly approves") | This section |
+
+The roadmap, its phase names and order, the six divisions, the 20-sector catalogue, FR-01–FR-66 and E-01–E-15 are unchanged.
+
