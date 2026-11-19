@@ -1,0 +1,7 @@
+---
+# Pinned Argo CD release manifest. Air-gapped cells mirror it into the cell's registry first.
+argocd_bootstrap_version: v3.4.13
+argocd_bootstrap_manifest_url: "https://raw.githubusercontent.com/argoproj/argo-cd/{{ argocd_bootstrap_version }}/manifests/install.yaml"
+argocd_bootstrap_kubectl: /var/lib/rancher/rke2/bin/kubectl
+argocd_bootstrap_kubeconfig: /etc/rancher/rke2/rke2.yaml
+argocd_bootstrap_repo_path: /opt/civora   # read-only checkout of this repository on the first server (deploy key, read-only)

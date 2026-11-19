@@ -6,13 +6,24 @@
   "description": "Deterministic synthetic data generator for the TN country pack v0 (O-D7, ADR-025). Never produces real or issuable identifiers.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "bin": { "civora-synth": "dist/cli.js" },
+  "bin": {
+    "civora-synth": "dist/cli.js"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node --test \"dist/**/*.test.js\"",
     "synth": "node dist/cli.js"
   },
-  "dependencies": { "@civora/country-packs": "workspace:*" },
-  "devDependencies": { "typescript": "5.9.3", "@types/node": "22.20.5" }
+  "dependencies": {
+    "@civora/country-packs": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "@types/node": "22.20.5"
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.test.*"
+  ]
 }

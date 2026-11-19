@@ -1,0 +1,13 @@
+# Local k3s cell used by infra/scripts/deploy-from-scratch.sh (O-T3 rehearsal). Synthetic data only.
+image:
+  repository: civora-core
+  tag: dev
+  pullPolicy: Never          # image is imported into the node, never pulled
+environment: dev
+replicaCount: 2
+autoscaling:
+  enabled: false
+networkPolicy:
+  ingressFromNamespaces: ["civora-smoke"]
+  metricsFromNamespaces: []
+  databasePodSelector: { app.kubernetes.io/name: pg-core }

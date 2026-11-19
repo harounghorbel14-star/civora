@@ -1,0 +1,22 @@
+# Managed by Ansible (CIVORA). RKE2 {{ rke2_role }} configuration.
+{% if inventory_hostname != groups['k8s_servers'][0] or rke2_role == 'agent' %}
+server: https://{{ hostvars[groups['k8s_servers'][0]]['ansible_host'] }}:9345
+{% endif %}
+token-file: {{ rke2_token_file }}
+{% if rke2_role == 'server' %}
+profile: {{ rke2_cis_profile }}
+cni: {{ rke2_cni }}
+secrets-encryption: true
+write-kubeconfig-mode: "0600"
+protect-kernel-defaults: true
+kube-apiserver-arg:
+  - "audit-log-maxage=30"
+  - "audit-log-maxbackup=10"
+tls-san:
+  - {{ ansible_host }}
+etcd-snapshot-schedule-cron: "0 */6 * * *"
+etcd-snapshot-retention: 28
+{% endif %}
+node-label:
+  - "topology.kubernetes.io/zone={{ zone }}"
+  - "civora.io/cell={{ civora_cell_id }}"

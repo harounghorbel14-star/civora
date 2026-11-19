@@ -6,7 +6,7 @@ COMMENT ON SCHEMA iam IS 'identity-access module. Tier T2 (personal data). Table
 CREATE SCHEMA IF NOT EXISTS config;
 COMMENT ON SCHEMA config IS 'country-config and tenant configuration. Tier T0/T1 (no personal data). Rule-pack activations, feature-flag overrides.';
 CREATE SCHEMA IF NOT EXISTS audit;
-COMMENT ON SCHEMA audit IS 'consent-audit module. Tier T2. Append-only, hash-chained audit events from Phase 3; moves to pg-consent-audit cluster (ADR-008).';
+COMMENT ON SCHEMA audit IS 'consent-audit module. Tier T2. Append-only, hash-chained audit events from Phase 3; moves to pg-consent-audit cluster (ADR-003).';
 
 -- Down Migration
 DROP SCHEMA IF EXISTS audit;

@@ -1,0 +1,22 @@
+# Argo CD project for one country cell (ADR-013 pull deployments, ADR-004 cells).
+# Only this repository, only the cell's namespaces, no cluster-scoped resources except Namespaces.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: civora-tn
+  namespace: argocd
+spec:
+  description: CIVORA Tunisia cell (staging). No cross-cell destinations.
+  sourceRepos:
+    - https://github.com/harounghorbel14-star/civora.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: civora-tn
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+  namespaceResourceBlacklist:
+    - group: ""
+      kind: ResourceQuota
+  orphanedResources:
+    warn: true

@@ -1,0 +1,56 @@
+# Default values: production-shaped and secure by default. Environments override in values-<env>.yaml.
+image:
+  repository: registry.civora.invalid/civora/core   # replaced per environment; images are signed (ADR-027)
+  tag: ""                                            # defaults to .Chart.AppVersion; CI deploys by digest
+  digest: ""                                         # when set, takes precedence over tag
+  pullPolicy: IfNotPresent
+
+environment: staging          # dev | staging | pilot | prod  (CIVORA_ENV)
+countryPack: tn               # one country pack per cell (ADR-004, ADR-017)
+
+replicaCount: 2
+
+# Existing Secret with key DATABASE_URL. In staging/prod it is written by External Secrets from OpenBao (ADR-012);
+# the chart never contains secret values.
+databaseSecret:
+  name: civora-core-db
+  key: DATABASE_URL
+
+migrations:
+  enabled: true               # pre-install/pre-upgrade Job running node-pg-migrate (ADR-024)
+  backoffLimit: 1
+
+otel:
+  endpoint: ""                # e.g. http://otel-collector.observability:4318
+
+resources:
+  requests: { cpu: 100m, memory: 192Mi }
+  limits: { memory: 384Mi }
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+networkPolicy:
+  enabled: true
+  ingressFromNamespaces: ["ingress"]       # namespace label kubernetes.io/metadata.name values allowed to call the API
+  metricsFromNamespaces: ["observability"]
+  databaseCidrs: []                         # egress to managed/external PostgreSQL when not in-cluster
+  databasePodSelector: { cnpg.io/cluster: pg-core }
+  databaseNamespace: ""                     # defaults to the release namespace
+  otelNamespace: observability
+
+service:
+  port: 80
+  targetPort: 3000
+
+podAnnotations: {}
+nodeSelector: {}
+tolerations: []
+topologySpreadAcrossNodes: true

@@ -13,7 +13,7 @@ test('pack defaults, tenant overrides and locked platform flags', async () => {
   assert.equal(await client.getBooleanValue('meta.locales.english', false), true);
   assert.equal(await client.getBooleanValue('workspace.customer-status-page', false, { tenantId: 'bank-b' }), false);
   assert.equal(await client.getBooleanValue('workspace.customer-status-page', false, { tenantId: 'bank-a' }), true);
-  // a tenant can never switch on production adapters (ADR-016/021)
+  // a tenant can never switch on production adapters (ADR-021, ADR-028)
   assert.equal(await client.getBooleanValue('integrations.production-adapters', false, { tenantId: 'bank-a' }), false);
   // unknown flag falls back to the caller default
   assert.equal(await client.getBooleanValue('not.declared', true), true);

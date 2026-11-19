@@ -1,0 +1,71 @@
+---
+- name: CIS profile prerequisites - etcd user (servers)
+  when: rke2_role == 'server'
+  ansible.builtin.user:
+    name: etcd
+    system: true
+    shell: /sbin/nologin
+    create_home: false
+
+- name: CIS profile prerequisites - kernel parameters
+  ansible.builtin.copy:
+    dest: /etc/sysctl.d/60-rke2-cis.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      vm.panic_on_oom=0
+      vm.overcommit_memory=1
+      kernel.panic=10
+      kernel.panic_on_oops=1
+  notify: Reload sysctl (rke2)
+
+- name: RKE2 configuration directory
+  ansible.builtin.file:
+    path: /etc/rancher/rke2
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Cluster token must already exist (provisioned from OpenBao, never from Git)
+  ansible.builtin.stat:
+    path: "{{ rke2_token_file }}"
+  register: rke2_token
+
+- name: Stop when the token is missing
+  ansible.builtin.assert:
+    that: rke2_token.stat.exists
+    fail_msg: "Missing {{ rke2_token_file }}. Write it from OpenBao before running this role."
+
+- name: RKE2 configuration
+  ansible.builtin.template:
+    src: config.yaml.j2
+    dest: /etc/rancher/rke2/config.yaml
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Download the RKE2 installer (online installs)
+  when: rke2_airgap_dir | length == 0
+  ansible.builtin.get_url:
+    url: "{{ rke2_channel_url }}"
+    dest: /usr/local/sbin/rke2-install.sh
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Install RKE2
+  ansible.builtin.command:
+    cmd: /usr/local/sbin/rke2-install.sh
+    creates: /usr/local/bin/rke2
+  environment:
+    INSTALL_RKE2_VERSION: "{{ rke2_version }}"
+    INSTALL_RKE2_TYPE: "{{ rke2_role }}"
+    INSTALL_RKE2_ARTIFACT_PATH: "{{ rke2_airgap_dir | default(omit, true) }}"
+
+- name: Start RKE2
+  ansible.builtin.service:
+    name: "rke2-{{ rke2_role }}"
+    state: started
+    enabled: true

@@ -1,0 +1,64 @@
+---
+# OS baseline (docs/phase-2/16-infrastructure-plan.md §16.5). Target: Ubuntu 24.04 LTS or RHEL 9 family.
+# Aligned with CIS Level 1 where it does not conflict with Kubernetes; the full benchmark scan runs in staging.
+- name: Ensure security packages are present
+  ansible.builtin.package:
+    name:
+      - auditd
+      - chrony
+      - nftables
+    state: present
+
+- name: Time synchronisation is enabled (audit timestamps, token expiry)
+  ansible.builtin.service:
+    name: "{{ 'chronyd' if ansible_facts['os_family'] == 'RedHat' else 'chrony' }}"
+    state: started
+    enabled: true
+
+- name: Audit daemon is enabled
+  ansible.builtin.service:
+    name: auditd
+    state: started
+    enabled: true
+
+- name: SSH hardening drop-in
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/10-civora.conf
+    owner: root
+    group: root
+    mode: "0600"
+    content: |
+      # Managed by Ansible (CIVORA). Key-based access through the bastion only.
+      PermitRootLogin no
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+      X11Forwarding no
+      AllowAgentForwarding no
+      MaxAuthTries 3
+      LoginGraceTime 30
+      ClientAliveInterval 300
+      ClientAliveCountMax 2
+  notify: Restart sshd
+
+- name: Kernel parameters
+  ansible.builtin.copy:
+    dest: /etc/sysctl.d/90-civora.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      # Managed by Ansible (CIVORA)
+      kernel.kptr_restrict = 2
+      kernel.dmesg_restrict = 1
+      net.ipv4.conf.all.rp_filter = 1
+      net.ipv4.conf.all.accept_redirects = 0
+      net.ipv4.conf.all.send_redirects = 0
+      fs.protected_symlinks = 1
+      fs.protected_hardlinks = 1
+  notify: Reload sysctl
+
+- name: Automatic security updates (Debian family)
+  when: ansible_facts['os_family'] == 'Debian'
+  ansible.builtin.package:
+    name: unattended-upgrades
+    state: present

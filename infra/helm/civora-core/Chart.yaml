@@ -1,0 +1,10 @@
+apiVersion: v2
+name: civora-core
+description: civora-core modular monolith (Phase 2 walking skeleton). Deployed per country cell (ADR-004, ADR-013, ADR-019).
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.30.0-0"
+annotations:
+  civora.io/phase: "2"
+  civora.io/data-classification: "T2 (no personal data processed in Phase 2)"

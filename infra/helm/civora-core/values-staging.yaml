@@ -1,0 +1,13 @@
+# Staging cell (TN). Applied by Argo CD from infra/argocd/apps/staging-tn.yaml.
+# The hosting provider is NOT selected yet (Phase 1 evidence E-07, quotes pending); registry and CIDRs are placeholders.
+image:
+  repository: registry.staging.civora.invalid/civora/core
+  digest: ""                 # set by the release pipeline to the signed image digest
+environment: staging
+countryPack: tn
+otel:
+  endpoint: http://otel-collector.observability:4318
+networkPolicy:
+  ingressFromNamespaces: ["ingress"]
+  metricsFromNamespaces: ["observability"]
+  databasePodSelector: { cnpg.io/cluster: pg-core }

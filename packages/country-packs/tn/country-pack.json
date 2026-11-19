@@ -29,7 +29,7 @@
   "hosting": {
     "devStaging": "any-cloud, synthetic data only (Phase 0 D9)",
     "pilotProduction": "CNI or ANCS-labelled N-Cloud/G-Cloud host in Tunisia, or customer premises (D9, ADR-004, ADR-019)",
-    "personalDataTransferAbroad": "prohibited without INPDP authorisation (Law 2004-63 Art. 50-52; ADR-020)"
+    "personalDataTransferAbroad": "prohibited without INPDP authorisation (Law 2004-63 Art. 50-52; ADR-004, ADR-029)"
   },
   "dataProtection": {
     "law": "Organic Law 2004-63",

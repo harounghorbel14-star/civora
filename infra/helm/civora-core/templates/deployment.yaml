@@ -1,0 +1,83 @@
+{{- include "civora-core.requireDigest" . }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "civora-core.name" . }}
+  labels: {{- include "civora-core.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxUnavailable: 0, maxSurge: 1 }
+  selector:
+    matchLabels: {{- include "civora-core.selector" . | nindent 6 }}
+  template:
+    metadata:
+      labels: {{- include "civora-core.labels" . | nindent 8 }}
+      annotations:
+        {{- include "civora-core.checkovSkips" . | nindent 8 }}
+        {{- with .Values.podAnnotations }}{{ toYaml . | nindent 8 }}{{ end }}
+    spec:
+      serviceAccountName: {{ include "civora-core.name" . }}
+      automountServiceAccountToken: false
+      securityContext: {{- include "civora-core.podSecurity" . | nindent 8 }}
+      {{- if .Values.topologySpreadAcrossNodes }}
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels: {{- include "civora-core.selector" . | nindent 14 }}
+      {{- end }}
+      containers:
+        - name: core
+          image: {{ include "civora-core.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext: {{- include "civora-core.containerSecurity" . | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.targetPort }}
+          env:
+            - name: CIVORA_ENV
+              value: {{ .Values.environment | quote }}
+            - name: COUNTRY_PACK
+              value: {{ .Values.countryPack | quote }}
+            - name: APP_VERSION
+              value: {{ default .Chart.AppVersion .Values.image.tag | quote }}
+            - name: PORT
+              value: {{ .Values.service.targetPort | quote }}
+            - name: DATABASE_URL_FILE
+              value: /var/run/secrets/civora/database-url
+            {{- if .Values.otel.endpoint }}
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: {{ .Values.otel.endpoint | quote }}
+            {{- end }}
+          startupProbe:
+            httpGet: { path: /health, port: http }
+            periodSeconds: 2
+            failureThreshold: 30
+          livenessProbe:
+            httpGet: { path: /health, port: http }
+            periodSeconds: 10
+            timeoutSeconds: 3
+          readinessProbe:
+            httpGet: { path: /health/ready, port: http }
+            periodSeconds: 5
+            timeoutSeconds: 3
+          resources: {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+            - { name: db-secret, mountPath: /var/run/secrets/civora, readOnly: true }
+      volumes:
+        - name: tmp
+          emptyDir: { sizeLimit: 64Mi }
+        {{- include "civora-core.dbSecretVolume" . | nindent 8 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations: {{- toYaml . | nindent 8 }}
+      {{- end }}
