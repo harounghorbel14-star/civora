@@ -1,0 +1,38 @@
+{
+  "name": "@civora/core",
+  "version": "0.1.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "description": "civora-core modular monolith — Phase 2 walking skeleton (O-A1): health, locales, feature flags, i18n, base schemas, OpenAPI pipeline. No business features.",
+  "main": "dist/src/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "node dist/src/main.js",
+    "test": "node --test \"dist/src/**/*.test.js\"",
+    "openapi": "node dist/scripts/generate-openapi.js openapi/core.openapi.json",
+    "openapi:check": "node dist/scripts/generate-openapi.js openapi/.generated.json && node -e \"const a=require('fs').readFileSync('openapi/core.openapi.json','utf8'),b=require('fs').readFileSync('openapi/.generated.json','utf8');if(a!==b){console.error('OpenAPI contract out of date: run pnpm openapi');process.exit(1)}\"",
+    "migrate": "node-pg-migrate up --migrations-dir migrations --migration-file-language sql --migrations-table schema_migrations --check-order",
+    "migrate:down": "node-pg-migrate down 1 --migrations-dir migrations --migration-file-language sql --migrations-table schema_migrations --check-order"
+  },
+  "dependencies": {
+    "@civora/country-packs": "workspace:*",
+    "@civora/feature-flags": "workspace:*",
+    "@civora/i18n": "workspace:*",
+    "@nestjs/common": "11.1.6",
+    "@nestjs/core": "11.1.6",
+    "@nestjs/platform-express": "11.1.6",
+    "@nestjs/swagger": "11.2.0",
+    "node-pg-migrate": "8.0.3",
+    "pg": "8.16.3",
+    "@prometheus-io/client": "0.16.1",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2"
+  },
+  "devDependencies": {
+    "@types/express": "5.0.3",
+    "@types/node": "22.20.5",
+    "@types/pg": "8.15.5",
+    "typescript": "5.9.3"
+  }
+}

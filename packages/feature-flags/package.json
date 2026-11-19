@@ -1,0 +1,16 @@
+{
+  "name": "@civora/feature-flags",
+  "version": "0.1.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "description": "Feature-flag framework (O-F2, ADR-021): OpenFeature API with an in-process provider fed by country-pack defaults and tenant overrides. No external flag service.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test \"dist/**/*.test.js\""
+  },
+  "dependencies": { "@openfeature/server-sdk": "1.23.0", "@openfeature/core": "1.12.0" },
+  "devDependencies": { "typescript": "5.9.3", "@types/node": "22.20.5" }
+}

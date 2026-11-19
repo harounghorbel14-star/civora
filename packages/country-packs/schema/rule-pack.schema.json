@@ -1,0 +1,156 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://civora.invalid/schemas/rule-pack.schema.json",
+  "title": "CIVORA rule pack (FR-66)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "version",
+    "source",
+    "appliesTo",
+    "caseTypes",
+    "exclusions",
+    "deadline",
+    "mandatoryFields",
+    "statements"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^RP-[A-Z0-9-]+$"
+    },
+    "version": {
+      "type": "string"
+    },
+    "source": {
+      "type": "object",
+      "required": [
+        "text",
+        "url",
+        "verifiedOn",
+        "interpretationStatus"
+      ],
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "verifiedOn": {
+          "type": "string"
+        },
+        "interpretationStatus": {
+          "type": "string"
+        }
+      }
+    },
+    "appliesTo": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "caseTypes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "code",
+          "countsInRegulatoryStatistics"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "countsInRegulatoryStatistics": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "exclusions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "deadline": {
+      "type": "object",
+      "required": [
+        "ceiling",
+        "unit",
+        "from",
+        "suspension"
+      ],
+      "properties": {
+        "ceiling": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "unit": {
+          "enum": [
+            "banking-working-days",
+            "working-days",
+            "calendar-days",
+            null
+          ]
+        },
+        "from": {
+          "type": "string"
+        },
+        "suspension": {
+          "type": "string"
+        }
+      }
+    },
+    "subjects": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "mandatoryFields": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "statements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "code",
+          "frequency",
+          "format"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "frequency": {
+            "type": "string"
+          },
+          "dueDaysAfterReportingDate": {
+            "type": "integer"
+          },
+          "format": {
+            "type": "string"
+          },
+          "schemaStatus": {
+            "type": "string"
+          },
+          "dueRule": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,10 @@
+packages:
+  - "apps/*"
+  - "services/*"
+  - "packages/*"
+
+# Supply-chain rule (ADR-027): no dependency install scripts run unless listed here after review.
+# @nestjs/core (funding message) and @scarf/scarf (install telemetry) are deliberately NOT allowed.
+ignoredBuiltDependencies:
+  - "@nestjs/core"
+  - "@scarf/scarf"

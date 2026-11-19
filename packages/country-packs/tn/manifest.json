@@ -1,0 +1,9 @@
+{
+  "files": {
+    "country-pack.json": "b891f07e5c69d30069dcfb6b59c4dfe637fb4b41f542adbe57aae70a109a8fff",
+    "rule-packs/RP-BCT-2020-11.json": "196c07c75126c6c422953a39f5f825e8ec6469853a60f04980cce119c19e1e8c",
+    "rule-packs/RP-BCT-2022-08.json": "72807c5a52b1d7f0dcbbe637f497e0f725f8a012c44bb85266101596745b478d",
+    "rule-packs/RP-BCT-2026-10.json": "11c8035ca72a942f8b7b1958063e3a3f73ee375006f2513dc59241d9fdf0c94d"
+  },
+  "digest": "81169b2acb96756ac497f440c9db5a85557b41d675cba96a11c00f95a0315c78"
+}

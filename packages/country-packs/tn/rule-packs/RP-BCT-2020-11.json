@@ -1,0 +1,44 @@
+{
+  "id": "RP-BCT-2020-11",
+  "version": "0.1.0",
+  "source": {
+    "text": "BCT Circular 2020-11 of 18 May 2020 (domestic mobile payment), Art. 9, 11, 12, 44",
+    "url": "https://www.bct.gov.tn/bct/siteprod/documents/Cir_2020_11_fr.pdf",
+    "verifiedOn": "2026-11-18",
+    "interpretationStatus": "text verified; interpretation pending counsel"
+  },
+  "appliesTo": [
+    "bank-resident",
+    "payment-institution",
+    "office-national-des-postes"
+  ],
+  "caseTypes": [
+    {
+      "code": "complaint",
+      "countsInRegulatoryStatistics": true
+    }
+  ],
+  "exclusions": [],
+  "deadline": {
+    "ceiling": 7,
+    "unit": "working-days",
+    "from": "not specified in Art. 12 (receipt assumed; counsel to confirm)",
+    "suspension": "not specified"
+  },
+  "subjects": [],
+  "mandatoryFields": [
+    "reference",
+    "receivedAt",
+    "subjectAndDescription",
+    "outcome"
+  ],
+  "statements": [
+    {
+      "code": "MOBILE-PAYMENT-COMPLAINTS-QUARTERLY",
+      "frequency": "quarterly",
+      "dueRule": "no later than the end of the month following each quarter (Art. 44)",
+      "format": "per BCT modalities",
+      "schemaStatus": "modalities set by the BCT (Art. 44)"
+    }
+  ]
+}
