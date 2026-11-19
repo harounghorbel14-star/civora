@@ -98,7 +98,7 @@ Open questions for counsel that affect the architecture (already in the Phase 1 
 
 | Check | Result |
 |---|---|
-| Internal links (whole repository, incl. anchors) | **996 checked, 0 broken** |
+| Internal links (whole repository, incl. anchors) | **998 checked, 0 broken** |
 | Mermaid diagrams in `docs/phase-2` | **21/21 render** (Mermaid 11) |
 | No claim that Phase 1 is approved | Searched: every mention says "pending" or "not approved" |
 | Roadmap unchanged | No phase renamed, removed, reordered or merged |
