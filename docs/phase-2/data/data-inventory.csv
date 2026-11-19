@@ -1,0 +1,44 @@
+id,domain,item,example_fields,tier,personal_data,special_category,store_schema,owning_module,civora_role,lawful_basis_assumption,default_retention,protection,phase_built
+DI-01,Platform,Tenant record,"name, tier, status, pack activation",T3,N,N,pg-core.iam,identity-access,controller (own business data),contract,life of contract + 10 y [A],RLS not needed (platform table); admin-only writes,3
+DI-02,Platform,Tenant configuration,"taxonomy, deadlines within ceiling, templates, branding",T3,N,N,pg-core.config,country-config,processor,contract,life of contract,two-person review for rule-pack activation,3
+DI-03,Platform,Feature-flag overrides,"flag key, value, tenant",T3,N,N,pg-core.config,country-config,processor,contract,life of contract,locked platform prefixes,3
+DI-04,Platform,Country pack and rule packs,"locales, calendar, ceilings, statement formats",T3,N,N,packages/country-packs (Git) + pg-public,country-config,n/a,n/a,versions kept permanently,SHA-256 manifest; schema validation; fail closed,2
+DI-05,Platform,Tenant organisational units,"branch, team, unit names",T2,N,N,pg-core.iam,identity-access,processor,contract,life of contract,RLS,3
+DI-06,Platform,Tenant data keys (wrapped),"key id, wrapped DEK, version",T1,N,N,OpenBao (transit) + pg-core.iam (wrapped only),identity-access,processor,contract,until crypto-shred at off-boarding,KEK in OpenBao/HSM; never exported in clear,3
+DI-07,Identity,Staff account,"username, name, e-mail, roles, unit",T2,Y,N,Keycloak DB + pg-core.iam,identity-access,processor,contract (employer),account life + 1 y [A],MFA; SSO federation; RLS,3
+DI-08,Identity,Staff authentication events,"login time, IP, MFA method, result",T2,Y,N,pg-consent-audit.audit,consent-audit,processor,legal obligation (security; Law 2004-63 Art. 18-19),>= 5 y [A],append-only; hash chain,3
+DI-09,Identity,Customer contact for OTP,"phone, e-mail",T1,Y,N,pg-core.iam,identity-access,processor,legal obligation (complaint handling) [A - counsel],case retention,encrypted + blind index,3
+DI-10,Identity,OTP codes and sessions,"hashed OTP, session id, expiry",T2,Y,N,Redis,identity-access,processor,legitimate interest (security) [A],minutes to days,hashed; short TTL; no payloads,3
+DI-11,Identity,National identifier (CIN),"CIN number",T1,Y,N,pg-core.iam,identity-access,processor,legal obligation (KYC/complaint identification) [A - counsel],per tenant contract,AES-256-GCM per-tenant key + HMAC blind index; never logged,3
+DI-12,Identity,Citizen account (Government track),"pseudonymous subject id, assurance level",T1,Y,N,pg-core.iam,identity-access,processor or controller per deployment [A],consent or public task [A],account life + 1 y [A],pairwise identifiers; passkeys,3 (Gov 12)
+DI-13,Identity,Mandates and credentials,"mandate grant, credential status",T1,Y,N,pg-core.wallet,wallet,processor,consent / contract [A],life of credential + 5 y [A],HSM-signed; selective disclosure,4
+DI-14,Financial,Complaint case,"reference, type (FR-60), category, channel, status",T2,Y,N,pg-core.cases,cases,processor,legal obligation (BCT 2022-08) [A - counsel],per institution archival rule [A],RLS; ABAC,6
+DI-15,Financial,Complaint content,"description, claimed amount, account reference",T1,Y,N,pg-core.cases,cases,processor,legal obligation (BCT 2022-08) [A - counsel],per institution archival rule [A],field encryption; banking secrecy; ABAC,6
+DI-16,Financial,Complainant identity (Annex 1),"name, address, CIN or account ref, contact",T1,Y,N,pg-core.cases,cases,processor,legal obligation (BCT 2022-08 Annex 1) [A - counsel],per institution archival rule [A],field encryption + blind index,6
+DI-17,Financial,Internal notes,"handler notes, investigation steps",T1,Y,N,pg-core.cases,cases,processor,legal obligation [A],with case,excluded from mediator and customer exports (FR-26),6
+DI-18,Financial,Decision and response,"decision code, reason, letter",T1,Y,N,pg-core.cases + object storage,cases,processor,legal obligation [A],with case,signed PDF; immutable issued copy,6
+DI-19,Financial,Attachments,"statements, receipts, IDs",T1,Y,N,object storage (tenant bucket),cases,processor,legal obligation [A],case closure + institution period,malware scan; envelope encryption; object lock,4/6
+DI-20,Financial,Deadline record,"rule-pack id+version, start date, due date, suspensions",T2,N,N,pg-core.cases,cases,processor,legal obligation [A],with case,pack version frozen at opening,6
+DI-21,Financial,Regulatory statement (ROGS760 / RAA10/20),"aggregated counts, average delays",T2,N,N,pg-core.cases (projection) + object storage,cases,processor,legal obligation (BCT reporting),per BCT rule [A],aggregated; no personal data in the file,6
+DI-22,Financial,Mediator export,"case file without internal notes",T1,Y,N,object storage (time-limited link),cases,processor,legal obligation (2022-08 Art. 13),30 days after delivery [A],signed; access-logged; expiring link,6
+DI-23,Government,Citizen request,"service, status, submitted data",T1,Y,N,pg-core.cases (government cell),cases,processor,public task [A],per archival law [A],RLS; ABAC; purpose binding,6/13
+DI-24,Government,Civil-status pointer,"registry reference, verification result",T1,Y,N,pg-core.integrations,integrations,processor,public task + authorisation [A],per request,pointer not copy; purpose-logged,12
+DI-25,Government,Appointment,"slot, office, service",T2,Y,N,pg-core.appointments,appointments,processor,public task [A],1 y after slot [A],RLS,6/13
+DI-26,Government,Payment intent and receipt,"amount (millimes), PSP reference, status",T1,Y,N,pg-core.payments,payments,processor,contract / public task [A],10 y (accounting) [A],no card data stored (PSP tokens only),8
+DI-27,Government,Directory content,"procedures, required documents, offices",T2,N,N,pg-public.catalogue,catalogue,controller (editorial),n/a,versions kept,four-eyes review; signed releases,5
+DI-28,Health,FHIR clinical resources,"Observation, Condition, MedicationRequest",T0,Y,Y,fhir-store,health-bridge,processor,consent + MoH authorisation [A],>= 10 y if telemedicine [P],"separate deployable, cluster, keys; no export",7
+DI-29,Health,Care consent and access grants,"grant, purpose, expiry",T0,Y,Y,fhir-store,health-bridge,processor,consent [A],life of consent + 5 y [A],separate keys; break-glass with review,7
+DI-30,Audit,Audit event,"actor, action, object ref, purpose, hash",T1,Y,N,pg-consent-audit.audit,consent-audit,processor,legal obligation (Law 2004-63 Art. 18-19),>= 5 y [A],append-only role; hash chain; daily signed anchor,3
+DI-31,Audit,Subject access log,"who viewed my data, when, why",T1,Y,N,pg-consent-audit.audit,consent-audit,processor,legal obligation [A],>= 5 y [A],subject-visible (Government),3/13
+DI-32,Audit,Consent receipt,"purpose, version, timestamp, signature",T1,Y,N,pg-consent-audit.consent,consent-audit,processor or controller [A],consent,life of consent + 5 y [A],signed; append-only,3
+DI-33,Audit,Break-glass record,"operator, justification, scope, expiry",T1,Y,N,pg-consent-audit.audit,consent-audit,controller (own staff),legal obligation / contract,>= 5 y [A],MFA; tenant-visible; reviewed,3
+DI-34,Communications,Notification message,"template id, channel, recipient ref, status",T2,Y,N,pg-core.notifications,notifications,processor,legal obligation (complaint acknowledgement) [A],1 y [A],recipient by reference; content from templates,3
+DI-35,Communications,Message templates,"AR/FR/EN texts",T2,N,N,pg-core.notifications,notifications,processor,contract,versions kept,review workflow,3
+DI-36,Communications,Delivery receipts,"gateway id, timestamp, result",T2,Y,N,pg-core.notifications,notifications,processor,legitimate interest [A],1 y [A],no content,3
+DI-37,AI,Guide corpus,"official texts, chunks, embeddings",T3,N,N,pg-public (pgvector),guide,controller (editorial),n/a,versions kept,source provenance; four-eyes review,10
+DI-38,AI,Guide conversation (no account),"redacted question, answer, citations",T2,N,N,guide store (in cell),guide,controller [A],legitimate interest [A],30 days then aggregates,PII redaction before any model call,10
+DI-39,AI,Evaluation sets,"golden questions per language",T3,N,N,Git,guide,n/a,n/a,versions kept,synthetic or public content only,10
+DI-40,Operations,Application logs,"request id, route, status, latency, tenant id",T2,N,N,Loki (in cell),platform,processor,legitimate interest (security),30 d hot / 1 y archive [A],no personal data by rule; scrubbing tests,2
+DI-41,Operations,Metrics,"counters, histograms (tenant label allowed)",T3,N,N,Prometheus (in cell),platform,processor,legitimate interest,13 months [A],no personal labels,2
+DI-42,Operations,Traces,"spans, timings, request id",T2,N,N,Tempo (in cell),platform,processor,legitimate interest,14 days [A],attribute allow-list; no payloads,2
+DI-43,Operations,Synthetic datasets,"synthetic tenants, customers, cases",T3,N,N,packages/synthetic-data output (not committed),platform,n/a,n/a,regenerated on demand,reserved identifier ranges; CI guard,2
