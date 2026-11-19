@@ -62,12 +62,14 @@
 | Planned failover (Patroni stopped on the leader): standby promoted in 1–2 s; no committed row lost; old leader rejoins as streaming standby | Pass |
 | Restore drill on the backup node: restore → start → query (1,000 rows) → stop → `pg_checksums --check`; 2 s | Pass |
 | Second run of the role changes nothing (idempotent) | Pass |
-| **Unplanned failure** (leader frozen with `docker pause`) after a steady synchronous standby is designated | **Pending** — rerun in progress after the precondition fix; the earlier attempt surfaced the synchronous-mode finding below |
+| **Unplanned failure** (leader frozen with `docker pause`, no clean shutdown) in steady state | Pass: synchronous standby promoted after **29 s** (leader lease 30 s); all 1,100 committed rows present; the frozen node rejoins as streaming standby via `pg_rewind` after it is unfrozen |
+| Whole suite (17 checks) | **17/17 pass in 162 s** (final run, 19 Nov 2026) |
 
 **Findings fixed during testing:**
 - pgBackRest verifies TLS certificates by host name, not IP, so nodes are now addressed by name and the role manages `/etc/hosts`.
 - In `tls-server-auth`, commas separate stanzas, not clients, so the role now writes one line per client.
 - Patroni writes absolute `pg_hba`/`pg_ident` paths, which the restore drill must override.
+- Patroni reads the local timeline over a replication connection to `127.0.0.1`. Without a `pg_hba` entry for it, a failed leader could not decide on `pg_rewind` and never rejoined. Entry added.
 
 **Finding recorded for a decision:**
 - With two database nodes in synchronous mode, Patroni refuses automatic failover while no synchronous standby is designated (observed: a leader frozen seconds after the other node rejoined; etcd showed `sync_standby: null`).

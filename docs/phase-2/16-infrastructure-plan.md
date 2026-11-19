@@ -42,7 +42,7 @@ Addresses are RFC 5737 placeholders.
 | pnpm | 10.28.0 | `packageManager` | Install scripts blocked |
 | TypeScript | 5.9.3 | `package.json` | TS 7 not adopted (decorators) |
 | NestJS | 11.2.8; Swagger 11.4.8 | `services/core/package.json` | NestJS 12 not adopted yet |
-| PostgreSQL | 16 (`postgres:16-alpine` in dev; Ubuntu 24.04 packages on nodes: PostgreSQL 16.15, Patroni 3.2.2, etcd 3.4.30, pgBackRest 2.50) | compose, rehearsal, role `postgresql_ha` | Role tested on containers (ADR-003 still Proposed) |
+| PostgreSQL | 16 (`postgres:16-alpine` in dev; Ubuntu 24.04 packages on nodes: PostgreSQL 16.15, Patroni 3.2.2, etcd 3.4.30, pgBackRest 2.50) | compose, rehearsal, role `postgresql_ha` | Role tested on containers: 17/17 checks, crash failover 29 s (ADR-003 still Proposed) |
 | node-pg-migrate | 8.0.4 | core | ADR-024 |
 | Redis | 7 (`redis:7-alpine`) | compose | |
 | Keycloak | 26.0 | compose | ADR-005 |
