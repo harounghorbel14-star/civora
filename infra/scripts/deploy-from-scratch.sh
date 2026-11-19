@@ -4,7 +4,8 @@
 # that do not depend on a hosting provider: cluster, database, migrations, application, network policy.
 #
 # What it does NOT cover (provider not selected, Phase 1 E-07): VM provisioning (OpenTofu provider layer),
-# OS hardening (Ansible), DNS/TLS, CloudNativePG operator, OpenBao HA, observability stack, backups.
+# OS hardening (Ansible), DNS/TLS, PostgreSQL on database nodes (Patroni + pgBackRest), OpenBao HA,
+# observability stack, backups.
 # The staging acceptance criterion (< 2 h) needs those; see docs/phase-2/16-infrastructure-plan.md §16.7.
 #
 # Usage: infra/scripts/deploy-from-scratch.sh [--keep]

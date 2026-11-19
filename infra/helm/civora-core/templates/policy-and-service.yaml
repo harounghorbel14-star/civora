@@ -79,10 +79,12 @@ spec:
       ports:
         - { port: 53, protocol: UDP }
         - { port: 53, protocol: TCP }
-    - to:   # PostgreSQL
+    - to:   # PostgreSQL: in-cluster pods (dev, rehearsal) and/or dedicated database nodes (staging, pilot, prod)
+        {{- with .Values.networkPolicy.databasePodSelector }}
         - podSelector:
-            matchLabels: {{- toYaml .Values.networkPolicy.databasePodSelector | nindent 14 }}
-          namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: {{ default .Release.Namespace .Values.networkPolicy.databaseNamespace }} } }
+            matchLabels: {{- toYaml . | nindent 14 }}
+          namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: {{ default $.Release.Namespace $.Values.networkPolicy.databaseNamespace }} } }
+        {{- end }}
         {{- range .Values.networkPolicy.databaseCidrs }}
         - ipBlock: { cidr: {{ . }} }
         {{- end }}

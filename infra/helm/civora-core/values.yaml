@@ -41,8 +41,8 @@ networkPolicy:
   enabled: true
   ingressFromNamespaces: ["ingress"]       # namespace label kubernetes.io/metadata.name values allowed to call the API
   metricsFromNamespaces: ["observability"]
-  databaseCidrs: []                         # egress to managed/external PostgreSQL when not in-cluster
-  databasePodSelector: { cnpg.io/cluster: pg-core }
+  databaseCidrs: []                         # dedicated PostgreSQL nodes (Patroni + pgBackRest, ADR-003/ADR-029)
+  databasePodSelector: {}                   # in-cluster PostgreSQL pods (dev and rehearsal only)
   databaseNamespace: ""                     # defaults to the release namespace
   otelNamespace: observability
 

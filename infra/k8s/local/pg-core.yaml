@@ -1,4 +1,5 @@
-# Local rehearsal only: a single PostgreSQL 16 pod standing in for the CloudNativePG cluster used in staging/prod (ADR-003).
+# Local rehearsal only: a single PostgreSQL 16 pod standing in for the PostgreSQL cluster
+# that runs on dedicated database nodes in staging/prod (Patroni + pgBackRest; ADR-003, ADR-029).
 # Synthetic data only. The password comes from the Secret created by deploy-from-scratch.sh.
 apiVersion: v1
 kind: Service

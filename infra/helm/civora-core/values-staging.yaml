@@ -10,4 +10,5 @@ otel:
 networkPolicy:
   ingressFromNamespaces: ["ingress"]
   metricsFromNamespaces: ["observability"]
-  databasePodSelector: { cnpg.io/cluster: pg-core }
+  databasePodSelector: {}
+  databaseCidrs: ["192.0.2.30/28"]   # tn-stg-db1/db2 (RFC 5737 placeholder until the provider is chosen)
