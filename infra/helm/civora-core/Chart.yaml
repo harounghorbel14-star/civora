@@ -7,4 +7,4 @@ appVersion: "0.1.0"
 kubeVersion: ">=1.30.0-0"
 annotations:
   civora.io/phase: "2"
-  civora.io/data-classification: "T2 (no personal data processed in Phase 2)"
+  civora.io/data-classification: "T1/T2 by design (Phase 0 §10.1); synthetic data only in Phase 2"

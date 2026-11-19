@@ -53,8 +53,8 @@ unless {
   context.breakGlass && context.mfa && context.justification != ""
 };
 
-// F2: Tier T3 (health) data only for the care purpose with recorded consent.
-@id("F2-t3-purpose-consent")
+// F2: Tier T0 (special category: health) data only for the care purpose with recorded consent.
+@id("F2-t0-purpose-consent")
 forbid (principal, action, resource is Case)
-when { resource.dataTier >= 3 }
+when { resource.dataTier == 0 }
 unless { context.purpose == "care" && context.consent };

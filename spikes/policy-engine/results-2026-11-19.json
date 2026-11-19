@@ -1,5 +1,5 @@
 {
-  "date": "2026-11-19T03:11:42.372Z",
+  "date": "2026-11-19T03:19:19.379Z",
   "node": "v22.23.5",
   "cedarVersion": "4.14.0",
   "cedarSchemaStrictValidation": "pass",
@@ -9,33 +9,27 @@
   "latency": {
     "cedarStateful": {
       "n": 20000,
-      "p50_us": 236,
-      "p99_us": 382.7,
-      "max_us": 19435.3
+      "p50_us": 246.9,
+      "p99_us": 559.8,
+      "max_us": 4893.6
     },
     "cedarStatefulNoRequestValidation": {
       "n": 20000,
-      "p50_us": 221.2,
-      "p99_us": 352.3,
-      "max_us": 1477.4
+      "p50_us": 236.3,
+      "p99_us": 457.2,
+      "max_us": 3947.2
     },
     "cedarStateless": {
       "n": 20000,
-      "p50_us": 2283.4,
-      "p99_us": 3923.8,
-      "max_us": 15077.6
+      "p50_us": 2328.4,
+      "p99_us": 3865.6,
+      "max_us": 8184.7
     },
     "opaWasm": {
       "n": 20000,
-      "p50_us": 7.9,
-      "p99_us": 25.6,
-      "max_us": 470.4
-    },
-    "opaRestSidecar": {
-      "n": 5000,
-      "p50_us": 711,
-      "p99_us": 2413.7,
-      "max_us": 6243.5
+      "p50_us": 7.7,
+      "p99_us": 23.6,
+      "max_us": 452
     }
   },
   "rows": [
@@ -45,7 +39,7 @@
       "cedar": "allow",
       "cedarReasons": "policy0",
       "opaWasm": "allow",
-      "opaRest": "allow",
+      "opaRest": "n/a",
       "ok": true,
       "why": "own tenant and unit"
     },
@@ -55,7 +49,7 @@
       "cedar": "allow",
       "cedarReasons": "policy0",
       "opaWasm": "allow",
-      "opaRest": "allow",
+      "opaRest": "n/a",
       "ok": true,
       "why": "own tenant and unit"
     },
@@ -65,7 +59,7 @@
       "cedar": "deny",
       "cedarReasons": "",
       "opaWasm": "deny",
-      "opaRest": "deny",
+      "opaRest": "n/a",
       "ok": true,
       "why": "other unit"
     },
@@ -75,7 +69,7 @@
       "cedar": "deny",
       "cedarReasons": "policy6",
       "opaWasm": "deny",
-      "opaRest": "deny",
+      "opaRest": "n/a",
       "ok": true,
       "why": "other tenant (isolation)"
     },
@@ -85,7 +79,7 @@
       "cedar": "deny",
       "cedarReasons": "policy6",
       "opaWasm": "deny",
-      "opaRest": "deny",
+      "opaRest": "n/a",
       "ok": true,
       "why": "supervisor of another tenant"
     },
@@ -95,7 +89,7 @@
       "cedar": "allow",
       "cedarReasons": "policy1",
       "opaWasm": "allow",
-      "opaRest": "allow",
+      "opaRest": "n/a",
       "ok": true,
       "why": "supervisor, any unit of own tenant"
     },
@@ -105,7 +99,7 @@
       "cedar": "allow",
       "cedarReasons": "policy0",
       "opaWasm": "allow",
-      "opaRest": "allow",
+      "opaRest": "n/a",
       "ok": true,
       "why": "staff see internal notes"
     },
@@ -115,7 +109,7 @@
       "cedar": "deny",
       "cedarReasons": "",
       "opaWasm": "deny",
-      "opaRest": "deny",
+      "opaRest": "n/a",
       "ok": true,
       "why": "handlers do not export"
     },
@@ -125,7 +119,7 @@
       "cedar": "allow",
       "cedarReasons": "policy2",
       "opaWasm": "allow",
-      "opaRest": "allow",
+      "opaRest": "n/a",
       "ok": true,
       "why": "BCT correspondent export"
     },
@@ -135,7 +129,7 @@
       "cedar": "deny",
       "cedarReasons": "",
       "opaWasm": "deny",
-      "opaRest": "deny",
+      "opaRest": "n/a",
       "ok": true,
       "why": "correspondent cannot edit"
     },
@@ -145,7 +139,7 @@
       "cedar": "allow",
       "cedarReasons": "policy3",
       "opaWasm": "allow",
-      "opaRest": "allow",
+      "opaRest": "n/a",
       "ok": true,
       "why": "own case"
     },
@@ -155,7 +149,7 @@
       "cedar": "deny",
       "cedarReasons": "",
       "opaWasm": "deny",
-      "opaRest": "deny",
+      "opaRest": "n/a",
       "ok": true,
       "why": "someone else's case"
     },
@@ -165,7 +159,7 @@
       "cedar": "allow",
       "cedarReasons": "policy4",
       "opaWasm": "allow",
-      "opaRest": "allow",
+      "opaRest": "n/a",
       "ok": true,
       "why": "admin with MFA"
     },
@@ -175,7 +169,7 @@
       "cedar": "deny",
       "cedarReasons": "",
       "opaWasm": "deny",
-      "opaRest": "deny",
+      "opaRest": "n/a",
       "ok": true,
       "why": "no MFA"
     },
@@ -185,7 +179,7 @@
       "cedar": "deny",
       "cedarReasons": "",
       "opaWasm": "deny",
-      "opaRest": "deny",
+      "opaRest": "n/a",
       "ok": true,
       "why": "other tenant's rule pack"
     },
@@ -195,7 +189,7 @@
       "cedar": "deny",
       "cedarReasons": "",
       "opaWasm": "deny",
-      "opaRest": "deny",
+      "opaRest": "n/a",
       "ok": true,
       "why": "not an admin"
     },
@@ -205,7 +199,7 @@
       "cedar": "allow",
       "cedarReasons": "policy5",
       "opaWasm": "allow",
-      "opaRest": "allow",
+      "opaRest": "n/a",
       "ok": true,
       "why": "audited break-glass"
     },
@@ -215,7 +209,7 @@
       "cedar": "deny",
       "cedarReasons": "policy6",
       "opaWasm": "deny",
-      "opaRest": "deny",
+      "opaRest": "n/a",
       "ok": true,
       "why": "no justification"
     },
@@ -225,7 +219,7 @@
       "cedar": "deny",
       "cedarReasons": "policy6",
       "opaWasm": "deny",
-      "opaRest": "deny",
+      "opaRest": "n/a",
       "ok": true,
       "why": "no MFA"
     },
@@ -235,7 +229,7 @@
       "cedar": "deny",
       "cedarReasons": "policy6",
       "opaWasm": "deny",
-      "opaRest": "deny",
+      "opaRest": "n/a",
       "ok": true,
       "why": "break-glass is read-only"
     },
@@ -245,7 +239,7 @@
       "cedar": "deny",
       "cedarReasons": "policy6",
       "opaWasm": "deny",
-      "opaRest": "deny",
+      "opaRest": "n/a",
       "ok": true,
       "why": "no break-glass"
     },
@@ -255,9 +249,9 @@
       "cedar": "deny",
       "cedarReasons": "policy7",
       "opaWasm": "deny",
-      "opaRest": "deny",
+      "opaRest": "n/a",
       "ok": true,
-      "why": "T3 without care purpose"
+      "why": "T0 without care purpose"
     },
     {
       "id": "C23",
@@ -265,9 +259,9 @@
       "cedar": "allow",
       "cedarReasons": "policy0",
       "opaWasm": "allow",
-      "opaRest": "allow",
+      "opaRest": "n/a",
       "ok": true,
-      "why": "T3 care with consent"
+      "why": "T0 care with consent"
     },
     {
       "id": "C24",
@@ -275,9 +269,9 @@
       "cedar": "deny",
       "cedarReasons": "policy7",
       "opaWasm": "deny",
-      "opaRest": "deny",
+      "opaRest": "n/a",
       "ok": true,
-      "why": "T3 care without consent"
+      "why": "T0 care without consent"
     }
   ]
 }

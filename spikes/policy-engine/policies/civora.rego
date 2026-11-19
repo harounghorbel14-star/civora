@@ -87,7 +87,7 @@ forbid if {
 # F2
 forbid if {
 	input.resource.type == "Case"
-	input.resource.dataTier >= 3
+	input.resource.dataTier == 0
 	not care_with_consent
 }
 

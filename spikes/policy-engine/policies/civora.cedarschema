@@ -1,5 +1,5 @@
 // CIVORA ABAC model for the O-A7 spike. Mirrors the Workspace RF rules (PRD 1.1) and the Government-track
-// T3 rule. Synthetic only; the production model is designed in Phase 3 (identity-access module).
+// Tier T0 (health) rule. Tiers per Phase 0 §10.1: 0 special category, 1 high, 2 moderate, 3 public. Synthetic only; the production model is designed in Phase 3 (identity-access module).
 entity Tenant;
 entity User = { tenant: Tenant, roles: Set<String>, unit: String };
 entity Customer = { tenant: Tenant };

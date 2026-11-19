@@ -10,7 +10,7 @@
 
 ## 1. What was tested
 
-The same eight rules were written in both languages. They come from the Workspace RF requirements (PRD 1.1) and the Government-track Tier T3 rule:
+The same eight rules were written in both languages. They come from the Workspace RF requirements (PRD 1.1) and the Government-track Tier T0 (health) rule:
 
 | Rule | Meaning |
 |---|---|
@@ -21,7 +21,7 @@ The same eight rules were written in both languages. They come from the Workspac
 | P5 | A tenant administrator changes rule-pack settings only with MFA |
 | P6 | CIVORA operations may read a case only through break-glass: MFA **and** a written justification |
 | F1 | Tenant isolation: nothing crosses tenants except a P6 read (break-glass never allows updates) |
-| F2 | Tier T3 (health) data only for the "care" purpose with recorded consent |
+| F2 | Tier T0 (special category: health) data only for the "care" purpose with recorded consent |
 
 Files:
 - [policies/civora.cedar](policies/civora.cedar) and its schema [policies/civora.cedarschema](policies/civora.cedarschema)
@@ -44,11 +44,11 @@ Engines and versions:
 
 | Evaluator | p50 | p99 | Notes |
 |---|---|---|---|
-| OPA, wasm in-process | **7.9 µs** | 25.6 µs | Input passed as a plain object |
-| Cedar, wasm in-process, pre-parsed policies and schema | **236 µs** | 383 µs | With per-request schema validation |
-| Cedar, same, request validation off | 221 µs | 352 µs | Validation itself is cheap |
-| Cedar, wasm, policies re-parsed on every call | 2,283 µs | 3,924 µs | Anti-pattern: always pre-parse |
-| OPA REST sidecar on loopback | 711 µs | 2,414 µs | 5,000 calls; includes HTTP and JSON |
+| OPA, wasm in-process | **7.7 µs** | 23.6 µs | Input passed as a plain object |
+| Cedar, wasm in-process, pre-parsed policies and schema | **246.9 µs** | 559.8 µs | With per-request schema validation |
+| Cedar, same, request validation off | 236.3 µs | 457.2 µs | Validation itself is cheap |
+| Cedar, wasm, policies re-parsed on every call | 2,328 µs | 3,866 µs | Anti-pattern: always pre-parse |
+| OPA REST sidecar on loopback | 711 µs | 2,414 µs | 5,000 calls; includes HTTP and JSON. Measured in the first run of the day (same rules; the T0 attribute was renumbered afterwards) |
 
 **Interpretation.**
 - Every option except per-call re-parsing is far below a 5 ms authorisation budget per request. Performance does not decide the choice.

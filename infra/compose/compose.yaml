@@ -19,7 +19,7 @@ x-pgenv: &pgenv
 
 services:
   # --- Data tier (ADR-003): one cluster per trust zone ---
-  pg-public:            # T0 public reference data (services directory, rule-pack texts)
+  pg-public:            # T3 public reference data (services directory, rule-pack texts)
     <<: *pg
     environment:
       <<: *pgenv
@@ -42,7 +42,7 @@ services:
       - pg-core:/var/lib/postgresql/data
       - ./postgres/core-init.sh:/docker-entrypoint-initdb.d/10-keycloak.sh:ro
 
-  pg-consent-audit:     # T2 consent records and hash-chained audit (separate keys and backups in staging)
+  pg-consent-audit:     # T1 (metadata) consent records and hash-chained audit (separate keys and backups in staging)
     <<: *pg
     environment:
       <<: *pgenv

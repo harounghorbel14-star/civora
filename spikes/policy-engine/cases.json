@@ -14,7 +14,7 @@
   "resources": {
     "caseA1": { "type": "Case", "id": "SYN-RC-A1", "tenant": "bank-a", "unit": "monetique", "customer": "c-1", "dataTier": 2 },
     "caseA2": { "type": "Case", "id": "SYN-RC-A2", "tenant": "bank-a", "unit": "credit", "customer": "c-2", "dataTier": 2 },
-    "caseT3": { "type": "Case", "id": "SYN-HC-01", "tenant": "bank-a", "unit": "monetique", "customer": "c-1", "dataTier": 3 },
+    "caseT0": { "type": "Case", "id": "SYN-HC-01", "tenant": "bank-a", "unit": "monetique", "customer": "c-1", "dataTier": 0 },
     "rpA": { "type": "RulePackActivation", "id": "rp-a-2022-08", "tenant": "bank-a" },
     "rpB": { "type": "RulePackActivation", "id": "rp-b-2022-08", "tenant": "bank-b" }
   },
@@ -41,8 +41,8 @@
     { "id": "C19", "p": "operator", "a": "case:read", "r": "caseA1", "ctx": { "breakGlass": true, "justification": "INC-2026-0042" }, "expect": "deny", "why": "no MFA" },
     { "id": "C20", "p": "operator", "a": "case:update", "r": "caseA1", "ctx": { "breakGlass": true, "mfa": true, "justification": "INC-2026-0042" }, "expect": "deny", "why": "break-glass is read-only" },
     { "id": "C21", "p": "operator", "a": "case:read", "r": "caseA1", "expect": "deny", "why": "no break-glass" },
-    { "id": "C22", "p": "handlerA", "a": "case:read", "r": "caseT3", "expect": "deny", "why": "T3 without care purpose" },
-    { "id": "C23", "p": "handlerA", "a": "case:read", "r": "caseT3", "ctx": { "purpose": "care", "consent": true }, "expect": "allow", "why": "T3 care with consent" },
-    { "id": "C24", "p": "handlerA", "a": "case:read", "r": "caseT3", "ctx": { "purpose": "care" }, "expect": "deny", "why": "T3 care without consent" }
+    { "id": "C22", "p": "handlerA", "a": "case:read", "r": "caseT0", "expect": "deny", "why": "T0 without care purpose" },
+    { "id": "C23", "p": "handlerA", "a": "case:read", "r": "caseT0", "ctx": { "purpose": "care", "consent": true }, "expect": "allow", "why": "T0 care with consent" },
+    { "id": "C24", "p": "handlerA", "a": "case:read", "r": "caseT0", "ctx": { "purpose": "care" }, "expect": "deny", "why": "T0 care without consent" }
   ]
 }
