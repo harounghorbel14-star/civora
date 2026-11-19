@@ -1,5 +1,7 @@
 # Test node for the postgresql_ha role: Ubuntu 24.04 with systemd (test harness only; never deployed).
 # Packages are preinstalled so the test runs without network access from the containers.
+# checkov:skip=CKV_DOCKER_3: test node runs systemd as PID 1 (root by design); never deployed, only used by run.sh
+# checkov:skip=CKV_DOCKER_2: systemd test node; readiness is checked by run.sh (systemctl is-system-running)
 # Behind a TLS-inspecting proxy: --secret id=proxy_ca,src=<ca.crt> --build-arg HTTPS_PROXY=<url> --network host
 FROM geerlingguy/docker-ubuntu2404-ansible@sha256:fa0889a991fe4f9404efc2f53d5960804f4e409e74bff6ad2443992cc57915c4
 ARG HTTPS_PROXY=""
