@@ -86,6 +86,8 @@ postgresql:
   pg_hba:
     - local all postgres peer
     - host all postgres 127.0.0.1/32 scram-sha-256
+    # Patroni reads the local timeline over a replication connection to localhost (needed to decide on pg_rewind)
+    - host replication replicator 127.0.0.1/32 scram-sha-256
 {% for h in groups['db_nodes'] %}
     - hostssl replication replicator {{ hostvars[h]['ansible_host'] }}/32 scram-sha-256
     - hostssl all rewind_user {{ hostvars[h]['ansible_host'] }}/32 scram-sha-256
