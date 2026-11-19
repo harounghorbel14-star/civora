@@ -20,6 +20,10 @@ RUN --mount=type=secret,id=proxy_ca,required=false \
 
 FROM node:22-alpine AS runtime
 ENV NODE_ENV=production CIVORA_ENV=dev PORT=3000
+# The runtime needs only `node`: remove the package managers bundled in the base image (they carry their
+# own dependency tree and CVEs, and nothing installs packages at runtime).
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+           /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /opt/yarn* /usr/local/bin/yarn /usr/local/bin/yarnpkg
 WORKDIR /app
 # Code is owned by root and only readable by the runtime user: the process cannot modify itself.
 COPY --from=build /out /app

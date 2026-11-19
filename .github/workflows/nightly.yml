@@ -1,0 +1,33 @@
+# Nightly rehearsals (O-T3): environments rebuilt from nothing, timed. Results appear in the job summary.
+name: nightly-rehearsals
+
+on:
+  schedule:
+    - cron: "17 1 * * *"   # 02:17 Africa/Tunis (UTC+1)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dev-cell-from-scratch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - name: Compose dev cell up from scratch + smoke tests
+        run: infra/scripts/dev-cell-up.sh --fresh | tee -a "$GITHUB_STEP_SUMMARY"
+
+  k3s-deploy-from-scratch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: azure/setup-helm@2f5e7bc67f1f9972ab16657bb795f36d8f04de0e # v5.1.0
+        with: { version: v3.22.1 }
+      - name: Build application image
+        run: docker build -f services/core/Dockerfile -t civora-core:dev .
+      - name: Air-gapped k3s cell from scratch, timed
+        run: infra/scripts/deploy-from-scratch.sh | tee -a "$GITHUB_STEP_SUMMARY"
