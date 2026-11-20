@@ -1,0 +1,15 @@
+-- Managed by Ansible (CIVORA, role postgresql_ha). Prints CHANGED when something was created.
+{% for db in postgresql_ha_databases %}
+{% for role in [db.owner, db.app_user] %}
+SELECT 'CHANGED' WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '{{ role }}');
+SELECT format('CREATE ROLE %I LOGIN', '{{ role }}') WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '{{ role }}') \gexec
+ALTER ROLE "{{ role }}" LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS
+  PASSWORD '{{ postgresql_ha_role_passwords[role] | replace("'", "''") }}';
+{% endfor %}
+SELECT 'CHANGED' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '{{ db.name }}');
+SELECT format('CREATE DATABASE %I OWNER %I', '{{ db.name }}', '{{ db.owner }}')
+  WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '{{ db.name }}') \gexec
+REVOKE ALL ON DATABASE "{{ db.name }}" FROM PUBLIC;
+GRANT CONNECT, TEMPORARY ON DATABASE "{{ db.name }}" TO "{{ db.app_user }}";
+GRANT ALL ON DATABASE "{{ db.name }}" TO "{{ db.owner }}";
+{% endfor %}

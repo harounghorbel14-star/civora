@@ -13,7 +13,13 @@ start=$(date +%s)
 cleanup() { "$bin/pg_ctl" -D "$dir" -m immediate stop >/dev/null 2>&1 || true; rm -rf "$dir"; }
 trap cleanup EXIT
 rm -rf "$dir"
-pgbackrest --stanza="$stanza" --pg1-path="$dir" --reset-pg1-host --type=immediate --target-action=promote \
+# Point-in-time drill: CIVORA_DRILL_TARGET_TIME="2026-11-19 09:00:00+00" restores to that moment instead.
+if [ -n "${CIVORA_DRILL_TARGET_TIME:-}" ]; then
+  target=(--type=time "--target=$CIVORA_DRILL_TARGET_TIME")
+else
+  target=(--type=immediate)
+fi
+pgbackrest --stanza="$stanza" --pg1-path="$dir" --reset-pg1-host "${target[@]}" --target-action=promote \
   --archive-mode=off --log-level-console=warn restore
 "$bin/pg_ctl" -D "$dir" -w -t 300 -l "$dir/drill.log" \
   -o "-p 5499 -c listen_addresses='' -c unix_socket_directories=/tmp -c ssl=off -c archive_mode=off -c hba_file=$dir/pg_hba.conf -c ident_file=$dir/pg_ident.conf" start >/dev/null \
@@ -26,5 +32,5 @@ value=$(psql -h /tmp -p 5499 -U postgres -d postgres -Atc "$query")
 "$bin/pg_ctl" -D "$dir" -m fast -w stop >/dev/null
 "$bin/pg_checksums" --check -D "$dir" >/dev/null
 label=$(pgbackrest --stanza="$stanza" info --output=json | python3 -c 'import json,sys;print(json.load(sys.stdin)[0]["backup"][-1]["label"])')
-printf '{"drill":"ok","stanza":"%s","backup":"%s","query_result":"%s","checksums":"verified","seconds":%d}\n' \
-  "$stanza" "$label" "$value" "$(( $(date +%s) - start ))"
+printf '{"drill":"ok","stanza":"%s","backup":"%s","target":"%s","query_result":"%s","checksums":"verified","seconds":%d}\n' \
+  "$stanza" "$label" "${CIVORA_DRILL_TARGET_TIME:-latest}" "$value" "$(( $(date +%s) - start ))"

@@ -1,0 +1,148 @@
+# Image admission (ADR-027, O-SEC2/O-SEC3): in namespaces labelled civora.tn/image-policy=enforced, every container
+# image (init, regular and ephemeral) must come from an allowed registry and be pinned by digest.
+# Built-in ValidatingAdmissionPolicy (Kubernetes >= 1.30, no extra controller). Parameters per cell come from the
+# ConfigMap civora-system/civora-image-policy (see image-policy-params.example.yaml); a missing ConfigMap denies.
+# Signature verification (cosign) needs an admission controller and is added before pilot — see
+# docs/phase-2/07-security-and-privacy-architecture.md §7.6. Validated by infra/scripts/validate-manifests.sh.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: civora-image-source-pods
+spec:
+  failurePolicy: Fail
+  paramKind: { apiVersion: v1, kind: ConfigMap }
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["pods", "pods/ephemeralcontainers"]
+  variables:
+    - name: spec
+      expression: object.spec
+    - name: images
+      expression: >-
+        variables.spec.containers.map(c, c.image)
+        + (has(variables.spec.initContainers) ? variables.spec.initContainers.map(c, c.image) : [])
+        + (has(variables.spec.ephemeralContainers) ? variables.spec.ephemeralContainers.map(c, c.image) : [])
+    - name: registries
+      expression: params.data.allowedRegistries.split(',').map(r, r.trim())
+    - name: foreign
+      expression: variables.images.filter(i, !variables.registries.exists(r, r != '' && i.startsWith(r + '/')))
+    - name: unpinned
+      expression: variables.images.filter(i, !i.matches('@sha256:[a-f0-9]{64}$'))
+  validations:
+    - expression: size(variables.foreign) == 0
+      messageExpression: "'image registry not allowed in this cell (ADR-027): ' + variables.foreign.join(', ')"
+      reason: Forbidden
+    - expression: "!has(params.data.requireDigest) || params.data.requireDigest != 'true' || size(variables.unpinned) == 0"
+      messageExpression: "'image must be pinned by digest (ADR-027): ' + variables.unpinned.join(', ')"
+      reason: Forbidden
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: civora-image-source-workloads
+spec:
+  failurePolicy: Fail
+  paramKind: { apiVersion: v1, kind: ConfigMap }
+  matchConstraints:
+    resourceRules:
+      - apiGroups: ["apps"]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["deployments", "statefulsets", "daemonsets", "replicasets"]
+      - apiGroups: ["batch"]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["jobs"]
+  variables:
+    - name: spec
+      expression: object.spec.template.spec
+    - name: images
+      expression: >-
+        variables.spec.containers.map(c, c.image)
+        + (has(variables.spec.initContainers) ? variables.spec.initContainers.map(c, c.image) : [])
+    - name: registries
+      expression: params.data.allowedRegistries.split(',').map(r, r.trim())
+    - name: foreign
+      expression: variables.images.filter(i, !variables.registries.exists(r, r != '' && i.startsWith(r + '/')))
+    - name: unpinned
+      expression: variables.images.filter(i, !i.matches('@sha256:[a-f0-9]{64}$'))
+  validations:
+    - expression: size(variables.foreign) == 0
+      messageExpression: "'image registry not allowed in this cell (ADR-027): ' + variables.foreign.join(', ')"
+      reason: Forbidden
+    - expression: "!has(params.data.requireDigest) || params.data.requireDigest != 'true' || size(variables.unpinned) == 0"
+      messageExpression: "'image must be pinned by digest (ADR-027): ' + variables.unpinned.join(', ')"
+      reason: Forbidden
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: civora-image-source-cronjobs
+spec:
+  failurePolicy: Fail
+  paramKind: { apiVersion: v1, kind: ConfigMap }
+  matchConstraints:
+    resourceRules:
+      - apiGroups: ["batch"]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["cronjobs"]
+  variables:
+    - name: spec
+      expression: object.spec.jobTemplate.spec.template.spec
+    - name: images
+      expression: >-
+        variables.spec.containers.map(c, c.image)
+        + (has(variables.spec.initContainers) ? variables.spec.initContainers.map(c, c.image) : [])
+    - name: registries
+      expression: params.data.allowedRegistries.split(',').map(r, r.trim())
+    - name: foreign
+      expression: variables.images.filter(i, !variables.registries.exists(r, r != '' && i.startsWith(r + '/')))
+    - name: unpinned
+      expression: variables.images.filter(i, !i.matches('@sha256:[a-f0-9]{64}$'))
+  validations:
+    - expression: size(variables.foreign) == 0
+      messageExpression: "'image registry not allowed in this cell (ADR-027): ' + variables.foreign.join(', ')"
+      reason: Forbidden
+    - expression: "!has(params.data.requireDigest) || params.data.requireDigest != 'true' || size(variables.unpinned) == 0"
+      messageExpression: "'image must be pinned by digest (ADR-027): ' + variables.unpinned.join(', ')"
+      reason: Forbidden
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: civora-image-source-pods
+spec:
+  policyName: civora-image-source-pods
+  validationActions: [Deny, Audit]
+  paramRef: { name: civora-image-policy, namespace: civora-system, parameterNotFoundAction: Deny }
+  matchResources:
+    namespaceSelector:
+      matchLabels: { civora.tn/image-policy: enforced }
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: civora-image-source-workloads
+spec:
+  policyName: civora-image-source-workloads
+  validationActions: [Deny, Audit]
+  paramRef: { name: civora-image-policy, namespace: civora-system, parameterNotFoundAction: Deny }
+  matchResources:
+    namespaceSelector:
+      matchLabels: { civora.tn/image-policy: enforced }
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: civora-image-source-cronjobs
+spec:
+  policyName: civora-image-source-cronjobs
+  validationActions: [Deny, Audit]
+  paramRef: { name: civora-image-policy, namespace: civora-system, parameterNotFoundAction: Deny }
+  matchResources:
+    namespaceSelector:
+      matchLabels: { civora.tn/image-policy: enforced }

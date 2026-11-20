@@ -11,6 +11,11 @@ on:
 permissions:
   contents: read
 
+# Explicit bash = "bash --noprofile --norc -eo pipefail": a failing script piped into tee fails the step.
+defaults:
+  run:
+    shell: bash
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -116,6 +121,7 @@ jobs:
           mkdir -p rendered
           helm template civora-core infra/helm/civora-core --kube-version 1.33.4 -n civora-tn -f infra/helm/civora-core/values-staging.yaml \
             --set image.digest=sha256:0000000000000000000000000000000000000000000000000000000000000000 > rendered/staging.yaml
+          helm template pg-router infra/helm/pg-router --kube-version 1.33.4 -n civora-tn -f infra/helm/pg-router/values-staging.yaml > rendered/pg-router-staging.yaml
           docker run --rm -v "$PWD:/repo:ro" "$CHECKOV_IMAGE" \
             -d /repo/infra -d /repo/rendered -d /repo/.github -f /repo/services/core/Dockerfile \
             --framework kubernetes,helm,dockerfile,terraform,ansible,github_actions \

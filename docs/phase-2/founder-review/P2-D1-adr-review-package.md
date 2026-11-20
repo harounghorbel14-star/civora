@@ -613,6 +613,17 @@ Each table answers the same eight questions. "[A]" marks an estimate.
 | Reversible? | Hard after production starts; moderate before |
 | If rejected | Re-opens D7; all of `infra/` would be redone |
 
+**New question for you (found 19 Nov 2026, after this package was first written).**
+
+- The "front door" software that Phase 0 chose for the MVP is no longer supported. Phase 0 said "NGINX ingress (MVP) → APISIX/Kong at pilot".
+- The Kubernetes project stopped maintaining the community **ingress-nginx** in March 2026: there are no more security fixes.
+- Options (details in ADR-013, "Open question"):
+  - (a) use **APISIX** from the start, as Phase 0 planned for the pilot anyway;
+  - (b) a different, maintained NGINX product;
+  - (c) another maintained gateway until the pilot.
+- Engineering recommends **(a)**: one migration fewer, and rate limits and API keys from day one.
+- Nothing has been changed; this is your decision. You can answer it together with ADR-013 in the form's "conditions or questions" column.
+
 ### ADR-014 — Accessibility and Arabic right-to-left as release gates (Group A)
 
 | Question | Answer |

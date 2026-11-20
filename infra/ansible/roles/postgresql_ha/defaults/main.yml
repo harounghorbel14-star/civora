@@ -17,12 +17,22 @@ postgresql_ha_packages:
   - pgbackrest
   - python3-psycopg2
 
-# etcd quorum: every database node plus the backup node (3 members in 3 zones in staging).
-postgresql_ha_etcd_members: "{{ groups['db_nodes'] + groups['backup'] }}"
+# etcd quorum must be odd: database nodes + backup node when that is odd (2 + 1 in staging), otherwise the
+# database nodes only (3 database nodes → 3 members).
+postgresql_ha_etcd_members: >-
+  {{ (groups['db_nodes'] + groups['backup']) if ((groups['db_nodes'] + groups['backup']) | length) is odd
+     else groups['db_nodes'] }}
 
 # Network rules (pg_hba). Application access only from these CIDRs (Kubernetes nodes); everything else is rejected.
 postgresql_ha_app_cidrs: []
 postgresql_ha_synchronous_mode: true   # no acknowledged write is lost on failover (RPO 0 for node loss)
+postgresql_ha_synchronous_node_count: 1
+
+# Application databases and least-privilege accounts (ADR-003): the owner runs migrations; the application account
+# logs in with NOBYPASSRLS and no ownership. Passwords come from OpenBao (postgresql_ha_role_passwords).
+#   - { name: civora_core, owner: civora_core_migrator, app_user: civora_core_app }
+postgresql_ha_databases: []
+postgresql_ha_role_passwords: {}
 
 # pgBackRest
 postgresql_ha_stanza: civora

@@ -20,6 +20,9 @@
       - groups['db_nodes'] | length >= 2
       - groups['backup'] | length >= 1
       - postgresql_ha_etcd_members | length is odd
+      - postgresql_ha_databases | map(attribute='owner') | reject('in', postgresql_ha_role_passwords) | list | length == 0
+      - postgresql_ha_databases | map(attribute='app_user') | reject('in', postgresql_ha_role_passwords) | list | length == 0
+    fail_msg: "Topology invalid, or a database account has no password in postgresql_ha_role_passwords."
     quiet: true
 
 - name: Packages (Ubuntu 24.04 archive)
@@ -39,6 +42,9 @@
 
 - name: Patroni and PostgreSQL
   ansible.builtin.import_tasks: patroni.yml
+
+- name: Application databases and accounts
+  ansible.builtin.import_tasks: databases.yml
 
 - name: First backup and backup schedule
   ansible.builtin.import_tasks: backup.yml

@@ -61,4 +61,33 @@ checkov.io/skip2: CKV_K8S_15=Images are deployed by immutable digest; IfNotPrese
     items:
       - key: {{ .Values.databaseSecret.key }}
         path: database-url
+{{- if .Values.databaseTls.caSecretName }}
+- name: db-ca
+  secret:
+    secretName: {{ .Values.databaseTls.caSecretName }}
+    items: [{ key: ca.crt, path: ca.crt }]
+{{- end }}
+{{- end -}}
+
+{{/* Migration job: owner credentials when configured, otherwise the runtime secret (dev). */}}
+{{- define "civora-core.migrateSecretVolume" -}}
+- name: db-secret
+  secret:
+    secretName: {{ default .Values.databaseSecret.name .Values.migrations.databaseSecret.name }}
+    defaultMode: 0400
+    items:
+      - key: {{ ternary .Values.migrations.databaseSecret.key .Values.databaseSecret.key (ne .Values.migrations.databaseSecret.name "") }}
+        path: database-url
+{{- if .Values.databaseTls.caSecretName }}
+- name: db-ca
+  secret:
+    secretName: {{ .Values.databaseTls.caSecretName }}
+    items: [{ key: ca.crt, path: ca.crt }]
+{{- end }}
+{{- end -}}
+
+{{- define "civora-core.dbCaMount" -}}
+{{- if .Values.databaseTls.caSecretName }}
+- { name: db-ca, mountPath: /var/run/secrets/civora-db-ca, readOnly: true }
+{{- end }}
 {{- end -}}

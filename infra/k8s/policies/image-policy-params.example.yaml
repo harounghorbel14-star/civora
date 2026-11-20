@@ -1,0 +1,11 @@
+# Per-cell parameters for image-admission.yaml. The registry below is a placeholder: the hosting provider and the
+# cell registry are not selected yet (Phase 1 evidence E-07). Third-party images (e.g. HAProxy for pg-router) are
+# mirrored into the cell registry by digest, so one entry is normally enough.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: civora-image-policy
+  namespace: civora-system
+data:
+  allowedRegistries: "registry.staging.civora.invalid"   # comma-separated, no scheme, no trailing slash
+  requireDigest: "true"

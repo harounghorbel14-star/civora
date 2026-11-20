@@ -1,6 +1,14 @@
 ---
 # etcd stores Patroni's leader lock. Mutual TLS for clients and peers; its own data directory, so the package's
-# default single-node data is never reused.
+# default single-node data is never reused. Nodes outside the quorum (backup node in a 3-database-node cell) keep
+# the package's etcd stopped and disabled.
+- name: Stop the package's etcd on nodes outside the quorum
+  ansible.builtin.systemd_service:
+    name: etcd
+    state: stopped
+    enabled: false
+  when: inventory_hostname not in postgresql_ha_etcd_members
+
 - name: Create the etcd data directory
   ansible.builtin.file:
     path: /var/lib/etcd/civora
@@ -8,6 +16,7 @@
     owner: etcd
     group: etcd
     mode: "0700"
+  when: inventory_hostname in postgresql_ha_etcd_members
 
 - name: Write the etcd configuration
   ansible.builtin.template:
@@ -17,19 +26,23 @@
     group: etcd
     mode: "0640"
   register: postgresql_ha_etcd_config
+  when: inventory_hostname in postgresql_ha_etcd_members
 
 - name: Restart etcd on configuration change, on all members together  # noqa: no-handler
   ansible.builtin.systemd_service:
     name: etcd
     state: restarted
     enabled: true
-  when: postgresql_ha_etcd_config is changed
+  when:
+    - inventory_hostname in postgresql_ha_etcd_members
+    - postgresql_ha_etcd_config is changed
 
 - name: Keep etcd enabled and running
   ansible.builtin.systemd_service:
     name: etcd
     state: started
     enabled: true
+  when: inventory_hostname in postgresql_ha_etcd_members
 
 - name: Wait until the etcd cluster is healthy
   ansible.builtin.command:
@@ -44,3 +57,4 @@
   retries: 30
   delay: 2
   changed_when: false
+  when: inventory_hostname in postgresql_ha_etcd_members

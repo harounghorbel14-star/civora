@@ -16,7 +16,7 @@
     path: /etc/hosts
     marker: "# {mark} CIVORA database tier (role postgresql_ha)"
     block: |
-      {% for h in postgresql_ha_etcd_members %}
+      {% for h in groups['db_nodes'] + groups['backup'] %}
       {{ hostvars[h]['ansible_host'] }} {{ h }}
       {% endfor %}
     unsafe_writes: true   # /etc/hosts can be a bind mount (containers); atomic replace is not possible there

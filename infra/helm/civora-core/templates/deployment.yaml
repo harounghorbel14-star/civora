@@ -73,6 +73,7 @@ spec:
           volumeMounts:
             - { name: tmp, mountPath: /tmp }
             - { name: db-secret, mountPath: /var/run/secrets/civora, readOnly: true }
+            {{- include "civora-core.dbCaMount" . | nindent 12 }}
       volumes:
         - name: tmp
           emptyDir: { sizeLimit: 64Mi }

@@ -1,0 +1,26 @@
+---
+# Runs once, on the current leader (found through the Patroni REST API). SQL goes through stdin, so passwords
+# never appear in process listings; tasks with secrets are no_log.
+- name: Find the current leader
+  ansible.builtin.uri:
+    url: "https://{{ ansible_host }}:8008/cluster"
+    ca_path: "{{ postgresql_ha_tls_dir }}/ca.crt"
+    return_content: true
+  register: postgresql_ha_cluster_view
+  run_once: true
+  delegate_to: "{{ groups['db_nodes'][0] }}"
+  when: postgresql_ha_databases | length > 0
+
+- name: Accounts, databases and privileges (idempotent)
+  ansible.builtin.command:
+    cmd: psql -v ON_ERROR_STOP=1 -h /var/run/postgresql -d postgres -q
+    stdin: "{{ lookup('ansible.builtin.template', 'databases.sql.j2') }}"
+  become: true
+  become_user: postgres
+  run_once: true
+  delegate_to: >-
+    {{ (postgresql_ha_cluster_view.json.members | selectattr('role', 'equalto', 'leader') | map(attribute='name') | first) }}
+  register: postgresql_ha_databases_sql
+  changed_when: "'CHANGED' in postgresql_ha_databases_sql.stdout"
+  no_log: true
+  when: postgresql_ha_databases | length > 0

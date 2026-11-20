@@ -19,6 +19,14 @@ databaseSecret:
 migrations:
   enabled: true               # pre-install/pre-upgrade Job running node-pg-migrate (ADR-024)
   backoffLimit: 1
+  # Migrations run as the database owner; the application runs as a NOBYPASSRLS account (ADR-003).
+  # Empty = use databaseSecret (dev only).
+  databaseSecret: { name: "", key: DATABASE_URL }
+
+# CA that signed the database certificates, for sslmode=verify-full (Secret key ca.crt). Mounted at
+# /var/run/secrets/civora-db-ca/ca.crt; reference it in the URL as sslrootcert=… . Empty = not mounted.
+databaseTls:
+  caSecretName: ""
 
 otel:
   endpoint: ""                # e.g. http://otel-collector.observability:4318

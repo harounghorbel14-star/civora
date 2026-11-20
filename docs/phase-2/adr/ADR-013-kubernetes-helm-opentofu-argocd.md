@@ -42,6 +42,21 @@
 
 - Chart lint + server-side validation on Kubernetes 1.33 under restricted PSA; Argo CD objects validated against v3.4.13 CRDs; OpenTofu validate/plan; ansible-lint production profile; Checkov. Full k3s rehearsal scheduled in nightly CI (could not run in the sandbox).
 
+## Open question found on 19 Nov 2026 (not decided here)
+
+- **The ingress controller named in Phase 0 is no longer maintained.**
+  - Phase 0 §8 chose "NGINX ingress (MVP) → APISIX/Kong at pilot".
+  - The Kubernetes project retired the community **ingress-nginx** controller in March 2026: no further releases, bug fixes or security updates. Sources: [retirement notice, 11 Nov 2025](https://kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/) and [Steering/SRC statement, 29 Jan 2026](https://www.kubernetes.io/blog/2026/01/29/ingress-nginx-statement/).
+  - RKE2 installs its packaged ingress-nginx unless it is disabled. The `rke2` role does not disable it yet.
+- **Options for the founder (P2-D1)** — all keep the Phase 0 pilot target:
+  - (a) use **APISIX from the MVP**, bringing the Phase 0 pilot choice forward; it also implements the Kubernetes Gateway API;
+  - (b) a maintained NGINX-based controller (F5 NGINX Ingress Controller, a different project);
+  - (c) a Gateway API implementation (for example Envoy Gateway or Traefik) until APISIX/Kong at pilot.
+- **Engineering recommendation: (a).** It avoids one migration, and the public edge then gets the rate limiting and API keys Phase 0 asked for at pilot.
+- **Nothing is changed until the founder decides.** Exposing an unpatched controller to the internet would breach Phase 0 §10, so before staging goes public either:
+  - this decision is made; or
+  - `rke2-ingress-nginx` is disabled and access stays private.
+
 ## Revisit when
 
 Provider selection; first staging rebuild (O-AC1).

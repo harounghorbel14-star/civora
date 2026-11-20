@@ -1,0 +1,9 @@
+# Staging example. The hosting provider is NOT selected (Phase 1 evidence E-07): addresses are documentation-only
+# (RFC 5737 TEST-NET-1) and the registry is a placeholder. Third-party images are mirrored into the cell registry.
+image:
+  repository: registry.staging.civora.invalid/mirror/haproxy
+servers:
+  - { name: tn-stg-db1, address: 192.0.2.31 }
+  - { name: tn-stg-db2, address: 192.0.2.32 }
+networkPolicy:
+  databaseCidrs: ["192.0.2.31/32", "192.0.2.32/32"]
