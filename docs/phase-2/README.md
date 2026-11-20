@@ -15,6 +15,7 @@
 3. [01 Architecture overview](01-architecture-overview.md): context, containers, principles, document map.
 4. [ADR index](adr/README.md): 29 decisions.
 5. [19 Traceability matrix](19-traceability-matrix.md): every requirement → deliverable → verification → status.
+6. [Database operations runbook](runbooks/database-operations.md) (draft): failover, the manual decision for 2-server sites, backups, restore drills — every command tested on containers.
 
 ## Documents
 
@@ -45,7 +46,9 @@
 | `services/core` | Walking skeleton (NestJS modular monolith) |
 | `packages/*` | i18n/RTL, feature flags, country packs (TN v0, BCT rule packs), synthetic data |
 | `infra/compose` | Local dev cell — `infra/scripts/dev-cell-up.sh --fresh` |
-| `infra/helm`, `infra/tofu`, `infra/ansible`, `infra/argocd` | Staging cell as code (provider-agnostic) — `infra/scripts/validate-manifests.sh` |
+| `infra/helm`, `infra/tofu`, `infra/ansible`, `infra/argocd` | Staging cell as code (provider-agnostic): application and `pg-router` charts, database role, platform services (`infra/argocd/platform`) — `infra/scripts/validate-manifests.sh` |
+| `infra/k8s/policies` | Image admission policy (allowed registries, digest pins) |
+| `infra/scripts/staging-rehearsal.sh` | Staging-shaped rehearsal: HA database tier + k3s + `pg-router` + civora-core (GitHub runners) |
 | `spikes/policy-engine` | OPA vs Cedar spike |
 | `.github/workflows` | CI with security gates; nightly rehearsals |
 

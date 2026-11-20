@@ -37,7 +37,7 @@ spec:
         - podSelector:
             matchLabels: {{- toYaml .Values.networkPolicy.clientPodSelector | nindent 14 }}
       ports:
-        - { port: postgres, protocol: TCP }
+        - { port: {{ .Values.postgresPort }}, protocol: TCP }
   egress:
     {{- if .Values.networkPolicy.databaseCidrs }}
     - to:

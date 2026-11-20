@@ -80,13 +80,31 @@ helm upgrade --install pg-router "$root/infra/helm/pg-router" -n "$ns" "${router
   || { kc -n "$ns" get pods -o wide; kc -n "$ns" describe pods -l app.kubernetes.io/name=pg-router | tail -30; exit 1; }
 stamp "pg-router ready (a primary is known)"
 
+# Diagnostic matrix, printed only if the application cannot reach the database: which hop refuses?
+pgprobe() { # name labels target
+  kc -n "$ns" run "$1" --rm -i --restart=Never --labels="$2" --image=postgres:16-alpine --image-pull-policy=IfNotPresent \
+    --overrides='{"spec":{"securityContext":{"runAsNonRoot":true,"runAsUser":70,"seccompProfile":{"type":"RuntimeDefault"}},"containers":[{"name":"p","image":"postgres:16-alpine","imagePullPolicy":"IfNotPresent","command":["pg_isready","-t","5","-h","'"$3"'","-p","5432"],"securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}}}]}}' 2>&1 | tail -1
+}
+diagnose() {
+  local pod_ip; pod_ip=$(kc -n "$ns" get pods -l app.kubernetes.io/name=pg-router -o jsonpath='{.items[0].status.podIP}')
+  echo "Diagnosis (pg_isready, 5 s):"
+  echo "  client labelled civora-core -> service pg-router: $(pgprobe d1 app.kubernetes.io/name=civora-core pg-router)"
+  echo "  client labelled civora-core -> pod $pod_ip:        $(pgprobe d2 app.kubernetes.io/name=civora-core "$pod_ip")"
+  echo "  client without labels      -> service pg-router: $(pgprobe d3 diag=yes pg-router)"
+  kc -n "$ns" get networkpolicy -o name | sed 's/^/  policy present: /'
+  kc -n "$ns" delete networkpolicy pg-router >/dev/null 2>&1; sleep 5
+  echo "  pg-router policy removed: civora-core -> service: $(pgprobe d4 app.kubernetes.io/name=civora-core pg-router)"
+  docker exec "$k3s_name" sh -c 'iptables-save 2>/dev/null | grep -ciE "kube-router|KUBE-POD-FW|KUBE-NWPLCY"' | sed 's/^/  kube-router policy rules: /'
+}
+
 # 5. civora-core: migrations as the owner (pre-install hook), runtime as the least-privilege account
 helm upgrade --install civora-core "$root/infra/helm/civora-core" -n "$ns" -f "$root/infra/helm/civora-core/values-local.yaml" \
   --set networkPolicy.databasePodSelector.app\\.kubernetes\\.io/name=pg-router \
   --set migrations.databaseSecret.name=civora-core-db-migrate --set databaseTls.caSecretName=civora-core-db-ca \
   --wait --timeout 5m >/dev/null \
   || { kc -n "$ns" get pods -o wide; kc -n "$ns" get endpointslices -o wide; kc get pods -A -o wide | grep -E "coredns|pg-router";
-       for p in $(kc -n "$ns" get pods -l app.kubernetes.io/component=migrate -o name); do echo "== $p"; kc -n "$ns" logs "$p" --tail=15 || true; done; exit 1; }
+       p=$(kc -n "$ns" get pods -l app.kubernetes.io/component=migrate -o name | head -1); echo "== $p"; kc -n "$ns" logs "$p" --tail=6 || true
+       diagnose; exit 1; }
 stamp "civora-core deployed (migrations applied)"
 
 # 6. Smoke tests
