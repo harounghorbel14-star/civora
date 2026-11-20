@@ -1,0 +1,23 @@
+{
+  "id": "RP-BCT-2022-08",
+  "version": "0.1.0",
+  "source": {
+    "text": "BCT Circular 2022-08 of 20 Oct 2022 (FR and AR official texts)",
+    "url": "https://www.bct.gov.tn/bct/siteprod/documents/Cir_2022_08_fr.pdf",
+    "verifiedOn": "2026-11-18",
+    "interpretationStatus": "text verified; interpretation pending counsel (Q-06, Q-07, Q-12, Q-13)"
+  },
+  "appliesTo": ["bank-resident", "bank-non-resident", "leasing", "factoring", "investment-bank"],
+  "caseTypes": [
+    { "code": "complaint", "countsInRegulatoryStatistics": true },
+    { "code": "service-request", "countsInRegulatoryStatistics": false },
+    { "code": "information-request", "countsInRegulatoryStatistics": false }
+  ],
+  "exclusions": ["referred-to-mediator", "in-court-or-arbitration", "already-settled", "employment-matter", "domestic-mobile-payment-circular-2020-11"],
+  "deadline": { "ceiling": 15, "unit": "banking-working-days", "from": "acknowledgement", "suspension": "not-allowed-pending-counsel-Q-07" },
+  "subjects": ["financing", "non-card-payment", "card-payment", "account-operation", "international-operations", "pricing", "remote-banking", "other-services"],
+  "mandatoryFields": ["reference", "complainantName", "rneIdentifierForLegalPersons", "receivedAt", "channel", "productOrService", "subjectAndDescription", "investigationsCarriedOut", "stepsTaken", "outcome"],
+  "statements": [
+    { "code": "ROGS760", "frequency": "annual", "dueDaysAfterReportingDate": 45, "format": "XML", "schemaStatus": "official XML schema not public (Q-09)" }
+  ]
+}

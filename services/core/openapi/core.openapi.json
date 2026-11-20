@@ -1,0 +1,271 @@
+{
+  "components": {
+    "schemas": {
+      "HealthChecks": {
+        "properties": {
+          "countryPack": {
+            "enum": [
+              "up"
+            ],
+            "type": "string"
+          },
+          "database": {
+            "enum": [
+              "up",
+              "down",
+              "not-configured"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "database",
+          "countryPack"
+        ],
+        "type": "object"
+      },
+      "HealthResponse": {
+        "properties": {
+          "checks": {
+            "$ref": "#/components/schemas/HealthChecks"
+          },
+          "countryPack": {
+            "$ref": "#/components/schemas/PackInfo"
+          },
+          "environment": {
+            "example": "dev",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "degraded"
+            ],
+            "type": "string"
+          },
+          "version": {
+            "example": "0.1.0",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "version",
+          "environment",
+          "countryPack",
+          "checks"
+        ],
+        "type": "object"
+      },
+      "LocaleDto": {
+        "properties": {
+          "code": {
+            "example": "ar-TN",
+            "type": "string"
+          },
+          "dir": {
+            "enum": [
+              "ltr",
+              "rtl"
+            ],
+            "type": "string"
+          },
+          "language": {
+            "example": "ar",
+            "type": "string"
+          },
+          "nameEn": {
+            "example": "Arabic",
+            "type": "string"
+          },
+          "nativeName": {
+            "example": "العربية",
+            "type": "string"
+          },
+          "numberingSystem": {
+            "description": "Unicode numbering system; Tunisia uses Western Arabic digits",
+            "example": "latn",
+            "type": "string"
+          },
+          "region": {
+            "example": "TN",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "code",
+          "language",
+          "region",
+          "dir",
+          "nameEn",
+          "nativeName",
+          "numberingSystem"
+        ],
+        "type": "object"
+      },
+      "LocalesResponse": {
+        "properties": {
+          "default": {
+            "example": "ar-TN",
+            "type": "string"
+          },
+          "fallback": {
+            "example": "fr-TN",
+            "type": "string"
+          },
+          "locales": {
+            "items": {
+              "$ref": "#/components/schemas/LocaleDto"
+            },
+            "type": "array"
+          },
+          "negotiated": {
+            "description": "Locale negotiated from Accept-Language",
+            "example": "ar-TN",
+            "type": "string"
+          }
+        },
+        "required": [
+          "default",
+          "fallback",
+          "negotiated",
+          "locales"
+        ],
+        "type": "object"
+      },
+      "PackInfo": {
+        "properties": {
+          "digest": {
+            "description": "SHA-256 digest of the verified pack manifest",
+            "type": "string"
+          },
+          "id": {
+            "example": "tn",
+            "type": "string"
+          },
+          "status": {
+            "example": "synthetic-development-only",
+            "type": "string"
+          },
+          "version": {
+            "example": "0.1.0",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "status",
+          "digest"
+        ],
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "contact": {},
+    "description": "Phase 2 walking skeleton. Contains platform endpoints only. Synthetic data only; no production integrations.",
+    "license": {
+      "name": "Proprietary — all rights reserved",
+      "url": "https://docs.civora.invalid/licence"
+    },
+    "title": "CIVORA Core API",
+    "version": "0.1.0"
+  },
+  "jsonSchemaDialect": "https://spec.openapis.org/oas/3.1/dialect/base",
+  "openapi": "3.1.0",
+  "paths": {
+    "/health": {
+      "get": {
+        "description": "Returns 200 while the process is alive. `status` is `degraded` when a configured dependency is down. Contains no personal data.",
+        "operationId": "HealthController_health",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "summary": "Liveness and dependency health (O-API1)",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "description": "503 when a configured dependency is down, so the orchestrator stops routing traffic.",
+        "operationId": "HealthController_ready",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "503": {
+            "description": "A configured dependency is down"
+          }
+        },
+        "summary": "Readiness probe",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/v1/meta/locales": {
+      "get": {
+        "description": "Driven by the country pack; negotiates `Accept-Language` (RFC 9110) and returns `Content-Language`.",
+        "operationId": "MetaController_locales",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Accept-Language",
+            "required": false,
+            "schema": {
+              "example": "ar-TN, fr;q=0.8",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocalesResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "summary": "Supported locales and text direction (O-API2)",
+        "tags": [
+          "meta"
+        ]
+      }
+    }
+  },
+  "servers": [
+    {
+      "description": "Local development cell",
+      "url": "http://localhost:3000"
+    }
+  ],
+  "tags": []
+}

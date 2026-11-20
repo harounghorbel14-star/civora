@@ -1,0 +1,22 @@
+---
+- name: Argo CD namespace
+  ansible.builtin.command:
+    cmd: "{{ argocd_bootstrap_kubectl }} --kubeconfig {{ argocd_bootstrap_kubeconfig }} create namespace argocd"
+  register: argocd_bootstrap_ns
+  changed_when: argocd_bootstrap_ns.rc == 0
+  failed_when: argocd_bootstrap_ns.rc != 0 and 'AlreadyExists' not in argocd_bootstrap_ns.stderr
+
+- name: Install Argo CD (pinned release)
+  ansible.builtin.command:
+    cmd: "{{ argocd_bootstrap_kubectl }} --kubeconfig {{ argocd_bootstrap_kubeconfig }} apply -n argocd --server-side -f {{ argocd_bootstrap_manifest_url }}"
+  register: argocd_bootstrap_install
+  changed_when: "'configured' in argocd_bootstrap_install.stdout or 'created' in argocd_bootstrap_install.stdout"
+
+- name: Register the cell's project and applications
+  ansible.builtin.command:
+    cmd: "{{ argocd_bootstrap_kubectl }} --kubeconfig {{ argocd_bootstrap_kubeconfig }} apply -f {{ item }}"
+  loop:
+    - "{{ argocd_bootstrap_repo_path }}/infra/argocd/project.yaml"
+    - "{{ argocd_bootstrap_repo_path }}/infra/argocd/apps/{{ civora_environment }}-{{ civora_country | lower }}.yaml"
+  register: argocd_bootstrap_apps
+  changed_when: "'configured' in argocd_bootstrap_apps.stdout or 'created' in argocd_bootstrap_apps.stdout"

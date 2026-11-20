@@ -73,7 +73,7 @@ All wireframes use synthetic example data.
 |---|---|
 | Languages | Arabic (MSA, Tunisian administrative and banking vocabulary), French, English. Derja only in the Guide (Phase 10) |
 | Templates | Institutions maintain AR and FR templates. Compliance approval is per language |
-| Terminology | Banking-sector glossary to add to [supporting/ux-writing-and-terminology.md](supporting/ux-writing-and-terminology.md), e.g. شكاية vs تظلّم for "complaint" (to confirm with design partners) |
+| Terminology | Official banking and data-protection terms verified against the Arabic regulatory texts: complaint = شكوى, banking mediator = الموفّق البنكي ([validation/arabic-legal-terminology.md](validation/arabic-legal-terminology.md)); entries added to [supporting/ux-writing-and-terminology.md](supporting/ux-writing-and-terminology.md) §7.5 |
 | Numbers & dates | Western Arabic digits for Tunisia; TND with 3 decimals; `dd/mm/yyyy` |
 | International | Country packs add languages (e.g. Eastern Arabic digits for Gulf) without design changes |
 

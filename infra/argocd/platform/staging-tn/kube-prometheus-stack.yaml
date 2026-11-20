@@ -1,0 +1,24 @@
+# kube-prometheus-stack 92.19.0 for the staging TN cell's observability stack (ADR-011). Values in Git: infra/argocd/platform/values/kube-prometheus-stack.yaml.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kube-prometheus-stack-staging-tn
+  namespace: argocd
+  annotations: { argocd.argoproj.io/sync-wave: "-3" }
+spec:
+  project: civora-platform
+  sources:
+    - repoURL: https://prometheus-community.github.io/helm-charts
+      chart: kube-prometheus-stack
+      targetRevision: 92.19.0
+      helm:
+        valueFiles: ["$values/infra/argocd/platform/values/kube-prometheus-stack.yaml"]
+    - repoURL: https://github.com/harounghorbel14-star/civora.git
+      targetRevision: main
+      ref: values
+  destination: { server: https://kubernetes.default.svc, namespace: observability }
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: ["CreateNamespace=true", "ServerSideApply=true"]
+    managedNamespaceMetadata:
+      labels: { pod-security.kubernetes.io/enforce: restricted }

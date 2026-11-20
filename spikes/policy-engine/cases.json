@@ -1,0 +1,48 @@
+{
+  "principals": {
+    "handlerA": { "type": "User", "id": "u-handler-a", "tenant": "bank-a", "roles": ["case-handler"], "unit": "monetique" },
+    "handlerA2": { "type": "User", "id": "u-handler-a2", "tenant": "bank-a", "roles": ["case-handler"], "unit": "credit" },
+    "supervisorA": { "type": "User", "id": "u-sup-a", "tenant": "bank-a", "roles": ["supervisor"], "unit": "hq" },
+    "correspondentA": { "type": "User", "id": "u-corr-a", "tenant": "bank-a", "roles": ["correspondent"], "unit": "hq" },
+    "adminA": { "type": "User", "id": "u-admin-a", "tenant": "bank-a", "roles": ["tenant-admin"], "unit": "hq" },
+    "handlerB": { "type": "User", "id": "u-handler-b", "tenant": "bank-b", "roles": ["case-handler"], "unit": "monetique" },
+    "supervisorB": { "type": "User", "id": "u-sup-b", "tenant": "bank-b", "roles": ["supervisor"], "unit": "hq" },
+    "operator": { "type": "User", "id": "u-op", "tenant": "civora-platform", "roles": ["platform-operator"], "unit": "ops" },
+    "customer1": { "type": "Customer", "id": "c-1", "tenant": "bank-a" },
+    "customer2": { "type": "Customer", "id": "c-2", "tenant": "bank-a" }
+  },
+  "resources": {
+    "caseA1": { "type": "Case", "id": "SYN-RC-A1", "tenant": "bank-a", "unit": "monetique", "customer": "c-1", "dataTier": 2 },
+    "caseA2": { "type": "Case", "id": "SYN-RC-A2", "tenant": "bank-a", "unit": "credit", "customer": "c-2", "dataTier": 2 },
+    "caseT0": { "type": "Case", "id": "SYN-HC-01", "tenant": "bank-a", "unit": "monetique", "customer": "c-1", "dataTier": 0 },
+    "rpA": { "type": "RulePackActivation", "id": "rp-a-2022-08", "tenant": "bank-a" },
+    "rpB": { "type": "RulePackActivation", "id": "rp-b-2022-08", "tenant": "bank-b" }
+  },
+  "defaultContext": { "mfa": false, "breakGlass": false, "justification": "", "purpose": "service", "consent": false },
+  "cases": [
+    { "id": "C01", "p": "handlerA", "a": "case:read", "r": "caseA1", "expect": "allow", "why": "own tenant and unit" },
+    { "id": "C02", "p": "handlerA", "a": "case:update", "r": "caseA1", "expect": "allow", "why": "own tenant and unit" },
+    { "id": "C03", "p": "handlerA", "a": "case:read", "r": "caseA2", "expect": "deny", "why": "other unit" },
+    { "id": "C04", "p": "handlerB", "a": "case:read", "r": "caseA1", "expect": "deny", "why": "other tenant (isolation)" },
+    { "id": "C05", "p": "supervisorB", "a": "case:read", "r": "caseA1", "expect": "deny", "why": "supervisor of another tenant" },
+    { "id": "C06", "p": "supervisorA", "a": "case:update", "r": "caseA2", "expect": "allow", "why": "supervisor, any unit of own tenant" },
+    { "id": "C07", "p": "handlerA", "a": "case:readInternalNotes", "r": "caseA1", "expect": "allow", "why": "staff see internal notes" },
+    { "id": "C08", "p": "handlerA", "a": "case:exportForMediator", "r": "caseA1", "expect": "deny", "why": "handlers do not export" },
+    { "id": "C09", "p": "correspondentA", "a": "case:exportForMediator", "r": "caseA2", "expect": "allow", "why": "BCT correspondent export" },
+    { "id": "C10", "p": "correspondentA", "a": "case:update", "r": "caseA2", "expect": "deny", "why": "correspondent cannot edit" },
+    { "id": "C11", "p": "customer1", "a": "case:readStatus", "r": "caseA1", "expect": "allow", "why": "own case" },
+    { "id": "C12", "p": "customer2", "a": "case:readStatus", "r": "caseA1", "expect": "deny", "why": "someone else's case" },
+    { "id": "C13", "p": "adminA", "a": "rulepack:configure", "r": "rpA", "ctx": { "mfa": true }, "expect": "allow", "why": "admin with MFA" },
+    { "id": "C14", "p": "adminA", "a": "rulepack:configure", "r": "rpA", "expect": "deny", "why": "no MFA" },
+    { "id": "C15", "p": "adminA", "a": "rulepack:configure", "r": "rpB", "ctx": { "mfa": true }, "expect": "deny", "why": "other tenant's rule pack" },
+    { "id": "C16", "p": "handlerA", "a": "rulepack:configure", "r": "rpA", "ctx": { "mfa": true }, "expect": "deny", "why": "not an admin" },
+    { "id": "C17", "p": "operator", "a": "case:read", "r": "caseA1", "ctx": { "breakGlass": true, "mfa": true, "justification": "INC-2026-0042" }, "expect": "allow", "why": "audited break-glass" },
+    { "id": "C18", "p": "operator", "a": "case:read", "r": "caseA1", "ctx": { "breakGlass": true, "mfa": true }, "expect": "deny", "why": "no justification" },
+    { "id": "C19", "p": "operator", "a": "case:read", "r": "caseA1", "ctx": { "breakGlass": true, "justification": "INC-2026-0042" }, "expect": "deny", "why": "no MFA" },
+    { "id": "C20", "p": "operator", "a": "case:update", "r": "caseA1", "ctx": { "breakGlass": true, "mfa": true, "justification": "INC-2026-0042" }, "expect": "deny", "why": "break-glass is read-only" },
+    { "id": "C21", "p": "operator", "a": "case:read", "r": "caseA1", "expect": "deny", "why": "no break-glass" },
+    { "id": "C22", "p": "handlerA", "a": "case:read", "r": "caseT0", "expect": "deny", "why": "T0 without care purpose" },
+    { "id": "C23", "p": "handlerA", "a": "case:read", "r": "caseT0", "ctx": { "purpose": "care", "consent": true }, "expect": "allow", "why": "T0 care with consent" },
+    { "id": "C24", "p": "handlerA", "a": "case:read", "r": "caseT0", "ctx": { "purpose": "care" }, "expect": "deny", "why": "T0 care without consent" }
+  ]
+}

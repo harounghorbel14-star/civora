@@ -1,0 +1,58 @@
+{
+  "id": "RP-BCT-2026-10",
+  "version": "0.1.0",
+  "source": {
+    "text": "BCT Circular 2026-10 of 25 Sep 2026 (payment institutions), Art. 11, 39, 48, 49; Annex 1 bis",
+    "url": "https://businessnews.com.tn/wp-content/uploads/2026/09/yA1IYG-Cir_2026_10_fr.pdf",
+    "verifiedOn": "2026-11-18",
+    "interpretationStatus": "text verified; entry into force ~late Dec 2026 to confirm (Q-10)"
+  },
+  "appliesTo": [
+    "payment-institution"
+  ],
+  "caseTypes": [
+    {
+      "code": "complaint",
+      "countsInRegulatoryStatistics": true
+    },
+    {
+      "code": "service-request",
+      "countsInRegulatoryStatistics": false
+    },
+    {
+      "code": "information-request",
+      "countsInRegulatoryStatistics": false
+    }
+  ],
+  "exclusions": [],
+  "deadline": {
+    "ceiling": null,
+    "unit": null,
+    "from": "acknowledgement",
+    "suspension": "Circular 2026-10 sets no numeric response deadline; institutions configure internal targets only (no regulatory ceiling enforced)"
+  },
+  "subjects": [],
+  "mandatoryFields": [
+    "reference",
+    "receivedAt",
+    "channel",
+    "subjectAndDescription",
+    "outcome"
+  ],
+  "statements": [
+    {
+      "code": "RAA10",
+      "frequency": "annual",
+      "dueDaysAfterReportingDate": 45,
+      "format": "XML",
+      "schemaStatus": "not public (Q-09)"
+    },
+    {
+      "code": "RAA20",
+      "frequency": "annual",
+      "dueDaysAfterReportingDate": 45,
+      "format": "XML",
+      "schemaStatus": "not public (Q-09)"
+    }
+  ]
+}

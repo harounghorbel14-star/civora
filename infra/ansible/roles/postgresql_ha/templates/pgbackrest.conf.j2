@@ -1,0 +1,54 @@
+# Managed by Ansible (CIVORA, role postgresql_ha). ADR-029.
+# Hosts are addressed by name: pgBackRest verifies the certificate's CN/DNS names (not IP addresses).
+[global]
+log-level-console=warn
+log-level-file=info
+log-path=/var/log/pgbackrest
+spool-path=/var/spool/pgbackrest
+start-fast=y
+tls-server-address=*
+tls-server-ca-file={{ postgresql_ha_tls_dir }}/ca.crt
+tls-server-cert-file={{ postgresql_ha_tls_dir }}/node.crt
+tls-server-key-file={{ postgresql_ha_tls_dir }}/node.key
+{% if inventory_hostname in postgresql_ha_repo_nodes %}
+{% set n = postgresql_ha_local_repo | int %}
+# Repository node (repo{{ n }}): accepts archive-push/get from the database nodes only (one tls-server-auth line per
+# client certificate name; commas in the value separate stanzas, not clients).
+{% for h in postgresql_ha_all_db_nodes %}
+tls-server-auth={{ h }}={{ postgresql_ha_stanza }}
+{% endfor %}
+repo{{ n }}-path={{ postgresql_ha_repo_path }}
+repo{{ n }}-retention-full={{ postgresql_ha_retention_full }}
+repo{{ n }}-cipher-type=aes-256-cbc
+repo{{ n }}-cipher-pass={{ postgresql_ha_repo_cipher_pass if n == 1 else postgresql_ha_repo2_cipher_pass }}
+compress-type=zst
+process-max=2
+
+[{{ postgresql_ha_stanza }}]
+{% for h in groups['db_nodes'] %}
+pg{{ loop.index }}-host={{ h }}
+pg{{ loop.index }}-host-type=tls
+pg{{ loop.index }}-host-ca-file={{ postgresql_ha_tls_dir }}/ca.crt
+pg{{ loop.index }}-host-cert-file={{ postgresql_ha_tls_dir }}/node.crt
+pg{{ loop.index }}-host-key-file={{ postgresql_ha_tls_dir }}/node.key
+pg{{ loop.index }}-path={{ postgresql_ha_data_dir }}
+{% endfor %}
+{% else %}
+# Database node: accepts backup/restore commands from the repository nodes only; archives WAL to every repository.
+# Second-site database nodes use repository 2 only (after a site loss, repository 1 is gone with the main site).
+{% set my_repos = postgresql_ha_repos | selectattr('index', 'equalto', 2) | list if postgresql_ha_standby_site | bool else postgresql_ha_repos %}
+{% for r in my_repos %}
+tls-server-auth={{ r.host }}={{ postgresql_ha_stanza }}
+{% endfor %}
+{% for r in my_repos %}
+repo{{ r.index }}-host={{ r.host }}
+repo{{ r.index }}-host-type=tls
+repo{{ r.index }}-host-ca-file={{ postgresql_ha_tls_dir }}/ca.crt
+repo{{ r.index }}-host-cert-file={{ postgresql_ha_tls_dir }}/node.crt
+repo{{ r.index }}-host-key-file={{ postgresql_ha_tls_dir }}/node.key
+{% endfor %}
+archive-async=y
+
+[{{ postgresql_ha_stanza }}]
+pg1-path={{ postgresql_ha_data_dir }}
+{% endif %}

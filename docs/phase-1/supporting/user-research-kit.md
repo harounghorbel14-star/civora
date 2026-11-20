@@ -46,7 +46,7 @@ Everything needed to run Phase 1 field research. **Claude cannot conduct intervi
   - region
   - digital confidence
   - **No ID numbers, no health details beyond what the participant volunteers.** Do not record such details if volunteered.
-- **Recordings** only with explicit consent. Store on encrypted devices or storage located in Tunisia. **Delete within 90 days** after anonymised notes are made.
+- **Recordings** only with explicit consent. Store on encrypted devices or storage located in Tunisia. **Delete within 30 days** after anonymised notes are made *(changed from 90 days on 18 Nov 2026 to align with the outreach and usability kits)*.
 - **No cloud transcription outside Tunisia** unless the participant consents and the recording is anonymised. Add a question to counsel on whether this research processing requires an INPDP declaration.
 - **Incentive:** a modest voucher (e.g. 30–50 TND [A]), identical for all participants and not conditional on answers.
 - **Safeguarding:** for older or vulnerable participants, offer a trusted companion. Never demonstrate "mandates" using participants' real relatives' data.
@@ -70,7 +70,7 @@ Everything needed to run Phase 1 field research. **Claude cannot conduct intervi
 > You are invited to a research session by CIVORA, an independent company designing digital public-service tools. **CIVORA is not a government body, and this session is not an official procedure.** We want to understand how you experience administrative procedures. The session lasts about 45–60 minutes.
 > - Participation is voluntary. You can skip any question or stop at any time, without giving a reason.
 > - We will not ask for your ID number, health information or other sensitive details. Please do not share them.
-> - With your permission, we will record audio/screen to take accurate notes. Recordings are stored securely and deleted within 90 days. Notes are anonymised.
+> - With your permission, we will record audio/screen to take accurate notes. Recordings are stored securely and deleted within 30 days. Notes are anonymised.
 > - Results will be used only to design CIVORA products and will be reported without your name.
 > - You can ask us to delete your data at any time: contact [research contact to be inserted].
 >
@@ -80,7 +80,7 @@ Everything needed to run Phase 1 field research. **Claude cannot conduct intervi
 > Vous êtes invité(e) à une séance de recherche organisée par CIVORA, une entreprise indépendante qui conçoit des outils numériques pour les services publics. **CIVORA n'est pas un organisme public et cette séance n'est pas une démarche officielle.** Nous souhaitons comprendre votre expérience des démarches administratives. La séance dure environ 45 à 60 minutes.
 > - La participation est volontaire. Vous pouvez ne pas répondre à une question ou arrêter à tout moment, sans justification.
 > - Nous ne vous demanderons ni votre numéro d'identité, ni des informations de santé ou autres données sensibles. Merci de ne pas les communiquer.
-> - Avec votre accord, nous enregistrerons l'audio ou l'écran pour prendre des notes fidèles. Les enregistrements sont conservés de façon sécurisée et supprimés sous 90 jours. Les notes sont anonymisées.
+> - Avec votre accord, nous enregistrerons l'audio ou l'écran pour prendre des notes fidèles. Les enregistrements sont conservés de façon sécurisée et supprimés sous 30 jours. Les notes sont anonymisées.
 > - Les résultats serviront uniquement à concevoir les produits CIVORA et seront présentés sans votre nom.
 > - Vous pouvez demander la suppression de vos données à tout moment : [contact à insérer].
 >
@@ -90,13 +90,13 @@ Everything needed to run Phase 1 field research. **Claude cannot conduct intervi
 > ندعوك إلى جلسة بحث تنظّمها CIVORA، وهي شركة مستقلّة تصمّم أدوات رقمية للخدمات العمومية. **CIVORA ليست هيكلاً حكومياً، وهذه الجلسة ليست إجراءً رسمياً.** نرغب في فهم تجربتك مع الإجراءات الإدارية. تدوم الجلسة بين 45 و60 دقيقة تقريباً.
 > - المشاركة طوعية. يمكنك عدم الإجابة عن أيّ سؤال أو التوقّف في أيّ وقت دون تقديم سبب.
 > - لن نطلب رقم بطاقة تعريفك ولا معطيات صحية أو حسّاسة. يُرجى عدم مشاركتها.
-> - بموافقتك، سنسجّل الصوت أو الشاشة لتدوين ملاحظات دقيقة. تُحفظ التسجيلات بشكل آمن وتُحذف في أجل أقصاه 90 يوماً. وتكون الملاحظات مجهولة الهوية.
+> - بموافقتك، سنسجّل الصوت أو الشاشة لتدوين ملاحظات دقيقة. تُحفظ التسجيلات بشكل آمن وتُحذف في أجل أقصاه 30 يوماً. وتكون الملاحظات مجهولة الهوية.
 > - تُستعمل النتائج فقط لتصميم منتجات CIVORA وتُعرض دون ذكر اسمك.
 > - يمكنك طلب حذف معطياتك في أيّ وقت: [جهة الاتصال تُضاف لاحقاً].
 >
 > ☐ أوافق على المشاركة. ☐ أوافق على تسجيل الصوت/الشاشة. الاسم أو الاسم المستعار: ______ التاريخ: ______
 
-*AR/FR texts require native legal-language review before use.*
+*AR/FR texts require native legal-language review before use. Attach the Law 2004-63 Art. 31 notice: see [../validation/government-research-recruitment-kit.md](../validation/government-research-recruitment-kit.md) §6.*
 
 ## 8.6 Interview guide — citizens (45–60 min)
 
@@ -197,6 +197,16 @@ Use a **validated translation** where available. Validated French and Arabic SUS
 - Go/no-go input to the Day-90 gate (Phase 0, Section 20.4).
 
 ## 8.12 First-product discovery module — Workspace, Regulated Finance (added in v2.0)
+
+> **18 Nov 2026:** extended by the ready-to-execute [financial-institution validation package](../validation/fi-validation-package.md). The package adds:
+> - the target list
+> - FR/AR invitations
+> - the evidence template
+> - buyer, procurement and willingness-to-pay questionnaires
+> - pain scoring
+> - hypotheses H-R6 and H-R7
+>
+> **Note on H-R2:** payment institutions are outside BCT Circular 2022-08 (they follow Circular 2026-10). The sample is re-balanced to ≥ 7 banks, ≥ 3 leasing/factoring companies and ≥ 3 payment institutions.
 
 **Objective:** validate or reject the first-product recommendation ([10](../10-first-product-recommendation.md)) with ≥ 15 financial institutions within 60 days.
 

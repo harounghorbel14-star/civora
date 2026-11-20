@@ -1,0 +1,25 @@
+# OpenBao, chart 0.30.7 (tag openbao-0.30.7 of 6 Nov 2026; OpenBao v2.7.2), 3 replicas with integrated Raft storage
+# and TLS (ADR-012). Unseal: manual M-of-N until the HSM/KMS auto-unseal is available in the cell (ADR-012).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: openbao-staging-tn
+  namespace: argocd
+  annotations: { argocd.argoproj.io/sync-wave: "-5" }
+spec:
+  project: civora-platform
+  sources:
+    - repoURL: https://openbao.github.io/openbao-helm
+      chart: openbao
+      targetRevision: 0.30.7
+      helm:
+        valueFiles: ["$values/infra/argocd/platform/values/openbao.yaml"]
+    - repoURL: https://github.com/harounghorbel14-star/civora.git
+      targetRevision: main
+      ref: values
+  destination: { server: https://kubernetes.default.svc, namespace: openbao }
+  syncPolicy:
+    automated: { prune: false, selfHeal: true }   # never prune a secrets store automatically
+    syncOptions: ["CreateNamespace=true", "ServerSideApply=true"]
+    managedNamespaceMetadata:
+      labels: { pod-security.kubernetes.io/enforce: restricted }

@@ -4,6 +4,14 @@ These profiles are **hypotheses** to validate in the 90-day discovery programme 
 
 ## 11.1 Ideal customer profiles (organisations) — first product
 
+> **Scope correction (18 Nov 2026, from the official BCT text [V][S159]):**
+> - BCT Circular 2022-08 covers banks, leasing, factoring and investment banks, **not payment institutions**.
+> - **ICP-2 and ICP-3 (leasing/factoring part) are the primary profiles.**
+> - **ICP-1 is secondary.** It is governed by Circulars 2026-10 and 2020-11.
+> - Microfinance institutions in ICP-3 follow a different regime (2016 client-protection order).
+>
+> See [validation/product-validation-report.md](validation/product-validation-report.md) §2. IDs are kept unchanged for traceability.
+
 | ICP | Who | Size signals | Triggers to buy | Likely objections | Success metric for them |
 |---|---|---|---|---|---|
 | **ICP-1 Payment provider** | Licensed payment institution or PSP (wallets, acquiring, transfers) | 20–200 staff; 10k–500k customers; fast growth | New licence; BCT inspection; complaint volume growing with users; app-store reviews | "Too early / too small"; price | Complaints answered in deadline; inspection-ready evidence |
@@ -31,7 +39,7 @@ These profiles are **hypotheses** to validate in the 90-day discovery programme 
 | **Rim** (39) — Head of Customer Relations | Owns policy, staffing, reporting | Hit deadlines; spot recurring issues; prepare annual board report | Manual report compilation; no root-cause data | Dashboards by category/branch/product; report generator |
 | **Karim** (50) — Correspondent to the banking mediator & BCT | Liaison for escalated cases and regulator requests | Fast, complete case files for the mediator; no surprises | Reconstructing case history from emails | Escalation workspace; complete exportable case file with audit trail |
 | **Ines** (31) — Compliance officer / DPO | Checks compliance and data protection | Evidence that rules and retention are applied | Audit questions she can't answer quickly | Immutable audit log; retention policies; access reports |
-| **Youssef** (28) — Customer of a payment app | Disputes a failed transfer | Know someone is handling it and when it will be resolved | Silence; repeating the story | Mobile status page in AR/FR; clear next step and deadline; mediator information if unsatisfied |
+| **Youssef** (28) — Bank customer using the bank's mobile app (2022-08). *A wallet dispute at a payment institution would follow rule pack RP-BCT-2020-11* | Disputes a failed transfer | Know someone is handling it and when it will be resolved | Silence; repeating the story | Mobile status page in AR/FR; clear next step and deadline; mediator information if unsatisfied |
 | **Admin Walid** (34) — IT / tenant administrator | Configures users, SSO, categories | Easy configuration; secure integration | Vendor lock-in; manual user management | SSO/SCIM later; configuration UI; export |
 
 ## 11.4 Anti-personas (not designing for)

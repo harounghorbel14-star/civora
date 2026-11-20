@@ -1,5 +1,11 @@
 # 11. Legal and Regulatory Analysis
 
+> **Phase 1 note (18 Nov 2026), annotation only.** Several texts below were later read in official or official-copy versions: Law 2004-63, Law 2016-48, Decree-law 2023-17 and BCT Circulars 2022-08, 2025-06, 2026-10 and 2020-11. The article-level results, applicability and counsel questions are in [Phase 1 legal verification matrix](../phase-1/validation/legal-regulatory-verification-matrix.md) and [BCT verification](../phase-1/validation/bct-regulatory-verification.md).
+>
+> Two points in this section are refined there:
+> 1. Law 2004-63 **Art. 52** makes INPDP authorisation mandatory for *every* transfer abroad; adequacy (Art. 51) is an additional condition.
+> 2. **Art. 22** imposes nationality, residency and record conditions on processors and their agents.
+
 > **This is not legal advice.** It is a structured issues map for Tunisian counsel. Labels: [V] verified text or official source; [P] press or secondary report; [A] assumption; [U] unknown.
 
 ## 11.1 Framework overview (Tunisia)

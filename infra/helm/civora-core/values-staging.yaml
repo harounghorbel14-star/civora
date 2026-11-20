@@ -1,0 +1,25 @@
+# Staging cell (TN). Applied by Argo CD from infra/argocd/apps/staging-tn.yaml.
+# The hosting provider is NOT selected yet (Phase 1 evidence E-07, quotes pending); registry and CIDRs are placeholders.
+image:
+  repository: registry.staging.civora.invalid/civora/core
+  digest: ""                 # set by the release pipeline to the signed image digest
+environment: staging
+countryPack: tn
+otel:
+  endpoint: http://otel-collector.observability:4318
+networkPolicy:
+  ingressFromNamespaces: ["ingress"]
+  metricsFromNamespaces: ["observability"]
+  # The application reaches the database only through pg-router (same namespace), which alone may reach the
+  # database servers (infra/helm/pg-router/values-staging.yaml).
+  databasePodSelector: { app.kubernetes.io/name: pg-router }
+  databaseCidrs: []
+# Secrets delivered by External Secrets from OpenBao (never in Git):
+#   civora-core-db          DATABASE_URL of the NOBYPASSRLS application account, host pg-router, sslmode=verify-full,
+#                           sslrootcert=/var/run/secrets/civora-db-ca/ca.crt
+#   civora-core-db-migrate  DATABASE_URL of the database owner (migration Job only)
+#   civora-core-db-ca       ca.crt of the cell CA
+migrations:
+  databaseSecret: { name: civora-core-db-migrate, key: DATABASE_URL }
+databaseTls:
+  caSecretName: civora-core-db-ca

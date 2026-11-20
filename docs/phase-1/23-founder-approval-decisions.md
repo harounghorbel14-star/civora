@@ -1,62 +1,76 @@
 # 23. Founder Approval Decisions (Phase 1)
 
-Decisions are prioritised.
-- **Tier A** must be decided before Phase 1 can be approved.
-- **Tier B** within the 90-day plan.
-- **Tier C** later.
+**Status after founder review (18 Nov 2026) and the Phase 1 completion and validation mission (18 Nov 2026):**
+- Overall direction accepted in principle.
+- **P1-D4 approved:** overlapping independent activities.
+- **P1-D13 approved as an evaluation:** KELORA, TELORA and NASAQ are evaluated; **no final name selected**.
+- **Phase 1 approval pending (P1-D12).** See the [readiness report](phase-1-readiness-report.md).
+- **Phase 2 and application development are on hold.**
 
-Phase 0 decisions affected by this phase are listed in Section 23.3.
+## 23.1 Decision register
 
-## Tier A — required to approve Phase 1
+| ID | Decision | Founder status (18 Nov 2026) | Conditions / boundaries | Where documented |
+|---|---|---|---|---|
+| **P1-D1** | Company positioning: global technology & digital infrastructure company with six divisions on one shared platform | ✅ **APPROVED** | Maintain all six divisions | [02](02-company-strategy.md), [04](04-business-division-strategy.md) |
+| **P1-D2** | Division stances | ✅ **APPROVED** | Enterprise = initial commercial priority; Government = active pipeline; Identity = partnerships; AI and Health follow their roadmap stages (Phases 10 and 7); Connect = shared infrastructure | [04](04-business-division-strategy.md) |
+| **P1-D3** | First commercial product: Workspace — Regulated Finance | 🟡 **CONDITIONAL** (unchanged; stays conditional until real market validation is obtained) | Recommended, but the score is not proof of demand. Required: ≥ 15 discovery interviews; regulatory validation; buyer & purchasing process confirmed; willingness-to-pay evidence; competitor & pricing validation; realistic MVP cost assessment. *18 Nov 2026: regulatory text verified; scope corrected (payment institutions are outside Circular 2022-08); market validation not yet obtained* | [10](10-first-product-recommendation.md), [validation-evidence-register.md](validation-evidence-register.md) E-01–E-07, [13](13-mvp-scope-and-specification.md) §13.8 |
+| **P1-D4** | Original roadmap protection and execution model | ✅ **APPROVED (18 Nov 2026): OVERLAPPING INDEPENDENT ACTIVITIES, with all original phase dependencies, order, full scope, deliverables, and approval gates preserved.** | Independent activities may proceed in parallel; dependencies always respected; original phase order and approval gates mandatory. All 15 phases keep names, objectives, dependencies, acceptance criteria and **complete intended scope**. The "light pass" proposal stays **withdrawn**. Enterprise work is additive only. *(Conditional status of 18 Nov 2026 superseded by this approval.)* | [roadmap-protection-matrix.md](roadmap-protection-matrix.md) |
+| **P1-D5** | Paid design-partner trials before Phase 13 | ✅ **APPROVED** | Synthetic or properly authorised test data only; no unauthorised production deployment | [10](10-first-product-recommendation.md) §10.6, [19](19-commercial-and-pricing-strategy.md) |
+| **P1-D6** | Six integration-status classes across all documentation | ✅ **APPROVED** | Applied to the Phase 0 integration register and feasibility matrix, and to Phase 1 mapping | [06](06-tunisia-government-service-mapping.md), [Phase 0 register](../phase-0/integration-status-register.md), [Phase 0 §12](../phase-0/12-integration-feasibility-matrix.md) |
+| **P1-D7** | Revised financial model | 🟡 **CONDITIONAL** (unchanged; stays conditional until independently validated) | Planning baseline only. v4 validation and sensitivities added (§20.7); still no quotation or customer commitment. Assumptions, validated figures, estimated costs and potential revenue are separated. **No funding target committed** until customer validation and sensitivity analysis are complete | [20](20-updated-financial-assumptions.md) §20.0, §20.6 |
+| **P1-D8** | Identity strategy: explore authorised e-KYC partnerships rather than build | ✅ **APPROVED** | — | [04](04-business-division-strategy.md) |
+| **P1-D9** | Pricing | 🟡 **CONDITIONAL** | Experimental pricing hypotheses until tested with prospective institutional customers | [19](19-commercial-and-pricing-strategy.md) §19.7 |
+| **P1-D10** | 20-sector Government catalog | ✅ **APPROVED WITH BOUNDARIES** | Excludes unauthorised operational policing, emergency dispatch, electoral administration and restricted national-register functions | [05](05-government-master-service-catalog.md) §5.2 |
+| **P1-D11** | Design-partner agreement | ✅ **APPROVED IN PRINCIPLE** | Subject to review by qualified Tunisian counsel | [supporting/design-partner-agreement-template.md](supporting/design-partner-agreement-template.md) |
+| **P1-D12** | Phase 1 approval | ⏳ **PENDING** (unchanged; stays pending until all Phase 1 acceptance criteria are met) | Until the required clarifications and outstanding evidence are documented. Readiness status on 18 Nov 2026: **NOT READY — VALIDATION ITEMS REMAINING** | [validation-evidence-register.md](validation-evidence-register.md); [phase-1-readiness-report.md](phase-1-readiness-report.md) |
 
-| ID | Decision | Options | Recommendation | Rationale | Affects |
-|---|---|---|---|---|---|
-| **P1-D1** | Company positioning | (a) GovTech platform (Phase 0); (b) **global technology & digital infrastructure company with six divisions on one shared platform** | **(b)**, as directed, with the focus rules in [02](02-company-strategy.md) §2.4 | Directive §1. Keeps Phase 0 reasoning as the Government foundation | Phase 0 D1 (extended) |
-| **P1-D2** | Division stances | Activate all six vs **staged**: B active (first revenue), A active pipeline, D incubate/partner, E incubate (Phase 10), F internal, C defer | **Staged** ([04](04-business-division-strategy.md)) | Directive: "do not build every division simultaneously" | — |
-| **P1-D3** | First product | (a) Government Workspace/Guide (Phase 0 D5); (b) e-KYC (Phase 0 L1); (c) **Workspace — Regulated Finance**; (d) Arabic/French document processing | **(c)** | #1 under all weightings; verified regulatory demand; same engine as Government ([09](09-opportunity-scoring-matrix.md), [10](10-first-product-recommendation.md)) | Supersedes Phase 0 D5 and the L1 emphasis of D2 |
-| **P1-D4** | Roadmap handling | (a) Phase 0 re-sequencing (D8); (b) original order with every phase at full Phase 0 scope; (c) **original order 0→15 with a first-product track and light passes** (documentation + synthetic prototypes) for Phases 7–10 in this cycle | **(c)** | Directive §13 forbids reordering. (b) delays first production revenue to ~M20+ (Moderate) [A] | Supersedes Phase 0 D8 |
-| **P1-D5** | Pre-Phase-13 commercial activity | (a) none; (b) **sandbox-only paid design-partner programme** (synthetic or anonymised data; no production use) | **(b)** | Validates demand and pricing without deploying before Phase 13 | — |
-| **P1-D6** | Integration classification | **Adopt the directive's six classes** across all registers; keep operational statuses as a sub-field | Adopt | Directive §6; crosswalk C6 | Phase 0 integration register |
+## 23.2 New decisions raised by this review
 
-## Tier B — within the 90-day plan
+| ID | Decision | Options | Recommendation | Why |
+|---|---|---|---|---|
+| **P1-D4a** | Roadmap execution mode (no change to phase order or scope) | **A** strictly sequential; **B** ordered, dependency-respecting overlap (phases start and are accepted in order; overlap only where Phase 0 dependencies allow) | **B** | ✅ **RESOLVED (18 Nov 2026)** by the approval of P1-D4: overlapping independent activities (option B). Same deliverables and criteria. Phase 13 at ~M18 vs ~M23 (Moderate); ~0.9M TND lower peak cash need ([roadmap-protection-matrix.md](roadmap-protection-matrix.md) §3) |
+| **P1-D13** | Company/brand name | (a) keep CIVORA with documented risk acceptance; (b) **rename** after attorney clearance of a shortlist (KELORA, TELORA, NASAQ); (c) keep CIVORA for Tunisia only | **(b)**. Keep "CIVORA" as working name until decided; **no significant branding spend** | ✅ **APPROVED (18 Nov 2026): EVALUATE KELORA, TELORA, AND NASAQ. No final name selected.** Evaluation done at desk level: KELORA scored highest, subject to professional clearance ([validation/company-name-evaluation.md](validation/company-name-evaluation.md)). The final name decision stays open. Background: reported registered CIVORA mark (DKSR GmbH) in the same field in the EU; Arabic collision with Sephora ([supporting/brand-identity.md](supporting/brand-identity.md) §6.7) |
+| **P1-D14** | Workspace AI inside Phase 10 | Include Workspace classification/extraction as additive Phase 10 scope, or not | Decide at Phase 10 | Documented as future requirement only (directive: no premature implementation) |
 
-| ID | Decision | Recommendation |
-|---|---|---|
-| **P1-D7** | Financial plan | Accept v2 assumptions ([20](20-updated-financial-assumptions.md)); keep staged funding (pre-seed 1.0–1.2M TND → Moderate trajectory). Confirms Phase 0 D3 |
-| **P1-D8** | Identity strategy | **Partner, don't build** e-KYC. Approach local providers (Avatar-ID, Kaoun/NGSIGN) and TunTrust for integrations into Workspace flows |
-| **P1-D9** | Pricing hypotheses | Approve tiers for testing ([19](19-commercial-and-pricing-strategy.md) §19.2); final prices after design partners |
-| **P1-D10** | Government catalog scope rules | Approve the 20-sector catalog ([05](05-government-master-service-catalog.md)) with exclusions: no emergency/policing or electoral systems; no national registers |
-| **P1-D11** | Design-partner agreement template | Approve sandbox terms (no production data; fee credited to year 1; confidentiality; no publicity without consent) |
-| **P1-D12** | Phase 1 approval timing | Approve Phase 1 at the Day-90 gate ([22](22-90-day-execution-plan.md) §22.4), or earlier if the founder considers the evidence sufficient |
-
-## Tier C — carried over from Phase 0 (still pending)
+## 23.3 Carried over from Phase 0 (still pending)
 
 | ID | Decision | Status |
 |---|---|---|
-| D11 | Open-source / open-core strategy | Pending. Recommendation unchanged: open-core (adapters, catalogue schema, Derja evaluation sets) |
-| **D12** | **Brand & trademark** (Arabic transliteration سيفورا collides with Sephora's Arabic brand) | **Pending. Urgent before any brand spend** |
-| D13 | First pilot targets | Updated by P1-D3: financial institutions first; one public institution if available |
-| D14 | First hires & compensation | Pending. Add a regulated-industries account executive (Moderate M7) |
+| D11 | Open-source / open-core strategy | Pending |
+| D12 | Brand & trademark | **Superseded by P1-D13** (investigation completed at desk level) |
+| D13 | First pilot targets | Updated by P1-D3 (financial institutions + one public institution in Phase 13) |
+| D14 | First hires & compensation | Pending |
 | D15 | Governance (advisory board, anti-bribery) | Pending |
-| D16, D17 | Holding structure; health real-data timing | Later, unchanged |
+| D16, D17 | Holding structure; health real-data timing | Later |
 
-## 23.3 Effect on Phase 0 decisions
+## 23.4 Effect on Phase 0 decisions
 
-| Phase 0 decision | Status after this phase |
+| Phase 0 decision | Status |
 |---|---|
-| D1 Strategic positioning | **Extended** by P1-D1 (infrastructure vendor/operator stance kept) |
-| D2 Go-to-market dual track | **Revised by P1-D3**: B2B first product = Workspace RF (not e-KYC); B2G pipeline unchanged |
-| D3 Funding path | **Confirmed** (P1-D7) |
-| D4 Corporate structure | Unchanged |
-| D5 MVP scope | **Proposed superseded by P1-D3** (Government MVP retained as Division A requirements) |
-| D6 Citizen Data Charter | Unchanged |
-| D7 Technology stack | Unchanged (to be revalidated in Phase 2) |
-| D8 Roadmap re-sequencing | **Superseded** (directive §13; P1-D4) |
-| D9 Hosting policy | Unchanged |
-| D10 AI model policy | Unchanged |
+| D1 | Extended by P1-D1 (approved) |
+| D2 | Revised by P1-D3 (conditional) |
+| D3 | Funding staging kept as planning ranges; not committed (P1-D7) |
+| D5 | Superseded by P1-D3 once confirmed (conditional) |
+| D8 | Superseded (directive §13; P1-D4) |
+| D4, D6, D7, D9, D10 | Unchanged |
 
-## Approval record
+## 23.5 Status summary and next founder decisions (18 Nov 2026)
 
-| Decision | Status | Date | Notes |
+| Status | Decisions |
+|---|---|
+| ✅ Approved | P1-D1, P1-D2, **P1-D4 (overlapping independent activities)**, P1-D5, P1-D6, P1-D8, P1-D10 (with boundaries), P1-D11 (in principle), **P1-D13 (evaluate KELORA, TELORA, NASAQ; no final name)** |
+| ✅ Resolved | P1-D4a (by P1-D4) |
+| 🟡 Conditional | P1-D3 (until market validation), P1-D7 (until independent validation), P1-D9 (pricing experimental) |
+| ⏳ Pending | P1-D12 (Phase 1 approval), P1-D14 (Workspace AI in Phase 10, decide at Phase 10) |
+| Decisions the founder will need later (not now) | Final company name after attorney clearance (follow-up to P1-D13). Confirmation or revision of P1-D3 at the Day-90 gate. Funding commitment (P1-D7), now informed by the market-size check (§20.7.7: Workspace RF alone cannot carry the Moderate plan). Citizen Data Charter wording (Phase 0 D6 follow-up; 5 proposals in [validation/charter-review-pack.md](validation/charter-review-pack.md)) |
+
+The founder actions needed to move P1-D3, P1-D7 and P1-D12 are listed in the [readiness report](phase-1-readiness-report.md) §7. **Phase 1 is not approved by this document.**
+
+## 23.6 Decisions recorded after 18 November 2026
+
+| ID | Decision | Status | Effect on Phase 1 |
 |---|---|---|---|
-| P1-D1 … P1-D12 | Pending | | |
+| **P2-D0** | Start Phase 2 — Technical Architecture, keeping the original 15-phase roadmap, all approved requirements and Phase 1 validation open | ✅ **Taken by the founder, 19 Nov 2026** ("I have decided to begin Phase 2 — Technical Architecture") | **None on Phase 1 status.** P1-D12 stays **pending**. Phase 2 may start under P1-D4 because its own dependency ("P1 IA outputs, partially") is met, but it **cannot be accepted before Phase 1** (acceptance in order). Phase 2 decisions P2-D1 onwards are tracked in the [Phase 2 readiness report](../phase-2/phase-2-readiness-report.md) |
+
+**Phase 1 is still not approved.**
+

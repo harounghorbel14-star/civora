@@ -1,0 +1,165 @@
+# promtool unit tests for civora-infrastructure-alerts.yaml (rules extracted to rules.yaml by the runner).
+rule_files: [rules.yaml]
+evaluation_interval: 1m
+tests:
+  - name: database leader, synchronous standby, replication lag
+    interval: 1m
+    input_series:
+      - { series: 'patroni_cluster_unlocked{scope="civora-tn",name="db1"}', values: '0 0 1 1 1 1' }
+      - { series: 'patroni_primary{scope="civora-tn",name="db1"}', values: '1x15' }
+      - { series: 'patroni_sync_standby{scope="civora-tn",name="db2"}', values: '1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0' }
+      - { series: 'patroni_xlog_location{scope="civora-tn",name="db1"}', values: '1000+100x15' }
+      - { series: 'patroni_replica{scope="civora-tn",name="db2"}', values: '1x15' }
+      - { series: 'patroni_xlog_replayed_location{scope="civora-tn",name="db2"}', values: '1000+100x2 1200x12' }
+      - { series: 'patroni_xlog_replayed_timestamp{scope="civora-tn",name="db2"}', values: '0+60x2 120x12' }
+    alert_rule_test:
+      - { eval_time: 2m, alertname: CivoraDatabaseNoLeader, exp_alerts: [] }
+      - eval_time: 4m
+        alertname: CivoraDatabaseNoLeader
+        exp_alerts: [{ exp_labels: { severity: page, scope: civora-tn }, exp_annotations: { summary: "Database cluster civora-tn has no leader: writes are stopped.", runbook: "docs/phase-2/runbooks/database-operations.md §4" } }]
+      - { eval_time: 5m, alertname: CivoraDatabaseNoSyncStandby, exp_alerts: [] }
+      - eval_time: 8m
+        alertname: CivoraDatabaseNoSyncStandby
+        exp_alerts:
+          - exp_labels: { severity: page, scope: civora-tn }
+            exp_annotations:
+              summary: "Database cluster civora-tn has no synchronous standby: on a 2-server site automatic failover is refused until one is designated (R2-10)."
+              runbook: "docs/phase-2/runbooks/database-operations.md §4"
+      - { eval_time: 2m, alertname: CivoraDatabaseReplicationLag, exp_alerts: [] }
+      - eval_time: 8m
+        alertname: CivoraDatabaseReplicationLag
+        exp_alerts:
+          - exp_labels: { severity: page, scope: civora-tn, name: db2 }
+            exp_annotations: { summary: "Replica db2 of civora-tn has not caught up for more than 30 s.", runbook: "docs/phase-2/runbooks/database-operations.md §5" }
+  - name: an idle cluster (no new WAL) does not raise replication lag
+    interval: 1m
+    input_series:
+      - { series: 'patroni_xlog_location{scope="civora-tn",name="db1"}', values: '5000x15' }
+      - { series: 'patroni_replica{scope="civora-tn",name="db2"}', values: '1x15' }
+      - { series: 'patroni_xlog_replayed_location{scope="civora-tn",name="db2"}', values: '5000x15' }
+      - { series: 'patroni_xlog_replayed_timestamp{scope="civora-tn",name="db2"}', values: '0x15' }
+    alert_rule_test:
+      - { eval_time: 12m, alertname: CivoraDatabaseReplicationLag, exp_alerts: [] }
+  - name: WAL archiving and RPO
+    interval: 1m
+    input_series:
+      - { series: 'civora_postgres_is_primary{instance="db1:9100"}', values: '1x20' }
+      - { series: 'civora_postgres_last_archived_timestamp_seconds{instance="db1:9100"}', values: '60x20' }
+      - { series: 'civora_postgres_last_archive_failure_timestamp_seconds{instance="db1:9100"}', values: '0 0 120x18' }
+      - { series: 'civora_postgres_wal_oldest_pending_archive_seconds{instance="db1:9100"}', values: '0 0 0+60x18' }
+    alert_rule_test:
+      - { eval_time: 1m, alertname: CivoraWalArchiveFailing, exp_alerts: [] }
+      - eval_time: 8m
+        alertname: CivoraWalArchiveFailing
+        exp_alerts:
+          - exp_labels: { severity: page, instance: "db1:9100" }
+            exp_annotations: { summary: "WAL archiving fails on db1:9100: backups and point-in-time recovery are falling behind.", runbook: "docs/phase-2/runbooks/database-operations.md §6" }
+      - { eval_time: 15m, alertname: CivoraRpoAtRisk, exp_alerts: [] }
+      - eval_time: 18m
+        alertname: CivoraRpoAtRisk
+        exp_alerts:
+          - exp_labels: { severity: page, instance: "db1:9100" }
+            exp_annotations:
+              summary: "A WAL segment on db1:9100 has waited more than 15 min to be archived: the RPO target (15 min) is at risk."
+              runbook: "docs/phase-2/runbooks/database-operations.md §8"
+  - name: backup age and stale collectors (hourly samples)
+    interval: 1h
+    input_series:
+      # repo 1: full backup at t=0 (stop time 0 s), never again; repo 2: a differential every hour
+      - { series: 'civora_pgbackrest_last_backup_timestamp_seconds{repo="1",type="full"}', values: '0x30' }
+      - { series: 'civora_pgbackrest_last_backup_timestamp_seconds{repo="2",type="full"}', values: '0x30' }
+      - { series: 'civora_pgbackrest_last_backup_timestamp_seconds{repo="2",type="diff"}', values: '0 0+3600x29' }
+      - { series: 'node_textfile_mtime_seconds{file="civora_pgbackrest.prom",instance="bk1:9100"}', values: '0+3600x5 18000x24' }
+    alert_rule_test:
+      - { eval_time: 25h, alertname: CivoraBackupTooOld, exp_alerts: [] }
+      - eval_time: 27h
+        alertname: CivoraBackupTooOld
+        exp_alerts:
+          - exp_labels: { severity: page, repo: "1" }
+            exp_annotations: { summary: "No successful backup in repository 1 for more than 26 h.", runbook: "docs/phase-2/runbooks/database-operations.md §6" }
+      - { eval_time: 5h, alertname: CivoraMetricsCollectorStale, exp_alerts: [] }
+      - eval_time: 7h
+        alertname: CivoraMetricsCollectorStale
+        exp_alerts:
+          - exp_labels: { severity: ticket, file: civora_pgbackrest.prom, instance: "bk1:9100" }
+            exp_annotations: { summary: "civora_pgbackrest.prom on bk1:9100 not refreshed for 15 min: backup and archive alerts are blind there." }
+  - name: repository health and disk space (minute samples)
+    interval: 1m
+    input_series:
+      - { series: 'civora_pgbackrest_stanza_status{repo="1"}', values: '0x30' }
+      - { series: 'civora_pgbackrest_stanza_status{repo="2"}', values: '0x5 4x25' }
+      - { series: 'node_filesystem_avail_bytes{instance="db1:9100",mountpoint="/var/lib/postgresql",fstype="ext4"}', values: '50x10 10x20' }
+      - { series: 'node_filesystem_size_bytes{instance="db1:9100",mountpoint="/var/lib/postgresql",fstype="ext4"}', values: '100x30' }
+      - { series: 'node_filesystem_avail_bytes{instance="db1:9100",mountpoint="/run",fstype="tmpfs"}', values: '1x30' }
+      - { series: 'node_filesystem_size_bytes{instance="db1:9100",mountpoint="/run",fstype="tmpfs"}', values: '100x30' }
+    alert_rule_test:
+      - { eval_time: 15m, alertname: CivoraBackupRepositoryUnhealthy, exp_alerts: [] }
+      - eval_time: 25m
+        alertname: CivoraBackupRepositoryUnhealthy
+        exp_alerts:
+          - exp_labels: { severity: page, repo: "2" }
+            exp_annotations: { summary: "Backup repository 2 reports status 4 (0 = ok).", runbook: "docs/phase-2/runbooks/database-operations.md §6" }
+      - { eval_time: 15m, alertname: CivoraDiskSpaceLow, exp_alerts: [] }
+      - eval_time: 25m
+        alertname: CivoraDiskSpaceLow
+        exp_alerts:
+          - exp_labels: { severity: page, instance: "db1:9100", mountpoint: /var/lib/postgresql, fstype: ext4 }
+            exp_annotations: { summary: "Less than 15 % free on db1:9100 /var/lib/postgresql." }
+  - name: workloads and certificates
+    interval: 1m
+    input_series:
+      - { series: 'kube_deployment_spec_replicas{namespace="civora-tn",deployment="civora-core"}', values: '2x20' }
+      - { series: 'kube_deployment_status_replicas_available{namespace="civora-tn",deployment="civora-core"}', values: '2x5 0x15' }
+      - { series: 'kube_statefulset_replicas{namespace="keycloak",statefulset="keycloak"}', values: '3x20' }
+      - { series: 'kube_statefulset_status_replicas_ready{namespace="keycloak",statefulset="keycloak"}', values: '3x20' }
+      - { series: 'certmanager_certificate_expiration_timestamp_seconds{namespace="openbao",name="openbao-server-tls"}', values: '1814460x20' }
+    alert_rule_test:
+      - { eval_time: 8m, alertname: CivoraWorkloadUnavailable, exp_alerts: [] }
+      - eval_time: 12m
+        alertname: CivoraWorkloadUnavailable
+        exp_alerts:
+          - exp_labels: { severity: page, namespace: civora-tn, deployment: civora-core }
+            exp_annotations: { summary: "Fewer than half of civora-tn/civora-core replicas are ready." }
+      - { eval_time: 0m, alertname: CivoraCertificateExpiringSoon, exp_alerts: [] }
+      - eval_time: 2m
+        alertname: CivoraCertificateExpiringSoon
+        exp_alerts:
+          - exp_labels: { severity: ticket, namespace: openbao, name: openbao-server-tls }
+            exp_annotations: { summary: "Certificate openbao/openbao-server-tls expires in less than 21 days." }
+  - name: second site and router
+    interval: 1m
+    input_series:
+      - { series: 'civora_postgres_is_primary{instance="db1:9100"}', values: '1x20' }
+      - { series: 'civora_postgres_is_primary{instance="db2:9100"}', values: '0x20' }
+      - { series: 'civora_postgres_standby_site_slot_active{instance="db1:9100"}', values: '1x3 0x16' }
+      - { series: 'civora_postgres_standby_site_slot_active{instance="db2:9100"}', values: '0x20' }
+      - { series: 'civora_postgres_standby_site_slot_lag_bytes{instance="db1:9100"}', values: '0x3 300000000x8 30000000000x8' }
+      - { series: 'haproxy_backend_active_servers{namespace="civora-tn",pod="pg-router-a",proxy="postgresql_primary"}', values: '1x3 0x5 1x5' }
+      - { series: 'haproxy_backend_active_servers{namespace="civora-tn",pod="pg-router-b",proxy="postgresql_primary"}', values: '1x3 0x5 1x5' }
+    alert_rule_test:
+      # Quiet: a replica (db2) never has an active slot; that is not an alert.
+      - { eval_time: 3m, alertname: CivoraStandbySiteDisconnected, exp_alerts: [] }
+      - eval_time: 10m
+        alertname: CivoraStandbySiteDisconnected
+        exp_alerts:
+          - exp_labels: { severity: page, instance: "db1:9100" }
+            exp_annotations: { summary: "The second site is not streaming from db1:9100: on a site loss, writes since the last archived WAL (up to 60 s) would be lost.", runbook: "docs/phase-2/runbooks/database-operations.md §8.1" }
+      - { eval_time: 6m, alertname: CivoraStandbySiteLagging, exp_alerts: [] }
+      - eval_time: 9m
+        alertname: CivoraStandbySiteLagging
+        exp_alerts:
+          - exp_labels: { severity: page, instance: "db1:9100" }
+            exp_annotations: { summary: "The second site is more than 256 MB of WAL behind db1:9100: the site-loss RPO is degraded.", runbook: "docs/phase-2/runbooks/database-operations.md §8.1" }
+      - { eval_time: 10m, alertname: CivoraStandbySlotNearLimit, exp_alerts: [] }
+      - eval_time: 14m
+        alertname: CivoraStandbySlotNearLimit
+        exp_alerts:
+          - exp_labels: { severity: page, instance: "db1:9100" }
+            exp_annotations: { summary: "WAL kept for the second site on db1:9100 exceeds 25 GB; at 50 GB the slot is dropped and site B must be re-cloned.", runbook: "docs/phase-2/runbooks/database-operations.md §8.1" }
+      - { eval_time: 4m, alertname: CivoraDatabaseRouterNoPrimary, exp_alerts: [] }
+      - eval_time: 6m
+        alertname: CivoraDatabaseRouterNoPrimary
+        exp_alerts:
+          - exp_labels: { severity: page, namespace: civora-tn }
+            exp_annotations: { summary: "pg-router in civora-tn sees no primary: applications cannot write.", runbook: "docs/phase-2/runbooks/database-operations.md §2" }
+      - { eval_time: 10m, alertname: CivoraDatabaseRouterNoPrimary, exp_alerts: [] }

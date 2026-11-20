@@ -1,0 +1,29 @@
+# Staging TN application. Argo CD pulls from Git (no CI credentials into the cluster).
+# Release pipeline updates values-staging.yaml image.digest via pull request; Argo CD syncs after merge.
+# Production cells use manual sync with two approvals (docs/phase-2/16-infrastructure-plan.md §16.6).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: civora-core-staging-tn
+  namespace: argocd
+  finalizers: ["resources-finalizer.argocd.argoproj.io"]
+spec:
+  project: civora-tn
+  source:
+    repoURL: https://github.com/harounghorbel14-star/civora.git
+    targetRevision: main
+    path: infra/helm/civora-core
+    helm:
+      valueFiles: ["values.yaml", "values-staging.yaml"]
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: civora-tn
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: ["CreateNamespace=true", "ServerSideApply=true"]
+    managedNamespaceMetadata:
+      labels:
+        pod-security.kubernetes.io/enforce: restricted
+        civora.io/cell: tn
+        civora.tn/image-policy: enforced   # registry + digest admission policy (ADR-027; platform app admission-policies)
+        policy.sigstore.dev/include: "true"   # signature enforcement (ADR-027; infra/k8s/policies/image-signatures.yaml)

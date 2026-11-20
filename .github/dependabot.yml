@@ -1,0 +1,16 @@
+# Dependency updates (ADR-027). Weekly, grouped, reviewed like any change (two approvals once the team allows).
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule: { interval: weekly, day: monday, time: "06:00", timezone: Africa/Tunis }
+    open-pull-requests-limit: 5
+    groups:
+      nestjs: { patterns: ["@nestjs/*"] }
+      types: { patterns: ["@types/*"] }
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
+  - package-ecosystem: docker
+    directory: /services/core
+    schedule: { interval: weekly }

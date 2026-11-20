@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels: {{- include "pg-router.labels" . | nindent 4 }}
+  annotations:
+    checkov.io/skip1: CKV_K8S_11=No CPU limit by design (avoids CFS throttling on the data path); CPU requests set
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels: {{- include "pg-router.selector" . | nindent 6 }}
+  template:
+    metadata:
+      labels: {{- include "pg-router.labels" . | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10099    # any non-root UID works (ports > 1024, files mounted read-only); high UID per CKV_K8S_40
+        runAsGroup: 10099
+        seccompProfile: { type: RuntimeDefault }
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels: {{- include "pg-router.selector" . | nindent 14 }}
+      containers:
+        - name: haproxy
+          image: "{{ .Values.image.repository }}@{{ .Values.image.digest }}"
+          imagePullPolicy: IfNotPresent
+          args: ["-W", "-db", "-f", "/usr/local/etc/haproxy/haproxy.cfg"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          ports:
+            - { name: postgres, containerPort: {{ .Values.postgresPort }} }
+            - { name: health, containerPort: 8404 }
+          livenessProbe:
+            tcpSocket: { port: health }
+            periodSeconds: 10
+          readinessProbe:
+            httpGet: { path: /healthz, port: health }
+            periodSeconds: 2
+            failureThreshold: 2
+          resources: {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - { name: config, mountPath: /usr/local/etc/haproxy, readOnly: true }
+            - { name: ca, mountPath: /etc/pg-router, readOnly: true }
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - name: config
+          configMap: { name: {{ .Release.Name }}-config }
+        - name: ca
+          secret:
+            secretName: {{ .Values.caSecretName }}
+            items: [{ key: ca.crt, path: ca.crt }]
+        - name: tmp
+          emptyDir: { sizeLimit: 8Mi }

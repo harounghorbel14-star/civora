@@ -1,0 +1,57 @@
+# OpenBao chart 0.30.7 values for a CIVORA cell (ADR-012): 3 replicas, integrated Raft storage, TLS everywhere,
+# restricted Pod Security. The TLS secret `openbao-server-tls` (tls.crt, tls.key, ca.crt) is issued by cert-manager
+# from the cell CA. Unseal is manual M-of-N until HSM/KMS auto-unseal exists in the cell.
+global:
+  tlsDisable: false
+injector: { enabled: false }   # workloads receive secrets through External Secrets, not sidecars
+csi: { enabled: false }
+ui: { enabled: false }
+server:
+  statefulSet:
+    # The chart's default container context lacks capabilities.drop=ALL, which restricted Pod Security refuses
+    # (caught by validate-manifests.sh; the chart-default control is kept as a test).
+    securityContext:
+      pod:
+        runAsNonRoot: true
+        runAsUser: 100
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+      container:
+        allowPrivilegeEscalation: false
+        capabilities: { drop: [ALL] }
+  extraVolumes:
+    - { type: secret, name: openbao-server-tls }
+  dataStorage: { enabled: true, size: 10Gi }
+  auditStorage: { enabled: true, size: 10Gi }
+  ha:
+    enabled: true
+    replicas: 3
+    raft:
+      enabled: true
+      setNodeId: true
+      config: |
+        ui = false
+        listener "tcp" {
+          address            = "[::]:8200"
+          cluster_address    = "[::]:8201"
+          tls_cert_file      = "/openbao/userconfig/openbao-server-tls/tls.crt"
+          tls_key_file       = "/openbao/userconfig/openbao-server-tls/tls.key"
+          tls_client_ca_file = "/openbao/userconfig/openbao-server-tls/ca.crt"
+        }
+        storage "raft" {
+          path = "/openbao/data"
+          retry_join {
+            leader_api_addr     = "https://openbao-0.openbao-internal:8200"
+            leader_ca_cert_file = "/openbao/userconfig/openbao-server-tls/ca.crt"
+          }
+          retry_join {
+            leader_api_addr     = "https://openbao-1.openbao-internal:8200"
+            leader_ca_cert_file = "/openbao/userconfig/openbao-server-tls/ca.crt"
+          }
+          retry_join {
+            leader_api_addr     = "https://openbao-2.openbao-internal:8200"
+            leader_ca_cert_file = "/openbao/userconfig/openbao-server-tls/ca.crt"
+          }
+        }
+        service_registration "kubernetes" {}

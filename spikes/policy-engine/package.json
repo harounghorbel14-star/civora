@@ -1,0 +1,13 @@
+{
+  "name": "@civora/spike-policy-engine",
+  "version": "0.0.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "description": "O-A7 spike: OPA (Rego) vs Cedar for CIVORA ABAC. Not shipped; outside the pnpm workspace.",
+  "type": "module",
+  "scripts": { "spike": "node run.mjs" },
+  "dependencies": {
+    "@cedar-policy/cedar-wasm": "4.14.0",
+    "@open-policy-agent/opa-wasm": "1.10.0"
+  }
+}

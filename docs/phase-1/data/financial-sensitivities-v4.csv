@@ -1,0 +1,28 @@
+scenario,case,peak_cash_need_pl_basis_tnd,change_vs_base,peak_cash_need_with_receivable_delays_tnd,revenue_y1_tnd,revenue_y2_tnd,revenue_y3_tnd,revenue_m36_tnd,b2b_clients_m36,first_production_client_month,breakeven_month
+lean,Base (approved overlapping execution),2754351,+0%,2890351,0,20000,352500,48000,4,27,none by M36
+lean,"Price −30% (B2B subscription, overage, implementation, design-partner fees)",2802914,+2%,2922114,0,14000,294750,39600,4,27,none by M36
+lean,Delayed customer acquisition (B2B ramp 50% slower after first client),2786726,+1%,2903726,0,20000,310000,33500,3,27,none by M36
+lean,Half the expected customers (B2B clients ×0.5),2826451,+3%,2924451,0,20000,258500,29000,2,29,none by M36
+lean,"No government revenue (no public-sector services or licences, Tunisia or international)",2866351,+4%,2922351,0,20000,192500,28000,4,27,none by M36
+lean,"Increased development costs (engineering & product salaries +25%, one-off compliance/tooling +25%)",3203257,+16%,3339257,0,20000,352500,48000,4,27,none by M36
+lean,Delayed institutional procurement (all institutional contracts start 6 months later),2936176,+7%,3014176,0,20000,107000,39000,2,33,none by M36
+lean,"v3 combined downside (price −30%, clients −50%, no government)",2965384,+8%,2977984,0,14000,68950,6300,2,29,none by M36
+lean,Combined downside — all six stresses together,3459860,+26%,3470010,0,14000,10150,10150,1,36,none by M36
+moderate,Base (approved overlapping execution),7771390,+0%,8675057,45000,484000,2190667,335333,12,18,none by M36
+moderate,"Price −30% (B2B subscription, overage, implementation, design-partner fees)",8012860,+3%,8867927,31500,413800,1958467,304733,12,18,none by M36
+moderate,Delayed customer acquisition (B2B ramp 50% slower after first client),8023390,+3%,8879057,45000,430000,1914667,311333,8,18,none by M36
+moderate,Half the expected customers (B2B clients ×0.5),8160490,+5%,8983157,45000,370000,1797667,284333,6,19,none by M36
+moderate,"No government revenue (no public-sector services or licences, Tunisia or international)",8968057,+15%,9130057,45000,234000,774000,102000,12,18,none by M36
+moderate,"Increased development costs (engineering & product salaries +25%, one-off compliance/tooling +25%)",9178924,+18%,10082590,45000,484000,2190667,335333,12,18,none by M36
+moderate,Delayed institutional procurement (all institutional contracts start 6 months later),8781290,+13%,9261957,45000,21000,1294000,153000,8,24,none by M36
+moderate,"v3 combined downside (price −30%, clients −50%, no government)",9481897,+22%,9538597,31500,84000,266700,35700,6,19,none by M36
+moderate,Combined downside — all six stresses together,11061840,+42%,11078640,31500,0,126000,8400,2,26,none by M36
+enterprise,Base (approved overlapping execution),12887697,+0%,16377197,80000,1850833,8295667,1044333,23,15,none by M36
+enterprise,"Price −30% (B2B subscription, overage, implementation, design-partner fees)",13567212,+5%,16936112,56000,1571833,7716967,996033,23,15,none by M36
+enterprise,Delayed customer acquisition (B2B ramp 50% slower after first client),13552397,+5%,16909897,80000,1618833,7661667,988333,15,15,none by M36
+enterprise,Half the expected customers (B2B clients ×0.5),13952797,+8%,17248297,80000,1385833,7382667,967333,12,15,none by M36
+enterprise,"No government revenue (no public-sector services or licences, Tunisia or international)",18136447,+41%,18538447,80000,930000,1929000,161000,23,15,none by M36
+enterprise,"Increased development costs (engineering & product salaries +25%, one-off compliance/tooling +25%)",15362593,+19%,18852093,80000,1850833,8295667,1044333,23,15,none by M36
+enterprise,Delayed institutional procurement (all institutional contracts start 6 months later),16834847,+31%,18817347,80000,512000,4270000,642500,15,21,none by M36
+enterprise,"v3 combined downside (price −30%, clients −50%, no government)",19561532,+52%,19707132,56000,325500,711200,58800,12,15,none by M36
+enterprise,Combined downside — all six stresses together,22486248,+74%,22559048,56000,90300,366800,29400,6,21,none by M36

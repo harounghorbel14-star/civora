@@ -1,0 +1,140 @@
+# Managed by Ansible (CIVORA, role postgresql_ha). ADR-003.
+scope: {{ postgresql_ha_scope }}
+namespace: /civora/
+name: {{ inventory_hostname }}
+
+log:
+  level: INFO
+
+restapi:
+  listen: {{ ansible_host }}:8008
+  connect_address: {{ ansible_host }}:8008
+  certfile: {{ postgresql_ha_tls_dir }}/node.crt
+  keyfile: {{ postgresql_ha_tls_dir }}/node.key
+  cafile: {{ postgresql_ha_tls_dir }}/ca.crt
+  authentication:
+    username: patroni
+    password: "{{ postgresql_ha_restapi_password }}"
+
+ctl:
+  insecure: false
+  cacert: {{ postgresql_ha_tls_dir }}/ca.crt
+  certfile: {{ postgresql_ha_tls_dir }}/node.crt
+  keyfile: {{ postgresql_ha_tls_dir }}/node.key
+
+etcd3:
+  hosts: {% for h in postgresql_ha_etcd_members %}{{ hostvars[h]['ansible_host'] }}:2379{{ '' if loop.last else ',' }}{% endfor %}
+
+  protocol: https
+  cacert: {{ postgresql_ha_tls_dir }}/ca.crt
+  cert: {{ postgresql_ha_tls_dir }}/node.crt
+  key: {{ postgresql_ha_tls_dir }}/node.key
+
+bootstrap:
+{% if postgresql_ha_bootstrap_from_repo | int > 0 %}
+  # Disaster recovery (ADR-029; runbook §8): this NEW cluster is built from backup repository
+  # {{ postgresql_ha_bootstrap_from_repo }} instead of initdb; Patroni then replays the archived WAL and promotes.
+  method: pgbackrest
+  pgbackrest:
+    command: /usr/local/sbin/civora-bootstrap-from-backup
+    keep_existing_recovery_conf: false
+    no_params: true
+    recovery_conf:
+      recovery_target_action: promote
+      recovery_target_timeline: latest
+{% if postgresql_ha_bootstrap_target_time %}
+      recovery_target_time: "{{ postgresql_ha_bootstrap_target_time }}"
+{% endif %}
+      restore_command: pgbackrest --stanza={{ postgresql_ha_stanza }} --repo={{ postgresql_ha_bootstrap_from_repo }} archive-get %f "%p"
+{% endif %}
+  dcs:
+{% if postgresql_ha_standby_site | bool %}
+    # Second-site STANDBY CLUSTER (runbook §8.1): its leader streams from the main site through a permanent slot and
+    # falls back to repository 2 for WAL it missed. Promotion = remove this section from the dynamic configuration.
+    standby_cluster:
+      host: {{ groups['db_nodes'] | join(',') }}
+      port: 5432
+      primary_slot_name: {{ postgresql_ha_standby_slot }}
+      create_replica_methods: [basebackup]
+      restore_command: pgbackrest --stanza={{ postgresql_ha_stanza }} --repo=2 archive-get %f "%p"
+{% elif postgresql_ha_standby_nodes | length > 0 %}
+    # The second site's standby cluster streams through this permanent slot (kept on every member across failovers).
+    slots:
+      {{ postgresql_ha_standby_slot }}:
+        type: physical
+{% endif %}
+    ttl: 30
+    loop_wait: 10
+    retry_timeout: 10
+    maximum_lag_on_failover: 1048576
+    synchronous_mode: {{ postgresql_ha_synchronous_mode | lower }}
+    synchronous_node_count: {{ postgresql_ha_synchronous_node_count }}
+    postgresql:
+      use_pg_rewind: true
+      use_slots: true
+      parameters:
+        wal_level: replica
+        hot_standby: "on"
+        max_connections: 200
+        max_wal_senders: 10
+        max_replication_slots: 10
+        wal_keep_size: 1GB
+        max_slot_wal_keep_size: {{ postgresql_ha_max_slot_wal_keep_size }}
+        wal_log_hints: "on"
+        archive_mode: "on"
+        archive_timeout: 60
+        archive_command: "pgbackrest --stanza={{ postgresql_ha_stanza }} archive-push %p"
+        password_encryption: scram-sha-256
+        ssl: "on"
+        ssl_cert_file: {{ postgresql_ha_tls_dir }}/node.crt
+        ssl_key_file: {{ postgresql_ha_tls_dir }}/node.key
+        ssl_ca_file: {{ postgresql_ha_tls_dir }}/ca.crt
+        ssl_min_protocol_version: TLSv1.2
+        log_connections: "on"
+        log_disconnections: "on"
+        log_line_prefix: "%m [%p] %q%u@%d "
+  initdb:
+    - encoding: UTF8
+    - locale: C.UTF-8
+    - data-checksums
+
+postgresql:
+  listen: {{ ansible_host }},127.0.0.1:5432
+  connect_address: {{ ansible_host }}:5432
+  data_dir: {{ postgresql_ha_data_dir }}
+  bin_dir: {{ postgresql_ha_bin_dir }}
+  pgpass: /var/lib/postgresql/.pgpass_patroni
+  authentication:
+    superuser:
+      username: postgres
+      password: "{{ postgresql_ha_superuser_password }}"
+    replication:
+      username: replicator
+      password: "{{ postgresql_ha_replication_password }}"
+      sslmode: {{ postgresql_ha_replication_sslmode }}
+      sslrootcert: {{ postgresql_ha_tls_dir }}/ca.crt
+    rewind:
+      username: rewind_user
+      password: "{{ postgresql_ha_rewind_password }}"
+  parameters:
+    unix_socket_directories: /var/run/postgresql
+  pg_hba:
+    - local all postgres peer
+    - host all postgres 127.0.0.1/32 scram-sha-256
+    # Patroni reads the local timeline over a replication connection to localhost (needed to decide on pg_rewind)
+    - host replication replicator 127.0.0.1/32 scram-sha-256
+{% for h in postgresql_ha_all_db_nodes %}
+    - hostssl replication replicator {{ hostvars[h]['ansible_host'] }}/32 scram-sha-256
+    - hostssl all rewind_user {{ hostvars[h]['ansible_host'] }}/32 scram-sha-256
+    - hostssl all postgres {{ hostvars[h]['ansible_host'] }}/32 scram-sha-256
+{% endfor %}
+{% for cidr in postgresql_ha_app_cidrs %}
+    - hostssl all all {{ cidr }} scram-sha-256
+{% endfor %}
+    - host all all 0.0.0.0/0 reject
+
+tags:
+  nofailover: false
+  noloadbalance: false
+  clonefrom: false
+  nosync: false

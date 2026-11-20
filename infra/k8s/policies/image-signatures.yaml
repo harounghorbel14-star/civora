@@ -1,0 +1,19 @@
+# Image signature enforcement (ADR-027, revision proposed 20 Nov 2026): in namespaces labelled
+# policy.sigstore.dev/include=true, every image from the cell registry must carry a signature made with the CIVORA
+# release key (cosign). Verification uses only the public key, so it works in air-gapped and customer-hosted cells
+# (no dependency on public Sigstore services at admission). Images that match no policy are refused
+# (no-match-policy: deny), so third-party images must be mirrored into the cell registry and re-signed after their
+# upstream digest is checked. Enforced by the Sigstore policy-controller (infra/argocd/platform/staging-tn/
+# policy-controller.yaml). Tested on GitHub runners: infra/tests/image-signatures/run.sh.
+apiVersion: policy.sigstore.dev/v1beta1
+kind: ClusterImagePolicy
+metadata:
+  name: civora-release-signed
+spec:
+  images:
+    - glob: "registry.staging.civora.invalid/**"   # the cell registry (placeholder until the provider exists, E-07)
+  authorities:
+    - name: civora-release-key
+      key:
+        # Public key only (cosign.pub) in the policy-controller namespace; the private key stays in OpenBao/HSM.
+        secretRef: { name: civora-release-key }

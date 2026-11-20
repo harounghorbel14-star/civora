@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# Managed by Ansible (CIVORA, role postgresql_ha). Writes PostgreSQL archiving metrics for the node exporter's
+# text-file collector (alerts: WAL archive failing, RPO at risk). Runs every minute as root; queries as postgres.
+set -euo pipefail
+out={{ postgresql_ha_textfile_dir }}/civora_postgres.prom
+q() { runuser -u postgres -- psql -h /var/run/postgresql -d postgres -qAtX -F ' ' -c "$1"; }
+if ! read -r primary failed last_ok last_fail < <(q "select (not pg_is_in_recovery())::int, failed_count,
+       coalesce(extract(epoch from last_archived_time), 0)::bigint, coalesce(extract(epoch from last_failed_time), 0)::bigint
+       from pg_stat_archiver"); then
+  printf 'civora_postgres_up 0\n' > "$out.tmp"; mv "$out.tmp" "$out"; exit 0
+fi
+read -r pending oldest < <(q "select count(*), coalesce(extract(epoch from now() - min(modification)), 0)::bigint
+       from pg_ls_archive_statusdir() where name like '%.ready'")
+{% if postgresql_ha_standby_nodes | length > 0 %}
+# Second site (standby cluster): on the main primary, how much WAL the second site still has to receive (slot), and
+# whether it is connected; on the second site's leader, the age of the last replayed transaction (-1 = none yet).
+read -r slot_lag slot_active < <(q "select coalesce(max(case when pg_is_in_recovery() then -1
+       else pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn) end), -1)::bigint, coalesce(bool_or(active), false)::int
+       from pg_replication_slots where slot_name = '{{ postgresql_ha_standby_slot }}'")
+read -r replay_age < <(q "select coalesce(extract(epoch from now() - pg_last_xact_replay_timestamp()), -1)::bigint")
+{% endif %}
+cat > "$out.tmp" <<METRICS
+# HELP civora_postgres_up 1 if PostgreSQL answered the collector.
+# TYPE civora_postgres_up gauge
+civora_postgres_up 1
+# HELP civora_postgres_is_primary 1 on the primary.
+# TYPE civora_postgres_is_primary gauge
+civora_postgres_is_primary $primary
+# HELP civora_postgres_archive_failed_total WAL segments that failed to archive (pg_stat_archiver).
+# TYPE civora_postgres_archive_failed_total counter
+civora_postgres_archive_failed_total $failed
+# HELP civora_postgres_last_archived_timestamp_seconds Last successful WAL archive.
+# TYPE civora_postgres_last_archived_timestamp_seconds gauge
+civora_postgres_last_archived_timestamp_seconds $last_ok
+# HELP civora_postgres_last_archive_failure_timestamp_seconds Last failed WAL archive attempt.
+# TYPE civora_postgres_last_archive_failure_timestamp_seconds gauge
+civora_postgres_last_archive_failure_timestamp_seconds $last_fail
+# HELP civora_postgres_wal_pending_archive_segments Completed WAL segments not yet archived.
+# TYPE civora_postgres_wal_pending_archive_segments gauge
+civora_postgres_wal_pending_archive_segments $pending
+# HELP civora_postgres_wal_oldest_pending_archive_seconds Age of the oldest segment waiting to be archived (RPO at risk).
+# TYPE civora_postgres_wal_oldest_pending_archive_seconds gauge
+civora_postgres_wal_oldest_pending_archive_seconds $oldest
+{% if postgresql_ha_standby_nodes | length > 0 %}
+# HELP civora_postgres_standby_site_slot_lag_bytes WAL not yet received by the second site (main primary; -1 elsewhere).
+# TYPE civora_postgres_standby_site_slot_lag_bytes gauge
+civora_postgres_standby_site_slot_lag_bytes $slot_lag
+# HELP civora_postgres_standby_site_slot_active 1 while the second site is streaming through its slot.
+# TYPE civora_postgres_standby_site_slot_active gauge
+civora_postgres_standby_site_slot_active $slot_active
+# HELP civora_postgres_replay_age_seconds Age of the last replayed transaction on a standby (-1 if none).
+# TYPE civora_postgres_replay_age_seconds gauge
+civora_postgres_replay_age_seconds $replay_age
+{% endif %}
+METRICS
+mv "$out.tmp" "$out"

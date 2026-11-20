@@ -1,0 +1,38 @@
+# CIVORA edge routes (ADR-030), rendered by run.sh: @CORE@, @ISSUER@, @CLIENT_SECRET@ are filled per run.
+# The production equivalent is generated as ApisixRoute/ApisixGlobalRule resources from these same plugin settings.
+global_rules:
+  - id: civora-defaults
+    plugins:
+      client-control: { max_body_size: 1048576 }     # 1 MiB; uploads go to object storage with pre-signed URLs
+      request-id: { header_name: X-Request-Id, include_in_response: true, algorithm: uuid }
+      response-rewrite:
+        headers:
+          set:
+            X-Content-Type-Options: nosniff
+            Referrer-Policy: no-referrer
+            Strict-Transport-Security: "max-age=31536000; includeSubDomains"
+routes:
+  - id: health
+    uri: /health
+    methods: [GET, HEAD]
+    upstream: { type: roundrobin, nodes: { "@CORE@": 1 } }
+  - id: api-v1
+    uri: /v1/*
+    methods: [GET, POST, PUT, PATCH, DELETE]
+    plugins:
+      openid-connect:                # access tokens from the cell's Keycloak, checked against its signing keys
+        client_id: b2b-test
+        client_secret: "@CLIENT_SECRET@"
+        discovery: "@ISSUER@/.well-known/openid-configuration"
+        bearer_only: true
+        use_jwks: true
+        realm: civora
+      limit-count:                   # per client address in this test; per tenant/consumer in production
+        count: 20
+        time_window: 60
+        key_type: var
+        key: remote_addr
+        rejected_code: 429
+        policy: local
+    upstream: { type: roundrobin, nodes: { "@CORE@": 1 } }
+#END

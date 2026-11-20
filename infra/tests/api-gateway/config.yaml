@@ -1,0 +1,16 @@
+# APISIX 3.19.0, data plane only (ADR-030 test): routes come from apisix.yaml; there is no admin API at all.
+# In the cells the control plane is the Ingress Controller with etcd; the data-plane settings below are the same.
+deployment:
+  role: data_plane
+  role_data_plane:
+    config_provider: yaml
+apisix:
+  node_listen: 9080
+  enable_server_tokens: false      # "Server: APISIX" without a version
+  enable_ipv6: false
+plugins:                           # only what CIVORA uses is loaded (smaller attack surface)
+  - client-control
+  - request-id
+  - response-rewrite
+  - openid-connect
+  - limit-count

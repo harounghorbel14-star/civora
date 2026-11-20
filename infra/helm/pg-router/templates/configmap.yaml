@@ -1,0 +1,47 @@
+{{- if not .Values.servers }}{{ fail "servers: at least one database node is required" }}{{ end }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-config
+  namespace: {{ .Release.Namespace }}
+  labels: {{- include "pg-router.labels" . | nindent 4 }}
+data:
+  haproxy.cfg: |
+    global
+      log stdout format raw local0 info
+      maxconn {{ .Values.maxConnections }}
+      pidfile /tmp/haproxy.pid
+
+    defaults
+      log global
+      mode tcp
+      option tcplog
+      timeout connect 4s
+      timeout client 30m
+      timeout server 30m
+      timeout check 3s
+
+    # Kubernetes probes: process up, and ready only while a primary is known.
+    frontend health
+      mode http
+      bind :8404
+      monitor-uri /healthz
+      acl no_primary nbsrv(postgresql_primary) lt 1
+      monitor fail if no_primary
+      {{- if .Values.metrics.enabled }}
+      # Prometheus metrics (HAProxy's built-in exporter): alert "no primary behind the router" (doc 15 §15.2).
+      http-request use-service prometheus-exporter if { path /metrics }
+      {{- end }}
+
+    listen postgresql_primary
+      bind :{{ .Values.postgresPort }}
+      option httpchk
+      http-check send meth GET uri /primary
+      http-check expect status 200
+      # init-state down: a server receives no client until its first check proves it is the primary. HAProxy's
+      # default ("up" until the first check fails) sent writes to a standby just after a router start (found on
+      # GitHub runners, 20 Nov 2026: "cannot execute CREATE TABLE in a read-only transaction").
+      default-server inter {{ .Values.checkIntervalMs }} fall 2 rise 2 init-state down on-marked-down shutdown-sessions
+      {{- range .Values.servers }}
+      server {{ .name }} {{ .address }}:{{ $.Values.postgresPort }} check port {{ $.Values.patroniApiPort }} check-ssl check-sni {{ .name }} verify required verifyhost {{ .name }} ca-file /etc/pg-router/ca.crt
+      {{- end }}

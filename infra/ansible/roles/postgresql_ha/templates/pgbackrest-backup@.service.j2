@@ -1,0 +1,13 @@
+# Managed by Ansible (CIVORA, role postgresql_ha). Instance = backup type (full | diff | incr).
+[Unit]
+Description=pgBackRest %i backup of stanza {{ postgresql_ha_stanza }}
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+# A backup that overlaps another one (lock on the database host) or meets a failover retries after 10 minutes.
+Restart=on-failure
+RestartSec=600
+User=pgbackrest
+Group=pgbackrest
+ExecStart=/usr/bin/pgbackrest --stanza={{ postgresql_ha_stanza }} --repo={{ postgresql_ha_local_repo }} backup --type=%i

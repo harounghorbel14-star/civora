@@ -1,0 +1,14 @@
+node_modules/
+dist/
+coverage/
+*.log
+.env
+.env.*
+!.env.example
+out/
+.turbo/
+infra/compose/.data/
+services/core/openapi/.generated.json
+infra/compose/.env
+infra/compose/.generated/
+rendered/

@@ -1,0 +1,7 @@
+# cert-manager v1.21.3 values for a CIVORA cell.
+crds:
+  enabled: true
+  keep: true          # deleting the Application must never delete issued certificates
+replicaCount: 2
+podDisruptionBudget: { enabled: true, minAvailable: 1 }
+prometheus: { enabled: false }   # observability stack not deployed yet

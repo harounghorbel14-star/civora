@@ -50,6 +50,8 @@ Each capability is classified as:
 
 ## 18.4 Inputs handed to Phase 2 (after approval)
 
+> Annotated 19 Nov 2026: these inputs were handed to Phase 2 when the founder started it (P2-D0), before Phase 1 approval. They are consumed in [../phase-2/00-specification-and-constraint-audit.md](../phase-2/00-specification-and-constraint-audit.md) §3 and [../phase-2/02-business-divisions-and-capability-map.md](../phase-2/02-business-divisions-and-capability-map.md).
+
 1. The capability register above (scope and timing).
 2. NFRs from the PRD ([12](12-product-requirements-document.md) §12.7).
 3. Data-domain separation (§18.2).

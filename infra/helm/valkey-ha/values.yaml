@@ -1,0 +1,19 @@
+# Valkey HA (ADR-008). Valkey (BSD-3-Clause) is used pending the founder's answer on the Redis licence question
+# (final technical decision package §8); only the image changes if Redis 8 is chosen.
+# Not a system of record: queues are rebuilt from the transactional outbox (ADR-008), so it is not backed up.
+image:
+  repository: docker.io/valkey/valkey
+  tag: 9.1.3-alpine
+  digest: sha256:bf09d58e96d6b4524a15396b65b242bbe18beebbcc15a04d8ee75ddac62fae0b
+replicas: 3            # data nodes; one Sentinel runs beside each (quorum 2)
+masterName: civora
+passwordSecret: { name: valkey-ha-auth, key: password }   # from OpenBao via External Secrets
+storage: { size: 5Gi, storageClassName: "" }
+resources:
+  valkey: { requests: { cpu: 100m, memory: 256Mi }, limits: { memory: 1Gi } }
+  sentinel: { requests: { cpu: 20m, memory: 32Mi }, limits: { memory: 64Mi } }
+networkPolicy:
+  enabled: true
+  # Who may use the cache (namespace + pod labels); Sentinel discovery and data ports.
+  clients:
+    - { namespace: civora-tn, podSelector: { app.kubernetes.io/name: civora-core } }

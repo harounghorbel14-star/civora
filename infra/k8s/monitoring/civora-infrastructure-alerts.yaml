@@ -1,0 +1,129 @@
+# Infrastructure alerts (docs/phase-2/15-observability-backup-and-dr.md §15.2: Database, Backup, Readiness,
+# Certificates). Application alerts (API availability burn, latency, queue age, security, regulatory deadlines)
+# need application metrics and remain Phase 3 work, as §15.2 states. Unit tests: tests/ (promtool), run by
+# infra/scripts/test-alert-rules.sh in CI. Severity: page = on-call now; ticket = next working day.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: civora-infrastructure-alerts
+  namespace: observability
+  labels: { app.kubernetes.io/part-of: civora, release: kube-prometheus-stack }
+spec:
+  groups:
+    - name: civora-database
+      rules:
+        - alert: CivoraDatabaseNoLeader
+          expr: max by (scope) (patroni_cluster_unlocked) == 1
+          for: 1m
+          labels: { severity: page }
+          annotations:
+            summary: "Database cluster {{ $labels.scope }} has no leader: writes are stopped."
+            runbook: "docs/phase-2/runbooks/database-operations.md §4"
+        - alert: CivoraDatabaseNoSyncStandby
+          expr: (max by (scope) (patroni_primary) == 1) unless on (scope) (max by (scope) (patroni_sync_standby) == 1)
+          for: 5m
+          labels: { severity: page }
+          annotations:
+            summary: "Database cluster {{ $labels.scope }} has no synchronous standby: on a 2-server site automatic failover is refused until one is designated (R2-10)."
+            runbook: "docs/phase-2/runbooks/database-operations.md §4"
+        - alert: CivoraDatabaseReplicationLag
+          # A replica is behind the primary and has not replayed anything for 30 s (doc 15: lag > 30 s).
+          expr: >-
+            ((max by (scope) (patroni_xlog_location)) - on (scope) group_right () (patroni_xlog_replayed_location and patroni_replica == 1) > 0)
+            and on (scope, name) (time() - patroni_xlog_replayed_timestamp > 30)
+          for: 2m
+          labels: { severity: page }
+          annotations:
+            summary: "Replica {{ $labels.name }} of {{ $labels.scope }} has not caught up for more than 30 s."
+            runbook: "docs/phase-2/runbooks/database-operations.md §5"
+        - alert: CivoraDiskSpaceLow
+          expr: >-
+            node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs|ramfs"}
+            / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs|ramfs"} < 0.15
+          for: 10m
+          labels: { severity: page }
+          annotations:
+            summary: "Less than 15 % free on {{ $labels.instance }} {{ $labels.mountpoint }}."
+        - alert: CivoraWalArchiveFailing
+          expr: >-
+            civora_postgres_is_primary == 1
+            and on (instance) (civora_postgres_last_archive_failure_timestamp_seconds > civora_postgres_last_archived_timestamp_seconds)
+          for: 5m
+          labels: { severity: page }
+          annotations:
+            summary: "WAL archiving fails on {{ $labels.instance }}: backups and point-in-time recovery are falling behind."
+            runbook: "docs/phase-2/runbooks/database-operations.md §6"
+        - alert: CivoraRpoAtRisk
+          expr: civora_postgres_wal_oldest_pending_archive_seconds > 900
+          labels: { severity: page }
+          annotations:
+            summary: "A WAL segment on {{ $labels.instance }} has waited more than 15 min to be archived: the RPO target (15 min) is at risk."
+            runbook: "docs/phase-2/runbooks/database-operations.md §8"
+    - name: civora-second-site
+      rules:
+        # Second-site standby cluster (ADR-029, runbook §8.1). Metrics from the database collector on the main primary.
+        - alert: CivoraStandbySiteDisconnected
+          expr: civora_postgres_standby_site_slot_active == 0 and on (instance) civora_postgres_is_primary == 1
+          for: 5m
+          labels: { severity: page }
+          annotations:
+            summary: "The second site is not streaming from {{ $labels.instance }}: on a site loss, writes since the last archived WAL (up to 60 s) would be lost."
+            runbook: "docs/phase-2/runbooks/database-operations.md §8.1"
+        - alert: CivoraStandbySiteLagging
+          expr: civora_postgres_standby_site_slot_lag_bytes > 256 * 1024 * 1024
+          for: 5m
+          labels: { severity: page }
+          annotations:
+            summary: "The second site is more than 256 MB of WAL behind {{ $labels.instance }}: the site-loss RPO is degraded."
+            runbook: "docs/phase-2/runbooks/database-operations.md §8.1"
+        - alert: CivoraStandbySlotNearLimit
+          expr: civora_postgres_standby_site_slot_lag_bytes > 25 * 1024 * 1024 * 1024
+          labels: { severity: page }
+          annotations:
+            summary: "WAL kept for the second site on {{ $labels.instance }} exceeds 25 GB; at 50 GB the slot is dropped and site B must be re-cloned."
+            runbook: "docs/phase-2/runbooks/database-operations.md §8.1"
+        - alert: CivoraDatabaseRouterNoPrimary
+          expr: max by (namespace) (haproxy_backend_active_servers{proxy="postgresql_primary"}) == 0
+          for: 1m
+          labels: { severity: page }
+          annotations:
+            summary: "pg-router in {{ $labels.namespace }} sees no primary: applications cannot write."
+            runbook: "docs/phase-2/runbooks/database-operations.md §2"
+    - name: civora-backup
+      rules:
+        - alert: CivoraBackupTooOld
+          expr: time() - max by (repo) (civora_pgbackrest_last_backup_timestamp_seconds) > 26 * 3600
+          labels: { severity: page }
+          annotations:
+            summary: "No successful backup in repository {{ $labels.repo }} for more than 26 h."
+            runbook: "docs/phase-2/runbooks/database-operations.md §6"
+        - alert: CivoraBackupRepositoryUnhealthy
+          expr: civora_pgbackrest_stanza_status != 0
+          for: 15m
+          labels: { severity: page }
+          annotations:
+            summary: "Backup repository {{ $labels.repo }} reports status {{ $value }} (0 = ok)."
+            runbook: "docs/phase-2/runbooks/database-operations.md §6"
+        - alert: CivoraMetricsCollectorStale
+          expr: time() - node_textfile_mtime_seconds{file=~"civora_.*"} > 900
+          labels: { severity: ticket }
+          annotations:
+            summary: "{{ $labels.file }} on {{ $labels.instance }} not refreshed for 15 min: backup and archive alerts are blind there."
+    - name: civora-platform
+      rules:
+        - alert: CivoraWorkloadUnavailable
+          expr: >-
+            (kube_deployment_status_replicas_available{namespace=~"civora-.*|keycloak|openbao|external-secrets|cert-manager"}
+             / kube_deployment_spec_replicas{namespace=~"civora-.*|keycloak|openbao|external-secrets|cert-manager"} < 0.5)
+            or
+            (kube_statefulset_status_replicas_ready{namespace=~"civora-.*|keycloak|openbao"}
+             / kube_statefulset_replicas{namespace=~"civora-.*|keycloak|openbao"} < 0.5)
+          for: 5m
+          labels: { severity: page }
+          annotations:
+            summary: "Fewer than half of {{ $labels.namespace }}/{{ $labels.deployment }}{{ $labels.statefulset }} replicas are ready."
+        - alert: CivoraCertificateExpiringSoon
+          expr: certmanager_certificate_expiration_timestamp_seconds - time() < 21 * 86400
+          labels: { severity: ticket }
+          annotations:
+            summary: "Certificate {{ $labels.namespace }}/{{ $labels.name }} expires in less than 21 days."

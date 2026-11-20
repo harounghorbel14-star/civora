@@ -1,0 +1,37 @@
+# kube-prometheus-stack 92.19.0 (tag of 5 Nov 2026) for a CIVORA cell (ADR-011; doc 15 §15.1).
+# Host metrics come from the node exporter installed by Ansible on every VM (database, backup, Kubernetes nodes),
+# scraped over TLS — not from the chart's DaemonSet, which needs host namespaces (privileged Pod Security).
+nodeExporter: { enabled: false }
+windowsMonitoring: { enabled: false }
+crds: { enabled: true }
+prometheus:
+  prometheusSpec:
+    retention: 395d                # 13 months (doc 15 §15.1)
+    retentionSize: 180GB
+    ruleSelectorNilUsesHelmValues: false   # pick up civora-infrastructure-alerts (infra/k8s/monitoring)
+    securityContext: { runAsNonRoot: true, runAsUser: 65534, fsGroup: 65534, seccompProfile: { type: RuntimeDefault } }
+    storageSpec:
+      volumeClaimTemplate:
+        spec: { accessModes: [ReadWriteOnce], resources: { requests: { storage: 200Gi } } }
+    secrets: [cell-ca]   # ca.crt of the cell CA (External Secrets); mounted at /etc/prometheus/secrets/cell-ca
+    # Database tier (VMs, staging placeholder addresses until E-07): node exporter :9100 (TLS, text-file
+    # metrics for backup/archive alerts) and Patroni :8008 (TLS). Certificates must carry the IP addresses.
+    additionalScrapeConfigs:
+      - job_name: database-tier-node
+        scheme: https
+        tls_config: { ca_file: /etc/prometheus/secrets/cell-ca/ca.crt }
+        static_configs: [{ targets: ["192.0.2.31:9100", "192.0.2.32:9100", "192.0.2.41:9100", "192.0.2.51:9100"] }]
+      - job_name: database-tier-patroni
+        scheme: https
+        tls_config: { ca_file: /etc/prometheus/secrets/cell-ca/ca.crt }
+        static_configs: [{ targets: ["192.0.2.31:8008", "192.0.2.32:8008"] }]
+alertmanager:
+  alertmanagerSpec:
+    securityContext: { runAsNonRoot: true, runAsUser: 65534, fsGroup: 65534, seccompProfile: { type: RuntimeDefault } }
+  # Receivers (on-call phone/e-mail) are configured from OpenBao once the on-call rota exists.
+grafana:
+  admin: { existingSecret: grafana-admin, userKey: username, passwordKey: password }
+  grafana.ini:
+    auth.anonymous: { enabled: false }
+    users: { allow_sign_up: false }
+  defaultDashboardsEnabled: true

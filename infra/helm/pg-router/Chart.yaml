@@ -1,0 +1,7 @@
+apiVersion: v2
+name: pg-router
+description: Routes PostgreSQL connections to the current Patroni primary (HAProxy with TLS health checks on the Patroni REST API). Implementation detail of ADR-003.
+type: application
+version: 0.1.0
+appVersion: "3.2.25"
+kubeVersion: ">=1.30.0-0"

@@ -2,11 +2,11 @@
 
 | | |
 |---|---|
-| **Version** | 2.0, updated to the founder's *Master Project Directive — Phase 1* (18 Nov 2026) |
+| **Version** | **2.2: Phase 1 completion and validation mission (18 Nov 2026).** 2.1 applied the founder review; 2.0 was the update to the *Master Project Directive — Phase 1* |
 | **Previous version** | 1.0 (same day). All content preserved and restructured; see [change-record.md](change-record.md) |
-| **Status** | **Awaiting founder approval.** Phase 2 and all coding are on hold until approval |
-| **Roadmap** | Original 15-phase roadmap unchanged and in original order (Phase 0 D8 re-sequencing superseded) |
-| **Evidence labels** | [V] verified · [P] press/secondary · [A] assumption · [U] unverified (as in Phase 0). Sources: [sources.md](sources.md) (S120–S153) + [Phase 0 sources](../phase-0/sources.md) (S1–S119) |
+| **Status** | **Readiness: NOT READY — VALIDATION ITEMS REMAINING** ([readiness report](phase-1-readiness-report.md)). Phase 1 approval **PENDING (P1-D12)**. All desk work is complete; the remaining items need the founder, counsel or institutions. Phase 2 and all coding on hold. *Annotated 19 Nov 2026: Phase 2 started by founder decision P2-D0 ([../phase-2/](../phase-2/README.md)); Phase 1 approval still pending* |
+| **Roadmap** | Original 15-phase roadmap unchanged and in original order. Execution model **approved (P1-D4): overlapping independent activities**, with all dependencies, order, full scope, deliverables and approval gates preserved |
+| **Evidence labels** | [V] verified · [P] press/secondary · [A] assumption · [U] unverified (as in Phase 0). Sources: [sources.md](sources.md) (S120–S200) + [Phase 0 sources](../phase-0/sources.md) (S1–S119) |
 
 ## Required deliverables (directive §12)
 
@@ -31,10 +31,57 @@
 | 17 | Design System Specification | [17-design-system-specification.md](17-design-system-specification.md) · [tokens](../../design/tokens/civora.tokens.json) · [contrast report](../../design/tokens/contrast-report.md) |
 | 18 | Shared Platform Requirements | [18-shared-platform-requirements.md](18-shared-platform-requirements.md) |
 | 19 | Commercial and Pricing Strategy | [19-commercial-and-pricing-strategy.md](19-commercial-and-pricing-strategy.md) |
-| 20 | Updated Financial Assumptions | [20-updated-financial-assumptions.md](20-updated-financial-assumptions.md) · data: [financial-model-monthly-v2.csv](data/financial-model-monthly-v2.csv) |
+| 20 | Updated Financial Assumptions | [20-updated-financial-assumptions.md](20-updated-financial-assumptions.md) · data: [v2](data/financial-model-monthly-v2.csv), [v3](data/financial-model-monthly-v3.csv), [v4](data/financial-model-monthly-v4.csv), [v4 sensitivities](data/financial-sensitivities-v4.csv) |
 | 21 | Risks and Regulatory Requirements | [21-risks-and-regulatory-requirements.md](21-risks-and-regulatory-requirements.md) |
 | 22 | 90-Day Execution Plan | [22-90-day-execution-plan.md](22-90-day-execution-plan.md) |
 | 23 | Founder Approval Decisions | [23-founder-approval-decisions.md](23-founder-approval-decisions.md) |
+
+## Completion and validation (v2.2, 18 Nov 2026)
+
+| Deliverable required by the mission | File |
+|---|---|
+| 1. Phase 1 completion matrix | [completion-matrix.md](completion-matrix.md) |
+| 2. Updated validation evidence register | [validation-evidence-register.md](validation-evidence-register.md) |
+| 3. Legal and regulatory verification matrix | [validation/legal-regulatory-verification-matrix.md](validation/legal-regulatory-verification-matrix.md) |
+| 4. Company name evaluation report | [validation/company-name-evaluation.md](validation/company-name-evaluation.md) |
+| 5. Updated financial model and sensitivity analysis | [20](20-updated-financial-assumptions.md) §20.7 · [v4 CSV](data/financial-model-monthly-v4.csv) · [sensitivities CSV](data/financial-sensitivities-v4.csv) |
+| 6. Institutional interview package | [validation/fi-validation-package.md](validation/fi-validation-package.md) · [target list](data/fi-target-institutions.csv) · [evidence log](data/interview-evidence-log-template.csv) |
+| 7. Product validation report | [validation/product-validation-report.md](validation/product-validation-report.md) |
+| 8. Design-partner documentation package | [validation/design-partner-package.md](validation/design-partner-package.md) · [agreement template](supporting/design-partner-agreement-template.md) |
+| 9. Updated founder approval decision register | [23-founder-approval-decisions.md](23-founder-approval-decisions.md) |
+| 10. Final Phase 1 readiness report | [phase-1-readiness-report.md](phase-1-readiness-report.md) |
+| BCT Circular 2022-08 verification (official text) | [validation/bct-regulatory-verification.md](validation/bct-regulatory-verification.md) |
+
+## Continuation mission (18 Nov 2026): everything that could be done without external participation
+
+| Output | File |
+|---|---|
+| **Founder action pack** (only the founder's actions, with ready-to-send materials) | [founder-action-pack.md](founder-action-pack.md) |
+| Verified Arabic/French legal terminology + native-review pack and workbook | [validation/arabic-legal-terminology.md](validation/arabic-legal-terminology.md) · [validation/native-language-review-pack.md](validation/native-language-review-pack.md) · [workbook](data/native-review-workbook.csv) |
+| Institutional outreach kit; public complaint-channel scan; outreach tracker | [validation/outreach-kit.md](validation/outreach-kit.md) · [scan](data/fi-public-channel-scan.csv) · [tracker](data/outreach-tracker.csv) |
+| Competitor desk scan (incl. STB consultation CD 23/2026) | [validation/competitor-desk-scan.md](validation/competitor-desk-scan.md) |
+| Usability-testing kit + **Workspace RF clickable prototype** (synthetic data) | [validation/usability-testing-kit.md](validation/usability-testing-kit.md) · [design/prototype/workspace-rf.html](../../design/prototype/workspace-rf.html) · [SUS sheet](data/sus-scoring-template.csv) |
+| Government-track recruitment kit | [validation/government-research-recruitment-kit.md](validation/government-research-recruitment-kit.md) · [quota tracker](data/gov-research-quota-tracker.csv) |
+| Counsel engagement brief (29 questions, 3 tiers) | [validation/counsel-engagement-brief.md](validation/counsel-engagement-brief.md) |
+| Design-partner agreement v0.2 | [supporting/design-partner-agreement-template.md](supporting/design-partner-agreement-template.md) |
+| Charter legal self-check and civil-society review pack | [validation/charter-review-pack.md](validation/charter-review-pack.md) |
+| Trademark attorney brief | [validation/trademark-attorney-brief.md](validation/trademark-attorney-brief.md) |
+| Quote requests and comparison sheet | [validation/quote-requests.md](validation/quote-requests.md) · [quote sheet](data/quote-comparison.csv) |
+| Market-size break-even check | [20](20-updated-financial-assumptions.md) §20.7.7 |
+| INPDP declaration draft | [validation/inpdp-declaration-draft.md](validation/inpdp-declaration-draft.md) |
+
+## Founder-review clarifications (v2.1)
+
+| Clarification | File |
+|---|---|
+| Decision register with founder statuses (approved / conditional / pending) | [23-founder-approval-decisions.md](23-founder-approval-decisions.md) |
+| Roadmap protection: all 15 phases at full scope; Enterprise work additive; execution model approved (P1-D4) | [roadmap-protection-matrix.md](roadmap-protection-matrix.md) |
+| Evidence required before confirming the first product, funding and Phase 1 approval | [validation-evidence-register.md](validation-evidence-register.md) |
+| Realistic MVP cost assessment | [13-mvp-scope-and-specification.md](13-mvp-scope-and-specification.md) §13.8 |
+| Financial classification + v3 timing and sensitivities (funding not committed) | [20-updated-financial-assumptions.md](20-updated-financial-assumptions.md) §20.0, §20.6 · [financial-model-monthly-v3.csv](data/financial-model-monthly-v3.csv) |
+| Pricing experiment plan (prices are experimental hypotheses) | [19-commercial-and-pricing-strategy.md](19-commercial-and-pricing-strategy.md) §19.7 |
+| Name investigation and alternatives | [supporting/brand-identity.md](supporting/brand-identity.md) §6.7 |
+| Design-partner agreement draft (for Tunisian counsel review) | [supporting/design-partner-agreement-template.md](supporting/design-partner-agreement-template.md) |
 
 ## Supporting materials (retained from v1.0)
 
@@ -48,6 +95,7 @@
 | Citizen Data Charter v1 (EN/FR/AR) | [supporting/citizen-data-charter.md](supporting/citizen-data-charter.md) |
 | Government proposal, executive presentation, pilot template, partnership one-pager | [supporting/](supporting/) |
 | Clickable Government-track prototype (independent prototype, class 4) | [design/prototype/index.html](../../design/prototype/index.html) · published (private): https://claude.ai/artifact/8mSSc8wUoiG5b2bpg6QQ5Y |
+| Design-partner agreement draft (counsel review pending) | [supporting/design-partner-agreement-template.md](supporting/design-partner-agreement-template.md) |
 | v1.0 exit checklist (superseded) | [supporting/v1-exit-checklist.md](supporting/v1-exit-checklist.md) |
 
 ## Acceptance checklist
@@ -61,23 +109,27 @@ Status of the directive §15 final acceptance criteria as of 18 Nov 2026.
 | 3 | The 20 government sectors included | ✅ Met | [05](05-government-master-service-catalog.md), JSON data, IA in [15](15-information-architecture.md) §15.8 |
 | 4 | Tunisia's existing digital infrastructure considered | ✅ Met | [06](06-tunisia-government-service-mapping.md) (44 integration points classified) |
 | 5 | Global expansion requirements defined | ✅ Met | [07](07-global-market-opportunity-analysis.md) §7.4, [05](05-government-master-service-catalog.md) §5.1, Phase 0 §13 |
-| 6 | First product supported by a defensible opportunity analysis | ✅ Met (desk evidence) | [09](09-opportunity-scoring-matrix.md), [10](10-first-product-recommendation.md). **Field validation pending** (90-day plan) |
+| 6 | First product supported by a defensible opportunity analysis | 🟡 Desk analysis done; regulatory basis **verified in the official text**; **demand not yet proven** (P1-D3 conditional) | [09](09-opportunity-scoring-matrix.md), [10](10-first-product-recommendation.md), [BCT verification](validation/bct-regulatory-verification.md); evidence E-01, E-03–E-07 open |
 | 7 | MVP has a clear scope | ✅ Met | [13](13-mvp-scope-and-specification.md) |
 | 8 | Customer profiles and user journeys exist | ✅ Met (hypotheses) | [11](11-target-customer-profiles.md), [14](14-user-journeys.md) |
 | 9 | UX/UI requirements documented | ✅ Met | [16](16-ux-ui-design-strategy.md), [17](17-design-system-specification.md), 6 wireframes |
-| 10 | Financial assumptions reviewed | ✅ Met | [20](20-updated-financial-assumptions.md) |
-| 11 | Legal and regulatory risks identified | ✅ Met | [21](21-risks-and-regulatory-requirements.md) (+ Phase 0 §11, §17) |
+| 10 | Financial assumptions reviewed | ✅ Reviewed and validated at desk level (v4); 🟡 funding not committed (P1-D7) | [20](20-updated-financial-assumptions.md) §20.0, §20.6, §20.7 |
+| 11 | Legal and regulatory risks identified | ✅ Met (counsel confirmation pending) | [21](21-risks-and-regulatory-requirements.md), [legal matrix](validation/legal-regulatory-verification-matrix.md) (+ Phase 0 §11, §17) |
 | 12 | All required documents created and linked | ✅ Met | This index |
-| 13 | Original 15-phase roadmap intact | ✅ Met | Phase 0 D8 superseded; Phase 0 §19.1 annotated; phases mapped in [10](10-first-product-recommendation.md) §10.5 and [13](13-mvp-scope-and-specification.md) §13.5 |
+| 13 | Original 15-phase roadmap intact | ✅ Met, with full scope per phase; execution model approved (P1-D4) | [roadmap-protection-matrix.md](roadmap-protection-matrix.md); Phase 0 D8 superseded; "light pass" withdrawn |
 | 14 | All major decisions requiring founder approval listed | ✅ Met | [23](23-founder-approval-decisions.md) |
 
+**Original Phase 1 roadmap criteria** (Phase 0 §19): prototype SUS ≥ 70 and top-10 pain points evidenced are **not met** (E-10, E-09). Design-system WCAG contrast is met. See the [completion matrix](completion-matrix.md) §A.
+
 ### Validation items still open (cannot be completed at a desk)
+
+The full list with thresholds is the [validation evidence register](validation-evidence-register.md) (E-01–E-15).
 
 | Item | Owner | Plan |
 |---|---|---|
 | Discovery with ≥ 15 financial institutions; ≥ 2 design-partner agreements | Founder | [22](22-90-day-execution-plan.md) |
-| Official BCT 2022-08 text; counsel answers Q1–Q18 | Founder + counsel | [22](22-90-day-execution-plan.md) |
+| ~~Official BCT 2022-08 text~~ (obtained 18 Nov 2026); counsel answers Q1–Q18, Q-06–Q-11 and the legal matrix | Founder + counsel | [legal matrix](validation/legal-regulatory-verification-matrix.md) |
 | Government-track user research (≥ 30 citizens, ≥ 10 civil servants) and usability tests | Founder/team | [supporting/user-research-kit.md](supporting/user-research-kit.md) |
-| Brand decision D12 and trademark clearance | Founder | [supporting/brand-identity.md](supporting/brand-identity.md) |
+| Attorney trademark clearance (KELORA strongest desk candidate) and final name decision (follow-up to P1-D13) | Founder + trademark attorney | [validation/company-name-evaluation.md](validation/company-name-evaluation.md) |
 | Native AR/FR legal-language review | Founder | — |
 | Citizen Data Charter review by counsel and civil society | Founder | — |

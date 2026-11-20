@@ -1,0 +1,186 @@
+# Nightly rehearsals (O-T3): environments rebuilt from nothing, timed. Results appear in the job summary.
+name: nightly-rehearsals
+
+on:
+  schedule:
+    - cron: "17 1 * * *"   # 02:17 Africa/Tunis (UTC+1)
+  workflow_dispatch:
+  # Scheduled runs only start from the default branch. Until this workflow is merged there, rehearsals also run
+  # on pushes to working branches that change what they exercise (about 40 runner-minutes per push).
+  push:
+    branches: ["claude/**"]
+    paths:
+      - "infra/ansible/roles/postgresql_ha/**"
+      - "infra/ansible/tests/**"
+      - "infra/tests/**"
+      - "infra/helm/**"
+      - "infra/scripts/**"
+      - "infra/compose/**"
+      - "services/core/**"
+      - ".github/workflows/nightly.yml"
+
+concurrency:
+  group: rehearsals-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+# Explicit bash = "bash --noprofile --norc -eo pipefail": a failing script piped into tee fails the step.
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  dev-cell-from-scratch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - name: Compose dev cell up from scratch + smoke tests
+        run: infra/scripts/dev-cell-up.sh --fresh | tee -a "$GITHUB_STEP_SUMMARY"
+
+  k3s-deploy-from-scratch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: azure/setup-helm@2f5e7bc67f1f9972ab16657bb795f36d8f04de0e # v5.1.0
+        with: { version: v3.22.1 }
+      - name: Build application image
+        run: docker build -f services/core/Dockerfile -t civora-core:dev .
+      - name: Air-gapped k3s cell from scratch, timed
+        run: infra/scripts/deploy-from-scratch.sh | tee -a "$GITHUB_STEP_SUMMARY"
+
+  postgresql-ha-role:
+    name: PostgreSQL HA role, ${{ matrix.db_nodes }} database nodes (failover, router, PITR, restore drill)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        db_nodes: [2, 3]   # 2 vs 3 database servers per site is part of P2-D1 (ADR-003); both are tested
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: azure/setup-helm@2f5e7bc67f1f9972ab16657bb795f36d8f04de0e # v5.1.0
+        with: { version: v3.22.1 }
+      - name: Build application image (migrations and /health through pg-router)
+        run: docker build -f services/core/Dockerfile -t civora-core:dev .
+      - name: Ansible with the docker connection plugin (test harness only)
+        run: |
+          python3 -m venv "$RUNNER_TEMP/ansible"
+          "$RUNNER_TEMP/ansible/bin/pip" install --quiet "ansible==11.13.0"
+      - name: Run the role test
+        env:
+          ANSIBLE_PLAYBOOK: ${{ runner.temp }}/ansible/bin/ansible-playbook
+          DB_NODES: ${{ matrix.db_nodes }}
+        run: infra/ansible/tests/postgresql-ha/run.sh | tee -a "$GITHUB_STEP_SUMMARY"
+
+  staging-rehearsal:
+    name: Staging-shaped rehearsal (HA database tier + k3s with pg-router and civora-core), timed
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: azure/setup-helm@2f5e7bc67f1f9972ab16657bb795f36d8f04de0e # v5.1.0
+        with: { version: v3.22.1 }
+      - name: Build application image
+        run: docker build -f services/core/Dockerfile -t civora-core:dev .
+      - name: Ansible with the docker connection plugin (test harness only)
+        run: |
+          python3 -m venv "$RUNNER_TEMP/ansible"
+          "$RUNNER_TEMP/ansible/bin/pip" install --quiet "ansible==11.13.0"
+      - name: Rehearsal
+        env:
+          ANSIBLE_PLAYBOOK: ${{ runner.temp }}/ansible/bin/ansible-playbook
+        run: infra/scripts/staging-rehearsal.sh | tee -a "$GITHUB_STEP_SUMMARY"
+
+  disaster-recovery:
+    name: Disaster recovery — lose site A, rebuild the database cluster at site B from repository 2, timed
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: azure/setup-helm@2f5e7bc67f1f9972ab16657bb795f36d8f04de0e # v5.1.0
+        with: { version: v3.22.1 }
+      - name: Ansible with the docker connection plugin (test harness only)
+        run: |
+          python3 -m venv "$RUNNER_TEMP/ansible"
+          "$RUNNER_TEMP/ansible/bin/pip" install --quiet "ansible==11.13.0"
+      - name: DR rehearsal
+        env:
+          ANSIBLE_PLAYBOOK: ${{ runner.temp }}/ansible/bin/ansible-playbook
+        run: infra/ansible/tests/postgresql-ha/dr.sh | tee -a "$GITHUB_STEP_SUMMARY"
+
+  disaster-recovery-standby-site:
+    name: Disaster recovery with a live second site — lose site A, promote the standby cluster at site B, timed
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: azure/setup-helm@2f5e7bc67f1f9972ab16657bb795f36d8f04de0e # v5.1.0
+        with: { version: v3.22.1 }
+      - name: Ansible with the docker connection plugin (test harness only)
+        run: |
+          python3 -m venv "$RUNNER_TEMP/ansible"
+          "$RUNNER_TEMP/ansible/bin/pip" install --quiet "ansible==11.13.0"
+      - name: DR rehearsal (standby cluster)
+        env:
+          ANSIBLE_PLAYBOOK: ${{ runner.temp }}/ansible/bin/ansible-playbook
+        run: infra/ansible/tests/postgresql-ha/dr-standby.sh | tee -a "$GITHUB_STEP_SUMMARY"
+
+  identity-and-cache-ha:
+    name: Keycloak cluster (session survives node loss) and Valkey Sentinel failover
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - name: Keycloak HA
+        run: infra/tests/keycloak-ha/run.sh | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Valkey HA
+        run: infra/tests/valkey-ha/run.sh | tee -a "$GITHUB_STEP_SUMMARY"
+
+  api-gateway:
+    name: Edge API gateway (APISIX 3.19, ADR-030) — Keycloak tokens, rate limit, body limit, routes, headers
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - name: Build application image
+        run: docker build -f services/core/Dockerfile -t civora-core:dev .
+      - name: Gateway test
+        run: infra/tests/api-gateway/run.sh | tee -a "$GITHUB_STEP_SUMMARY"
+
+  valkey-chart-on-kubernetes:
+    name: Valkey chart on Kubernetes (k3s) — primary pod deleted, primary process crashed, NetworkPolicy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: azure/setup-helm@2f5e7bc67f1f9972ab16657bb795f36d8f04de0e # v5.1.0
+        with: { version: v3.22.1 }
+      - name: Chart failover on Kubernetes
+        run: infra/tests/valkey-ha/k8s.sh | tee -a "$GITHUB_STEP_SUMMARY"
+
+  image-signature-enforcement:
+    name: Image signatures enforced at admission (policy-controller, signed vs unsigned, private TLS registry)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: azure/setup-helm@2f5e7bc67f1f9972ab16657bb795f36d8f04de0e # v5.1.0
+        with: { version: v3.22.1 }
+      - uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
+        with: { cosign-release: v2.6.5 }   # 2.x signature format, read by policy-controller 0.13
+      - name: Signature enforcement test
+        run: infra/tests/image-signatures/run.sh | tee -a "$GITHUB_STEP_SUMMARY"

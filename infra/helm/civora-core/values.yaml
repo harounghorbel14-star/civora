@@ -1,0 +1,66 @@
+# Default values: production-shaped and secure by default. Environments override in values-<env>.yaml.
+image:
+  repository: registry.civora.invalid/civora/core   # replaced per environment; images are signed (ADR-027)
+  tag: ""                                            # defaults to .Chart.AppVersion; CI deploys by digest
+  digest: ""                                         # when set, takes precedence over tag
+  pullPolicy: IfNotPresent
+
+environment: staging          # dev | staging | pilot | prod  (CIVORA_ENV)
+countryPack: tn               # one country pack per cell (ADR-004, ADR-017)
+
+replicaCount: 2
+
+# Existing Secret with key DATABASE_URL. In staging/prod it is written by External Secrets from OpenBao (ADR-012);
+# the chart never contains secret values.
+databaseSecret:
+  name: civora-core-db
+  key: DATABASE_URL
+
+migrations:
+  enabled: true               # pre-install/pre-upgrade Job running node-pg-migrate (ADR-024)
+  # Retries cover a database failover during a deploy and the seconds before network policy is programmed for a
+  # new pod (seen in the staging rehearsal, 20 Nov 2026). node-pg-migrate takes a lock, so a retry is safe.
+  backoffLimit: 4
+  # Migrations run as the database owner; the application runs as a NOBYPASSRLS account (ADR-003).
+  # Empty = use databaseSecret (dev only).
+  databaseSecret: { name: "", key: DATABASE_URL }
+
+# CA that signed the database certificates, for sslmode=verify-full (Secret key ca.crt). Mounted at
+# /var/run/secrets/civora-db-ca/ca.crt; reference it in the URL as sslrootcert=… . Empty = not mounted.
+databaseTls:
+  caSecretName: ""
+
+otel:
+  endpoint: ""                # e.g. http://otel-collector.observability:4318
+
+resources:
+  requests: { cpu: 100m, memory: 192Mi }
+  limits: { memory: 384Mi }
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+networkPolicy:
+  enabled: true
+  ingressFromNamespaces: ["ingress"]       # namespace label kubernetes.io/metadata.name values allowed to call the API
+  metricsFromNamespaces: ["observability"]
+  databaseCidrs: []                         # dedicated PostgreSQL nodes (Patroni + pgBackRest, ADR-003/ADR-029)
+  databasePodSelector: {}                   # in-cluster PostgreSQL pods (dev and rehearsal only)
+  databaseNamespace: ""                     # defaults to the release namespace
+  otelNamespace: observability
+
+service:
+  port: 80
+  targetPort: 3000
+
+podAnnotations: {}
+nodeSelector: {}
+tolerations: []
+topologySpreadAcrossNodes: true

@@ -1,0 +1,33 @@
+# Sigstore policy-controller chart 0.10.8 (tag policy-controller-0.10.8 of 14 Sep 2026; controller v0.13.1).
+webhook:
+  failurePolicy: Fail
+  namespaceSelector:
+    matchExpressions:
+      - { key: policy.sigstore.dev/include, operator: In, values: ["true"] }
+  configData:
+    no-match-policy: deny        # an image no policy covers is refused
+  registryCaBundle: { name: cell-registry-ca, key: ca.crt }   # the cell registry's CA (External Secrets)
+  # Chart naming: "securityContext" is the pod context, "podSecurityContext" the container context.
+  # The defaults lack seccomp and runAsNonRoot, which restricted Pod Security requires.
+  securityContext:
+    enabled: true
+    runAsNonRoot: true
+    runAsUser: 65532
+    seccompProfile: { type: RuntimeDefault }
+  podSecurityContext:
+    enabled: true
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 65532
+    capabilities: { drop: [ALL] }
+    seccompProfile: { type: RuntimeDefault }
+leasescleanup:
+  podSecurityContext:
+    enabled: true
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 65532
+    capabilities: { drop: [ALL] }
+    seccompProfile: { type: RuntimeDefault }

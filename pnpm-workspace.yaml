@@ -1,0 +1,15 @@
+packages:
+  - "apps/*"
+  - "services/*"
+  - "packages/*"
+
+# Supply-chain rule (ADR-027): no dependency install scripts run unless listed here after review.
+# @nestjs/core (funding message) and @scarf/scarf (install telemetry) are deliberately NOT allowed.
+ignoredBuiltDependencies:
+  - "@nestjs/core"
+  - "@scarf/scarf"
+
+# Security floor for transitive dependencies (ADR-027). Each entry names the advisory it closes;
+# remove an entry once the direct dependency ships the fixed version itself.
+overrides:
+  multer: ">=2.5.0 <3"            # CVE-2026-82333 et al. (via @nestjs/platform-express 11.2.8 -> multer 2.4.0)

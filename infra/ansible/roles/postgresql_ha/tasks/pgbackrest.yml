@@ -1,0 +1,58 @@
+---
+# pgBackRest in TLS-server mode (no SSH between servers): database nodes and the repository node each run
+# `pgbackrest server`; every connection is mutually authenticated with the node certificates.
+- name: Repository service account (backup node)
+  ansible.builtin.user:
+    name: pgbackrest
+    system: true
+    home: "{{ postgresql_ha_repo_path }}"
+    create_home: false
+    shell: /usr/sbin/nologin
+    groups: civora-tls
+    append: true
+  when: inventory_hostname in postgresql_ha_repo_nodes
+
+- name: Repository directory (backup node)
+  ansible.builtin.file:
+    path: "{{ postgresql_ha_repo_path }}"
+    state: directory
+    owner: pgbackrest
+    group: pgbackrest
+    mode: "0750"
+  when: inventory_hostname in postgresql_ha_repo_nodes
+
+- name: Create pgBackRest log and spool directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ 'pgbackrest' if inventory_hostname in postgresql_ha_repo_nodes else 'postgres' }}"
+    group: "{{ 'pgbackrest' if inventory_hostname in postgresql_ha_repo_nodes else 'postgres' }}"
+    mode: "{{ '0770' if inventory_hostname in postgresql_ha_repo_nodes else '0750' }}"   # backup node: restore drills (postgres) log here too
+  loop:
+    - /var/log/pgbackrest
+    - /var/spool/pgbackrest
+
+- name: Write the pgBackRest configuration
+  ansible.builtin.template:
+    src: pgbackrest.conf.j2
+    dest: /etc/pgbackrest.conf
+    owner: root
+    group: "{{ 'pgbackrest' if inventory_hostname in postgresql_ha_repo_nodes else 'postgres' }}"
+    mode: "0640"
+  register: postgresql_ha_pgbackrest_config
+
+- name: Install the pgBackRest TLS server unit
+  ansible.builtin.template:
+    src: pgbackrest-server.service.j2
+    dest: /etc/systemd/system/pgbackrest-server.service
+    owner: root
+    group: root
+    mode: "0644"
+  register: postgresql_ha_pgbackrest_unit
+
+- name: Run the pgBackRest TLS server (restarted on change)  # noqa: no-handler
+  ansible.builtin.systemd_service:
+    name: pgbackrest-server
+    state: "{{ 'restarted' if (postgresql_ha_pgbackrest_config is changed or postgresql_ha_pgbackrest_unit is changed) else 'started' }}"
+    enabled: true
+    daemon_reload: "{{ postgresql_ha_pgbackrest_unit is changed }}"

@@ -1,0 +1,36 @@
+# pg-router: one stable address (Service) for the application, always pointing at the current PostgreSQL primary.
+# HAProxy asks each node's Patroni REST API `GET /primary` over TLS (certificate verified by name) every 2 s;
+# only the node answering 200 receives connections; sessions to a demoted node are cut immediately.
+image:
+  repository: docker.io/library/haproxy
+  tag: 3.2.25-alpine
+  digest: sha256:5d97434a423c2533cfeb42874d45cf6d69a840b60334582dfbfd5008e94c80be
+replicaCount: 2
+maxConnections: 500
+
+# Database nodes: name = the certificate name of the node; address = IP or DNS name reachable from the cluster.
+servers: []
+#  - { name: tn-stg-db1, address: 192.0.2.31 }
+#  - { name: tn-stg-db2, address: 192.0.2.32 }
+postgresPort: 5432
+patroniApiPort: 8008
+checkIntervalMs: 2000
+
+# Secret with key ca.crt: the cell CA that signed the database node certificates (from OpenBao via External Secrets).
+caSecretName: pg-router-ca
+
+networkPolicy:
+  enabled: true
+  clientPodSelector: { app.kubernetes.io/name: civora-core }   # who may connect (same namespace)
+  extraClients: []   # e.g. [{ namespace: keycloak, podSelector: { app: keycloak } }]
+  databaseCidrs: []                                              # database nodes (egress 5432 + 8008)
+
+# Metrics on the health port (:8404/metrics). Only the monitoring namespace may scrape them (NetworkPolicy).
+metrics:
+  enabled: true
+  namespace: observability
+  serviceMonitor: false   # true where the Prometheus Operator CRDs exist (staging values)
+
+resources:
+  requests: { cpu: 50m, memory: 64Mi }
+  limits: { memory: 128Mi }

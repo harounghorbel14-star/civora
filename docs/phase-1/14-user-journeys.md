@@ -38,7 +38,7 @@ All journeys are **hypotheses until validated** in the 90-day discovery.
 | Evidence | Queue sorted by remaining time | Case timeline, documents | Decision panel | Letter preview | Closed status |
 | User | Opens most urgent case | Requests document from branch; checks core system (read-only lookup, later) | Chooses outcome + reason code; writes explanation | Sends via customer's channel | Confirms closure |
 | Frontstage | Queue & case page | Sub-task panel | Template picker (AR/FR) | Preview & send | — |
-| Backstage | SLA timers; at-risk alerts | Sub-task deadline; optional SLA pause per policy | Validation blocks rejection without reasons | Immutable issued copy stored | Audit, metrics |
+| Backstage | SLA timers; at-risk alerts | Sub-task deadline; optional *internal*-SLA pause per policy (the BCT 2022-08 regulatory deadline of 15 working days is **not** paused: FR-61, pending counsel Q-07) | Validation blocks rejection without reasons | Immutable issued copy stored | Audit, metrics |
 | ⚠ | Overload; unclear priority | Branch delay | Inconsistent decisions across handlers | Wrong language | Premature closure |
 | 📏 | Time to first action | Sub-task turnaround | Decision consistency (sample audit) | Delivery | Handling time; reopen rate |
 

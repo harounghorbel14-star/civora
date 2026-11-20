@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-scripts
+  namespace: {{ .Release.Namespace }}
+  labels: {{- include "valkey-ha.labels" . | nindent 4 }}
+data:
+  start-valkey.sh: |
+{{ .Files.Get "files/start-valkey.sh" | indent 4 }}
+  start-sentinel.sh: |
+{{ .Files.Get "files/start-sentinel.sh" | indent 4 }}

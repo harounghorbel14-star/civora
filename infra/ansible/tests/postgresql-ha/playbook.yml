@@ -1,0 +1,8 @@
+---
+- name: Database and backup nodes (role under test)
+  hosts: db_nodes:backup:backup_dr:standby_db_nodes
+  become: true
+  roles:
+    - role: postgresql_ha
+      vars:
+        postgresql_ha_apt_update_cache: false   # packages are preinstalled in the test image; containers have no network

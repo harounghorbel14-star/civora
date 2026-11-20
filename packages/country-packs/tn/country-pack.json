@@ -1,0 +1,51 @@
+{
+  "packId": "tn",
+  "version": "0.1.0",
+  "status": "synthetic-development-only",
+  "country": { "iso3166": "TN", "name": { "en": "Tunisia", "fr": "Tunisie", "ar": "تونس" } },
+  "locales": { "supported": ["ar-TN", "fr-TN", "en"], "default": "ar-TN", "fallback": "fr-TN", "numberingSystem": "latn" },
+  "currency": { "code": "TND", "minorUnits": 3 },
+  "timeZone": "Africa/Tunis",
+  "calendar": {
+    "weekend": ["sat", "sun"],
+    "holidayDataStatus": "UNVERIFIED v0: fixed national holidays and lunar estimates. Must be replaced by the official annual list before any pilot (Q-12: banking working days).",
+    "holidays": [
+      { "date": "2026-01-01", "name": "New Year", "kind": "fixed", "verified": false },
+      { "date": "2026-03-20", "name": "Independence Day", "kind": "fixed", "verified": false },
+      { "date": "2026-03-21", "name": "Eid al-Fitr (estimate)", "kind": "lunar-estimate", "verified": false },
+      { "date": "2026-04-09", "name": "Martyrs' Day", "kind": "fixed", "verified": false },
+      { "date": "2026-05-01", "name": "Labour Day", "kind": "fixed", "verified": false },
+      { "date": "2026-05-27", "name": "Eid al-Adha (estimate)", "kind": "lunar-estimate", "verified": false },
+      { "date": "2026-05-28", "name": "Eid al-Adha day 2 (estimate)", "kind": "lunar-estimate", "verified": false },
+      { "date": "2026-06-16", "name": "Islamic New Year (estimate)", "kind": "lunar-estimate", "verified": false },
+      { "date": "2026-07-25", "name": "Republic Day", "kind": "fixed", "verified": false },
+      { "date": "2026-08-13", "name": "Women's Day", "kind": "fixed", "verified": false },
+      { "date": "2026-08-25", "name": "Mawlid (estimate)", "kind": "lunar-estimate", "verified": false },
+      { "date": "2026-10-15", "name": "Evacuation Day", "kind": "fixed", "verified": false },
+      { "date": "2026-12-17", "name": "Revolution Day", "kind": "fixed", "verified": false },
+      { "date": "2027-01-01", "name": "New Year", "kind": "fixed", "verified": false }
+    ]
+  },
+  "hosting": {
+    "devStaging": "any-cloud, synthetic data only (Phase 0 D9)",
+    "pilotProduction": "CNI or ANCS-labelled N-Cloud/G-Cloud host in Tunisia, or customer premises (D9, ADR-004, ADR-019)",
+    "personalDataTransferAbroad": "prohibited without INPDP authorisation (Law 2004-63 Art. 50-52; ADR-004, ADR-029)"
+  },
+  "dataProtection": {
+    "law": "Organic Law 2004-63",
+    "authority": "INPDP",
+    "authorityStatusNote": "Reported inactive (Oct 2026); counsel question A4"
+  },
+  "identifiers": {
+    "cin": { "pattern": "^[0-9]{8}$", "syntheticPattern": "^99[0-9]{6}$", "note": "Synthetic CINs use the 99 prefix. Reservation of this range is an ASSUMPTION [A] to confirm; every synthetic record also carries synthetic=true." },
+    "phone": { "pattern": "^\\+216[2-9][0-9]{7}$", "syntheticPattern": "^\\+2160[0-9]{7}$", "note": "Tunisian national numbers do not start with 0, so +2160… is not issuable [A]." },
+    "email": { "pattern": "^[^@\\s]+@[^@\\s]+$", "syntheticPattern": "^[^@\\s]+@[a-z0-9-]+\\.invalid$", "note": "RFC 2606 reserves .invalid" }
+  },
+  "rulePacks": ["RP-BCT-2022-08", "RP-BCT-2026-10", "RP-BCT-2020-11"],
+  "featureFlags": {
+    "meta.locales.english": true,
+    "platform.synthetic-banner": true,
+    "workspace.customer-status-page": false,
+    "integrations.production-adapters": false
+  }
+}

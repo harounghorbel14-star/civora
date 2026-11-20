@@ -40,7 +40,7 @@
   - next: editions for insurance (claims and complaints), telecom and utilities (customer complaints)
   - later: approvals, compliance case management (e.g. KYC remediation queues) and document management for regulated firms
 - **Explicitly not:** general ERP/HR/CRM. That market is saturated by global and local suites, and CIVORA has no advantage there (score #9).
-- **Tunisia entry:** payment providers and mid-size banks first, through founder-led sales and a design-partner programme ([19](19-commercial-and-pricing-strategy.md)).
+- **Tunisia entry:** mid-size banks and leasing/factoring companies first (BCT 2022-08), with payment institutions validated separately (their regime is Circular 2026-10), through founder-led sales and a design-partner programme ([19](19-commercial-and-pricing-strategy.md); scope corrected 18 Nov 2026).
 - **International:** most banking supervisors require complaint handling. Arabic/French markets come first [A — verify per country].
 - **KPIs:**
   - ARR

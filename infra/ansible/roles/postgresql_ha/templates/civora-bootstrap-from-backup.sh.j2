@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Managed by Ansible (CIVORA, role postgresql_ha). Disaster recovery (ADR-029; runbook §8).
+# Patroni runs this instead of initdb when the cell is rebuilt from backup repository {{ postgresql_ha_bootstrap_from_repo }}:
+# restore the latest backup set into the empty data directory; Patroni then replays the archived WAL
+# (to the end, or to postgresql_ha_bootstrap_target_time) and promotes.
+set -euo pipefail
+exec pgbackrest --stanza={{ postgresql_ha_stanza }} --repo={{ postgresql_ha_bootstrap_from_repo }} \
+  --pg1-path={{ postgresql_ha_data_dir }} --log-level-console=info restore

@@ -1,0 +1,7 @@
+# Review routing (O-SEC4). Until a second engineer joins, the founder is the only code owner and the
+# two-reviewer rule cannot be met; see docs/phase-2/18-coding-standards.md §6 and the Phase 2 readiness report.
+*                                   @harounghorbel14-star
+/infra/                             @harounghorbel14-star
+/.github/                           @harounghorbel14-star
+/packages/country-packs/            @harounghorbel14-star
+/services/core/migrations/          @harounghorbel14-star

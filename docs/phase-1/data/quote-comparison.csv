@@ -1,0 +1,12 @@
+category,supplier,date_requested,date_received,scope_quoted,price_tnd_excl_vat,price_basis_fixed_or_daily_or_monthly,duration_or_term,validity,key_conditions,meets_requirements_Y_N,gaps,model_line_replaced,notes
+legal,,,,Tier A,,,,,,,,13 §13.8 legal line,
+legal,,,,Tier A,,,,,,,,13 §13.8 legal line,
+trademark,,,,Clearance KELORA (+NASAQ),,,,,,,,not yet in model,
+trademark,,,,Clearance KELORA (+NASAQ),,,,,,,,not yet in model,
+language_review,,,,17 texts FR/AR,,,,,,,,not yet in model,
+language_review,,,,17 texts FR/AR,,,,,,,,not yet in model,
+hosting,,,,Staging (+pilot indicative),,,,,,,,13 §13.8 hosting line; 20 overhead hosting,
+hosting,,,,Staging (+pilot indicative),,,,,,,,13 §13.8 hosting line; 20 overhead hosting,
+pen_test_audit,,,,Pen test + pre-pilot + regulatory audit,,,,,,,,13 §13.8 pen test and audit lines,
+pen_test_audit,,,,Pen test + pre-pilot + regulatory audit,,,,,,,,13 §13.8 pen test and audit lines,
+accessibility_audit,,,,WCAG 2.2 AA console + status page,,,,,,,,13 §13.8 WCAG line,

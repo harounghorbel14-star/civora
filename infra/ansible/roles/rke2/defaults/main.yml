@@ -1,0 +1,11 @@
+---
+# RKE2 for staging, pilot and production cells, and for customer-hosted cells (ADR-013): CIS profile,
+# SELinux support, FIPS-capable builds. k3s is used only for local rehearsal and very small edge cells.
+rke2_version: v1.33.4+rke2r1
+rke2_role: server
+rke2_channel_url: https://get.rke2.io
+rke2_cis_profile: cis
+rke2_cni: canal
+# Air-gapped installs (customer premises): set rke2_airgap_dir to a directory holding the RKE2 artefacts.
+rke2_airgap_dir: ""
+rke2_token_file: /etc/rancher/rke2/cluster-token   # written from OpenBao by the operator, never in Git
