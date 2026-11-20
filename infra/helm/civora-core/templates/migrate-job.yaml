@@ -30,7 +30,9 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           securityContext: {{- include "civora-core.containerSecurity" . | nindent 12 }}
           # The URL is read from the mounted secret file into the process environment only (never the pod spec).
-          command: ["sh", "-c", "DATABASE_URL=\"$(cat /var/run/secrets/civora/database-url)\" exec node node_modules/node-pg-migrate/bin/node-pg-migrate.js up --migrations-dir migrations --migration-file-language sql --migrations-table schema_migrations --check-order"]
+          # First wait (up to 60 s) until the database accepts a connection: a new pod can be refused until network
+          # policy is programmed for it, and a deploy may coincide with a database failover.
+          command: ["sh", "-c", "export DATABASE_URL=\"$(cat /var/run/secrets/civora/database-url)\" && node dist/src/tools/wait-for-database.js && exec node node_modules/node-pg-migrate/bin/node-pg-migrate.js up --migrations-dir migrations --migration-file-language sql --migrations-table schema_migrations --check-order"]
           resources:
             requests: { cpu: 50m, memory: 128Mi }
             limits: { memory: 256Mi }
