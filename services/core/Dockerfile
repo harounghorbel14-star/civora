@@ -3,7 +3,7 @@
 # Base images are pinned by tag here; CI pins them by digest (renovate keeps digests current).
 # Optional: behind a TLS-inspecting proxy (common in bank on-premises networks), pass its CA as a build secret:
 #   docker build --secret id=proxy_ca,src=/path/ca.crt ...   (never baked into the image)
-FROM node:22-alpine AS build
+FROM node:26-alpine AS build
 WORKDIR /repo
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.base.json .npmrc ./
 COPY packages ./packages
@@ -18,7 +18,7 @@ RUN --mount=type=secret,id=proxy_ca,required=false \
  && test -f /out/dist/src/main.js && test -d /out/migrations \
  && find /out/node_modules/.pnpm -type d \( -name test -o -name tests -o -name __tests__ \) -prune -exec rm -rf {} +
 
-FROM node:22-alpine AS runtime
+FROM node:26-alpine AS runtime
 ENV NODE_ENV=production CIVORA_ENV=dev PORT=3000
 # The runtime needs only `node`: remove the package managers bundled in the base image (they carry their
 # own dependency tree and CVEs, and nothing installs packages at runtime).
