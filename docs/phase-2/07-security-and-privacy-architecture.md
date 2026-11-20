@@ -115,7 +115,7 @@ flowchart LR
 | Signing and provenance | cosign keyless + SBOM attestation + SLSA build provenance (`actions/attest-build-provenance`) | Configured for `main` (needs GitHub to run) |
 | Third-party actions | Pinned to full commit SHAs (resolved 19 Nov 2026) | In place |
 | Admission: allowed registries + digest pins | Built-in Kubernetes ValidatingAdmissionPolicy ([infra/k8s/policies](../../infra/k8s/policies/image-admission.yaml)); per-cell registry list in a ConfigMap; missing list = deny | **Built and tested 20 Nov 2026** on a Kubernetes 1.33 API server: 10 cases, including a look-alike registry prefix and an unpinned CronJob (R28) |
-| Admission: signature verification (cosign) | Needs an admission controller (Sigstore policy-controller or Kyverno) | Before pilot (B7) |
+| Admission: signature verification (cosign) | Sigstore policy-controller + `ClusterImagePolicy` requiring the **CIVORA release key** (verifiable offline; ADR-027 proposed revision); images matching no policy are refused | **Built 20 Nov 2026** (R36): values meet restricted Pod Security (chart defaults do not — control); runtime test on GitHub runners. Remaining: release-key ceremony |
 
 ## 7.7 Repository protection (O-SEC4, O-SEC5)
 

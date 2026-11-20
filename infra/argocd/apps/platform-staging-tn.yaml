@@ -2,7 +2,7 @@
 # (verified against the upstream release tag, at least two weeks old when pinned) and takes its values from Git.
 # Not yet included, by decision or by choice still open:
 #   - ingress / API gateway: open question in ADR-013 (community ingress-nginx retired upstream, March 2026);
-#   - Keycloak HA, Redis HA, observability stack: next increments (docs/phase-2/16-infrastructure-plan.md §16.7).
+#   (Keycloak, Valkey and the observability stack were added on 20 Nov 2026; Valkey is in the application project.)
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:

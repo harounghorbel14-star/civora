@@ -26,3 +26,4 @@ spec:
         pod-security.kubernetes.io/enforce: restricted
         civora.io/cell: tn
         civora.tn/image-policy: enforced   # registry + digest admission policy (ADR-027; platform app admission-policies)
+        policy.sigstore.dev/include: "true"   # signature enforcement (ADR-027; infra/k8s/policies/image-signatures.yaml)

@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# Managed by Ansible (CIVORA, role postgresql_ha). Writes PostgreSQL archiving metrics for the node exporter's
+# text-file collector (alerts: WAL archive failing, RPO at risk). Runs every minute as root; queries as postgres.
+set -euo pipefail
+out={{ postgresql_ha_textfile_dir }}/civora_postgres.prom
+q() { runuser -u postgres -- psql -h /var/run/postgresql -d postgres -qAtX -F ' ' -c "$1"; }
+if ! read -r primary failed last_ok last_fail < <(q "select (not pg_is_in_recovery())::int, failed_count,
+       coalesce(extract(epoch from last_archived_time), 0)::bigint, coalesce(extract(epoch from last_failed_time), 0)::bigint
+       from pg_stat_archiver"); then
+  printf 'civora_postgres_up 0\n' > "$out.tmp"; mv "$out.tmp" "$out"; exit 0
+fi
+read -r pending oldest < <(q "select count(*), coalesce(extract(epoch from now() - min(modification)), 0)::bigint
+       from pg_ls_archive_statusdir() where name like '%.ready'")
+cat > "$out.tmp" <<METRICS
+# HELP civora_postgres_up 1 if PostgreSQL answered the collector.
+# TYPE civora_postgres_up gauge
+civora_postgres_up 1
+# HELP civora_postgres_is_primary 1 on the primary.
+# TYPE civora_postgres_is_primary gauge
+civora_postgres_is_primary $primary
+# HELP civora_postgres_archive_failed_total WAL segments that failed to archive (pg_stat_archiver).
+# TYPE civora_postgres_archive_failed_total counter
+civora_postgres_archive_failed_total $failed
+# HELP civora_postgres_last_archived_timestamp_seconds Last successful WAL archive.
+# TYPE civora_postgres_last_archived_timestamp_seconds gauge
+civora_postgres_last_archived_timestamp_seconds $last_ok
+# HELP civora_postgres_last_archive_failure_timestamp_seconds Last failed WAL archive attempt.
+# TYPE civora_postgres_last_archive_failure_timestamp_seconds gauge
+civora_postgres_last_archive_failure_timestamp_seconds $last_fail
+# HELP civora_postgres_wal_pending_archive_segments Completed WAL segments not yet archived.
+# TYPE civora_postgres_wal_pending_archive_segments gauge
+civora_postgres_wal_pending_archive_segments $pending
+# HELP civora_postgres_wal_oldest_pending_archive_seconds Age of the oldest segment waiting to be archived (RPO at risk).
+# TYPE civora_postgres_wal_oldest_pending_archive_seconds gauge
+civora_postgres_wal_oldest_pending_archive_seconds $oldest
+METRICS
+mv "$out.tmp" "$out"

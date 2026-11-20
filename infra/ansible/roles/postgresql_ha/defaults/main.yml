@@ -17,6 +17,7 @@ postgresql_ha_packages:
   - etcd-client
   - pgbackrest
   - python3-psycopg2
+  - prometheus-node-exporter   # host metrics + CIVORA text-file metrics over TLS (alerts, doc 15 §15.2)
 
 # Backup repositories (ADR-029): repo1 = backup node at the main site (group "backup"); repo2 = backup node at the
 # second in-country site (group "backup_dr", optional). Each repository host holds only its own repository, with its
@@ -74,3 +75,23 @@ postgresql_ha_repo2_cipher_pass: ""    # repo2 (second site); must differ from r
 # Optional point in time; empty = replay all archived WAL.
 postgresql_ha_bootstrap_from_repo: 0
 postgresql_ha_bootstrap_target_time: ""
+
+# Monitoring (doc 15 §15.2): node exporter text-file collectors, refreshed every minute.
+postgresql_ha_textfile_dir: /var/lib/prometheus/node-exporter
+postgresql_ha_metrics_units:
+  service: |
+    # Managed by Ansible (CIVORA, role postgresql_ha)
+    [Unit]
+    Description=CIVORA text-file metrics (@NAME@)
+    [Service]
+    Type=oneshot
+    ExecStart=/usr/local/sbin/@NAME@
+  timer: |
+    # Managed by Ansible (CIVORA, role postgresql_ha)
+    [Unit]
+    Description=CIVORA text-file metrics every minute (@NAME@)
+    [Timer]
+    OnActiveSec=10s
+    OnUnitActiveSec=1min
+    [Install]
+    WantedBy=timers.target

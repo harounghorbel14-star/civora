@@ -373,3 +373,9 @@ These are the open founder decisions from the [readiness report](../phase-2-read
 - **The HA cache built this round uses Valkey 9.1.3, pending your confirmation.** If you prefer Redis 8 under AGPLv3, only the image changes.
 
 Also noted, with no decision needed: Bitnami's free container images stopped being maintained in 2025 ([Broadcom](https://community.broadcom.com/tanzu/blogs/beltran-rueda-borrego/2025/08/18/how-to-prepare-for-the-bitnami-changes-coming-soon), [Docker](https://www.docker.com/blog/broadcoms-new-bitnami-restrictions-migrate-easily-with-docker/)). The platform therefore uses no Bitnami charts or images; upstream images are used instead.
+
+Also noted, for your awareness with ADR-027 (no separate decision needed beyond approving ADR-027):
+
+- Image signatures will be checked at admission against a **CIVORA release key**. The keyless public-Sigstore signature cannot be verified offline in air-gapped or bank-hosted cells.
+- The key must be created and held under two-person control (a key ceremony). That depends on the reviewer arrangement in P2-D2.
+- Details: ADR-027, "Proposed revision, 20 Nov 2026".

@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Managed by Ansible (CIVORA, role postgresql_ha). Writes pgBackRest metrics for this host's repository
+# (repo {{ postgresql_ha_local_repo }}) for the node exporter's text-file collector (alert: no backup in 26 h).
+set -euo pipefail
+out={{ postgresql_ha_textfile_dir }}/civora_pgbackrest.prom
+repo={{ postgresql_ha_local_repo }}
+json=$(runuser -u pgbackrest -- pgbackrest --stanza={{ postgresql_ha_stanza }} --repo=$repo info --output=json 2>/dev/null || echo '[]')
+{% raw %}
+python3 - "$repo" "$out.tmp" "$json" <<'PY'
+import json, sys
+repo, out, raw = sys.argv[1], sys.argv[2], sys.argv[3]
+try:
+    stanza = json.loads(raw)[0]
+    status = stanza["status"]["code"]
+    backups = stanza.get("backup", [])
+except Exception:
+    status, backups = 99, []
+last = {}
+for b in backups:
+    last[b["type"]] = max(last.get(b["type"], 0), b["timestamp"]["stop"])
+lines = ["# HELP civora_pgbackrest_stanza_status pgBackRest stanza status code (0 = ok).",
+         "# TYPE civora_pgbackrest_stanza_status gauge",
+         f'civora_pgbackrest_stanza_status{{repo="{repo}"}} {status}',
+         "# HELP civora_pgbackrest_last_backup_timestamp_seconds End of the newest backup of each type.",
+         "# TYPE civora_pgbackrest_last_backup_timestamp_seconds gauge"]
+lines += [f'civora_pgbackrest_last_backup_timestamp_seconds{{repo="{repo}",type="{t}"}} {ts}' for t, ts in sorted(last.items())]
+open(out, "w").write("\n".join(lines) + "\n")
+PY
+{% endraw %}
+mv "$out.tmp" "$out"

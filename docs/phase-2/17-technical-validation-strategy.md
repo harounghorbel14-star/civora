@@ -52,6 +52,11 @@
 | R29 | CI failure propagation | V1 | **Defect found:** steps of the form `script | tee` passed even when the script failed (GitHub's default shell has no `pipefail`). Workflows now set `shell: bash` | `.github/workflows/*.yml` |
 | R30 | Staging-shaped rehearsal (database tier + k3s + pg-router + civora-core) | V4 | **Pass on GitHub (run 5, 20 Nov 2026): from nothing to smoke tests in 169 s; application back 44 s after the leader froze, no pod restart.** Runs 1–4 found two defects (§17.2.2) | `staging-rehearsal.sh` (nightly workflow) |
 | R31 | Platform services as code (Argo CD) | V3 | cert-manager v1.21.3, External Secrets chart 2.14.0, OpenBao chart 0.30.7: pins checked against upstream release tags (each at least 2 weeks old). OpenBao (3 replicas, Raft, TLS) and External Secrets rendered from the tagged sources with our values, then dry-run on a Kubernetes 1.33 API server with Pod Security warnings treated as failures. **Finding:** the OpenBao chart's default container settings would be refused under "restricted"; fixed in our values, and the default kept as a negative control | `validate-manifests.sh` |
+| R32 | Second backup site + full disaster recovery | V4/V5 | Repository 2 at a second site with its own key; WAL archived to both. Site A (2 database servers + repository 1) destroyed abruptly while a client wrote every 200 ms; the role rebuilt the cluster at site B from repository 2: every acknowledged write up to the last archived WAL present, no gaps; **data lost: the last 16 s** (RPO target 15 min); **writes accepted again 85 s after the loss** (RTO target 4 h; real servers add provisioning time). **Finding:** two repositories' backups collided (one backup per stanza at a time) — fixed by serialised first backups, offset schedules and retries | `dr.sh` (nightly) |
+| R33 | Keycloak high availability | V3 | Two Keycloak 26.8.1 nodes cluster through the database; a session issued by node 1 is refreshed on node 2 after node 1 is killed; node 1 rejoins. **Finding:** all nodes need one fixed hostname (token issuer). Operator 26.8.1: the upstream Deployment violates restricted Pod Security — fixed with an Argo CD patch, upstream kept as a negative control | `infra/tests/keycloak-ha/run.sh`; `validate-manifests.sh` |
+| R34 | Valkey high availability (Sentinel) | V3 | 3 data nodes + 3 Sentinels from the chart's own scripts, non-root, read-only root, password as a file: replica promoted **7 s** after the primary is killed; confirmed write survives; old primary rejoins as replica | `infra/tests/valkey-ha/run.sh` |
+| R35 | Infrastructure alert rules | V3 | 11 rules (database, backup, RPO, disk, workloads, certificates) checked and unit-tested with promtool 3.15.1 (official image), including quiet cases (idle cluster, tmpfs). Database tier exports backup and archive metrics over TLS (checked in the database suite). Application alerts remain Phase 3 (§15.2) | `test-alert-rules.sh` (CI `iac`) |
+| R36 | Image signature enforcement | V4 | Sigstore policy-controller + CIVORA release-key policy (ADR-027 proposed revision). Server-side: values meet restricted Pod Security (chart defaults do not — control). Runtime on GitHub runners: signed image admitted, unsigned and unknown images refused — result in §17.2.3 | `infra/tests/image-signatures/run.sh` (nightly) |
 
 ### 17.2.1 Database tier integration test (R24, 19 Nov 2026)
 
@@ -153,6 +158,10 @@ Then the leader was frozen. The application, observed from inside the cluster, r
 | 4 | Reported green, but the log stopped after the smoke tests: the failover check contains `exit 0`, and the script's `check()` evaluated it without a subshell, so the script ended "successfully" early (**false green**) | `check()` runs in a subshell in all three rehearsal scripts; no earlier check in the other two contained `exit` |
 | 5 | Full pass (above) | — |
 
+### 17.2.3 Image signature enforcement (R36)
+
+Result of the first GitHub run: recorded in the readiness report's CI section once observed.
+
 ## 17.3 Test strategy by layer (Phase 3 onward)
 
 | Layer | Required tests | Gate |
@@ -190,10 +199,10 @@ The accepted findings are annotated on the pod templates (`checkov.io/skip*`), s
 | B4 | Second synthetic country pack `xx` → no code change needed | Phase 3 |
 | B5 | Trace scrubbing test — **done 19 Nov 2026**; log privacy test — **done 20 Nov 2026** (R27). Per-module extensions as modules are built | Phase 3 (per module) |
 | B6 | RLS presence test and IDOR suite templates | Phase 3 |
-| B7 | Image signature verification at admission. Registry + digest admission policy **done 20 Nov 2026** (R28); cosign signature verification needs an admission controller | Before pilot |
+| B7 | Image signature verification at admission. Registry + digest policy done (R28); signature enforcement built (R36); remaining: release-key ceremony (OpenBao/HSM, M-of-N) | Before pilot |
 | B8 | OpenAPI 3.1 conversion + schema validation — **done 19 Nov 2026**; breaking-change detection when the first business endpoint exists | Phase 3 (breaking changes) |
 | B9 | Load, noisy-neighbour, soak, failover tests (§14.5) | Phase 6 |
-| B10 | First restore drill on real hosts; first DR test (restore into a new cluster, then switch `pg-router`) — drills on containers done (latest and point in time) | Before pilot |
+| B10 | First restore drill and first DR test **on real hosts** — on containers: drills (latest, point in time) and full site-loss DR (R32) done | Before pilot |
 | B11 | ANCS-certified audit; penetration test | Before pilot (Phase 11/13) |
 
 ## 17.6 Environment limitations met in Phase 2 (recorded, not worked around)

@@ -116,6 +116,8 @@ jobs:
           ansible-lint --offline site.yml roles
       - name: Kubernetes manifests against a real API server (restricted Pod Security, Argo CD CRDs)
         run: infra/scripts/validate-manifests.sh
+      - name: Alert rules (promtool check + unit tests, official Prometheus image)
+        run: infra/scripts/test-alert-rules.sh
       - name: Checkov (Kubernetes, Helm, Dockerfile, Terraform, Ansible, GitHub Actions)
         run: |
           mkdir -p rendered

@@ -116,6 +116,37 @@ label="control: the upstream Keycloak Operator manifest without our patch violat
 run bash -c "! psa_apply keycloak < '$up/kc/kubernetes/kubernetes.yml'"
 label="Keycloak resource (3 instances, DB via pg-router, TLS): server dry-run against the CRD schema"
 run bash -c "docker exec -i $name kubectl -n keycloak apply --dry-run=server -f - < '$root/infra/k8s/keycloak/keycloak.yaml'"
+# Observability (ADR-011): Prometheus Operator CRDs from the pinned kube-prometheus-stack tag; our alert rules
+# validated against them; the full chart rendered with our values under restricted Pod Security. Rendering needs the
+# chart's dependency repositories (reachable from GitHub runners, not from this sandbox): strict in CI, skipped here.
+label="kube-prometheus-stack 92.19.0 CRDs installed; CIVORA alert rules: server dry-run against the PrometheusRule schema"
+run bash -c "git -c advice.detachedHead=false clone -q --depth 1 --filter=blob:none --sparse --branch kube-prometheus-stack-92.19.0 https://github.com/prometheus-community/helm-charts.git '$up/kps' \
+  && git -C '$up/kps' sparse-checkout set charts/kube-prometheus-stack \
+  && for c in '$up'/kps/charts/kube-prometheus-stack/charts/crds/crds/*.yaml; do docker exec -i $name kubectl apply --server-side -f - < \$c >/dev/null || exit 1; done \
+  && docker exec $name kubectl create ns observability >/dev/null && docker exec $name kubectl label ns observability pod-security.kubernetes.io/enforce=restricted pod-security.kubernetes.io/warn=restricted >/dev/null \
+  && docker exec -i $name kubectl apply --dry-run=server -f - < '$root/infra/k8s/monitoring/civora-infrastructure-alerts.yaml'"
+label="kube-prometheus-stack with CIVORA values: rendered, server dry-run under restricted Pod Security"
+if helm dependency build "$up/kps/charts/kube-prometheus-stack" >/dev/null 2>&1; then
+  run bash -c "helm template kps '$up/kps/charts/kube-prometheus-stack' -n observability --kube-version 1.33.4 --no-hooks --skip-crds -f '$root/infra/argocd/platform/values/kube-prometheus-stack.yaml' | psa_apply observability"
+elif [[ -n "${CI:-}" ]]; then
+  echo "  FAIL ${label} (chart dependencies could not be fetched)"; fail=1
+else
+  echo "  skip ${label} (chart repositories unreachable from this sandbox; strict on GitHub runners)"
+fi
+# Signature enforcement (ADR-027): policy-controller 0.10.8 from its pinned tag with CIVORA values under restricted
+# Pod Security; CIVORA ClusterImagePolicy against the real CRD schema (registered without its conversion webhook,
+# which only the running controller serves). Runtime enforcement: infra/tests/image-signatures (GitHub runners).
+label="policy-controller 0.10.8 with CIVORA values: server dry-run under restricted Pod Security; ClusterImagePolicy against its CRD"
+run bash -c "git -c advice.detachedHead=false clone -q --depth 1 --filter=blob:none --sparse --branch policy-controller-0.10.8 https://github.com/sigstore/helm-charts.git '$up/pc' \
+  && git -C '$up/pc' sparse-checkout set charts/policy-controller \
+  && helm template policy-controller '$up/pc/charts/policy-controller' -n cosign-system --kube-version 1.33.4 --no-hooks -f '$root/infra/argocd/platform/values/policy-controller.yaml' > '$up/pc.yaml' \
+  && python3 -c 'import sys,yaml; d=[x for x in yaml.safe_load_all(open(sys.argv[1])) if x]; c=[x for x in d if x[\"kind\"]==\"CustomResourceDefinition\"]; [x[\"spec\"].pop(\"conversion\",None) for x in c]; yaml.safe_dump_all(c, open(sys.argv[2],\"w\")); yaml.safe_dump_all([x for x in d if x[\"kind\"]!=\"CustomResourceDefinition\"], open(sys.argv[3],\"w\"))' '$up/pc.yaml' '$up/pc-crds.yaml' '$up/pc-rest.yaml' \
+  && docker exec -i $name kubectl apply --server-side -f - < '$up/pc-crds.yaml' >/dev/null \
+  && docker exec $name kubectl create ns cosign-system >/dev/null && docker exec $name kubectl label ns cosign-system pod-security.kubernetes.io/enforce=restricted pod-security.kubernetes.io/warn=restricted >/dev/null \
+  && psa_apply cosign-system < '$up/pc-rest.yaml' \
+  && docker exec -i $name kubectl apply --dry-run=server -f - < '$root/infra/k8s/policies/image-signatures.yaml'"
+label="control: policy-controller with the chart's default security settings violates restricted Pod Security"
+run bash -c "! helm template policy-controller '$up/pc/charts/policy-controller' -n cosign-system --kube-version 1.33.4 --no-hooks -s templates/webhook/deployment_webhook.yaml | psa_apply cosign-system"
 for f in "$root"/infra/argocd/platform/*.yaml "$root"/infra/argocd/platform/staging-tn/*.yaml; do
   label="argocd/platform/$(basename "$f"): server dry-run against the CRD schema"; run bash -c "docker exec -i $name kubectl apply --dry-run=server -f - < '$f'"
 done

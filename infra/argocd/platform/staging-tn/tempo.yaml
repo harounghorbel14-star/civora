@@ -1,0 +1,24 @@
+# tempo 1.24.4 for the staging TN cell's observability stack (ADR-011). Values in Git: infra/argocd/platform/values/tempo.yaml.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: tempo-staging-tn
+  namespace: argocd
+  annotations: { argocd.argoproj.io/sync-wave: "-2" }
+spec:
+  project: civora-platform
+  sources:
+    - repoURL: https://grafana.github.io/helm-charts
+      chart: tempo
+      targetRevision: 1.24.4
+      helm:
+        valueFiles: ["$values/infra/argocd/platform/values/tempo.yaml"]
+    - repoURL: https://github.com/harounghorbel14-star/civora.git
+      targetRevision: main
+      ref: values
+  destination: { server: https://kubernetes.default.svc, namespace: observability }
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: ["CreateNamespace=true", "ServerSideApply=true"]
+    managedNamespaceMetadata:
+      labels: { pod-security.kubernetes.io/enforce: restricted }

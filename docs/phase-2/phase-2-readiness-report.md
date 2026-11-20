@@ -31,6 +31,11 @@
 | Log-privacy test; database-failover resilience in the core service | `services/core` | Both found a real defect before passing (R26, R27) |
 | Staging-shaped rehearsal (database tier + k3s + `pg-router` + civora-core) | `infra/scripts/staging-rehearsal.sh` | **Pass on GitHub:** from nothing to smoke tests in 169 s; application back 44 s after the database leader froze, no pod restart ([17](17-technical-validation-strategy.md) §17.2.2) |
 | Platform services as code (Argo CD): admission policies, cert-manager, External Secrets, OpenBao | `infra/argocd/platform` | Pinned to upstream tags; OpenBao and External Secrets rendered and dry-run under restricted Pod Security (R31) |
+| **Final technical decision package** (six decisions + P2-D2 to P2-D5) and ADR-030 (APISIX, Proposed) | [founder-review/P2-final-technical-decision-package.md](founder-review/P2-final-technical-decision-package.md) | Nothing approved; all 30 ADRs Proposed |
+| Second backup site (repository 2) and full disaster recovery | Role `postgresql_ha` (`backup_dr`, `bootstrap_from_repo`); OpenTofu cell (`backup_dr`, site guard); [runbook](runbooks/database-operations.md) §8 | Site-loss rehearsal: 16 s of data lost, writes back after 85 s (R32) |
+| HA Keycloak (operator, 3 instances) and HA Valkey (3 + 3 Sentinels) | `infra/k8s/keycloak`, `infra/helm/valkey-ha` | Session survives node loss (R33); failover 7 s (R34) |
+| Monitoring stack and infrastructure alerts | `infra/argocd/platform` (kube-prometheus-stack, Loki, Tempo), `infra/k8s/monitoring` | 11 alert rules unit-tested with promtool (R35); database-tier metrics over TLS |
+| Image signature enforcement | `infra/k8s/policies/image-signatures.yaml`, policy-controller app | Restricted Pod Security (with control); runtime test on GitHub runners (R36) |
 | OPA vs Cedar spike → ADR-006 (Cedar) | `spikes/policy-engine` | 24/24 decisions agree across Cedar, OPA-wasm, OPA-REST |
 
 **Security results this week:**
@@ -59,20 +64,23 @@
 | My server-side chart validation (R8) claimed "restricted Pod Security", but Pod Security only warns for Deployments/StatefulSets and the script discarded the warnings | Warnings now fail the check, with a control. It immediately caught the OpenBao chart's non-compliant default (fixed in values). civora-core and pg-router pods have since run for real in restricted namespaces on GitHub |
 | A new pod (the migration Job) can be refused for a moment until network policy is programmed for it; every Job retry is a new pod, so migrations failed in the staging rehearsal | civora-core waits for the database before migrating (up to 60 s; tested) |
 | **False green in my staging rehearsal script:** a check containing `exit 0` ended the script early with success | Checks run in a subshell in all rehearsal scripts; the rehearsal then passed in full (run 5) |
+| Two backup repositories started backups at the same moment; pgBackRest allows one backup per stanza at a time, so one failed (found by the DR rehearsal) | First backups serialised; repository 2 scheduled 2.5 h later; backup units retry |
+| Upstream manifests that would be refused under restricted Pod Security: Keycloak Operator Deployment, policy-controller chart defaults (as earlier OpenBao) | Patched through Argo CD / values; each upstream default kept as a negative control in the validation |
+| Test pitfalls found in my own checks: a token issuer bound to the node address (Keycloak test without a fixed hostname); `curl | grep -q` failing under `pipefail` on large outputs | Fixed in the tests; the hostname requirement is also in the Keycloak resource |
 | Applications had no designed path to a *moving* primary (staging values pointed straight at database IPs) | `pg-router` chart (HAProxy asks Patroni which node is primary; TLS verified); recorded as an implementation detail of ADR-003, not a new decision |
 
 ## 3. Acceptance-criteria status
 
 | ID | Criterion (Phase 0 §19) | Status | What closes it |
 |---|---|---|---|
-| **O-AC1** | Staging cell reproducible from IaC in < 2 h | **BLOCKED** — no hosting provider. Proven so far, everything that needs no provider: on GitHub runners, a staging-shaped cell (HA database tier built by the Ansible role + Kubernetes + `pg-router` + civora-core) goes from nothing to passing smoke tests in **169 s** and survives a database leader crash; IaC validates. This is evidence, not the criterion: real hosts, OS hardening, RKE2, DNS/TLS and platform services on hosts are not in it | Founder: obtain hosting quotes and choose a provider (Phase 1 action 10, E-07). Then 11.5–17 engineer-days of provider-specific IaC ([16](16-infrastructure-plan.md) §16.7) and a timed rebuild |
+| **O-AC1** | Staging cell reproducible from IaC in < 2 h | **BLOCKED** — no hosting provider. Remaining provider-specific work: 8–12.5 engineer-days ([16](16-infrastructure-plan.md) §16.7). Proven so far, everything that needs no provider: on GitHub runners, a staging-shaped cell (HA database tier built by the Ansible role + Kubernetes + `pg-router` + civora-core) goes from nothing to passing smoke tests in **169 s** and survives a database leader crash; IaC validates. This is evidence, not the criterion: real hosts, OS hardening, RKE2, DNS/TLS and platform services on hosts are not in it | Founder: obtain hosting quotes and choose a provider (Phase 1 action 10, E-07). Then the provider-specific IaC and a timed rebuild |
 | **O-AC2** | All ADRs approved | **OPEN — founder** (29 ADRs "Proposed") | Founder decision P2-D1 (§4) |
 | **O-AC3** | Threat model reviewed by an external security adviser | **OPEN — external** (no adviser engaged) | Founder decision P2-D3; request text in §7.2 |
 | Additive R-1 to R-5 | ADR coverage of FI tenants, on-premises, financial data, rule packs, Tunisian hosting | **MET in design** ([19](19-traceability-matrix.md) §19.2) | — (R-2 rehearsal confirmed when CI runs) |
 
 Partially met original items (details in [19](19-traceability-matrix.md) §19.1):
 - **O-SEC2.** Signing and provenance run only on `main`; not yet observed (needs a merge).
-- **O-D6.** Staging IaC written; database tier, `pg-router` and application tested together on GitHub runners; not applied to real hosts (no provider). Platform services: cert-manager, External Secrets, OpenBao and admission policies written (Argo CD); ingress (open question), Keycloak HA, Redis HA and observability still to write.
+- **O-D6.** Staging IaC written; database tier, `pg-router` and application tested together on GitHub runners; second site and DR rehearsed; not applied to real hosts (no provider). Platform services written as code: cert-manager, External Secrets, OpenBao, Keycloak HA, Valkey HA, monitoring, admission and signature policies. The ingress/gateway waits for ADR-030.
 - **O-SEC4/O-SEC5.** Repository settings are a founder action.
 
 Closed on 19 Nov 2026 (second session): **O-D5** (CI observed green on GitHub), **O-A6** (tracing with a privacy allow-list), **O-API3** (OpenAPI 3.1 with schema validation).
@@ -122,7 +130,9 @@ Open questions for counsel that affect the architecture (already in the Phase 1 
 | R2-7 | Tunisian GPU capacity unknown (Phase 10) | Medium / Medium | Location policy; decision deferred to Phase 10 | — |
 | R2-8 | Fast-moving dependencies (NestJS 12, TypeScript 7, Keycloak) | Medium / Low | Pins, Dependabot, ADR-002 revisit in Phase 3 | Engineering |
 | R2-10 | With 2 database servers in synchronous mode, automatic failover is refused while no synchronous standby is designated (measured: 120 s with no promotion; no split-brain). The manual way out loses the writes acknowledged in that window (measured: 50 of 50) | Low / Medium | 3 database servers per production site (tested: automatic, nothing lost), or the manual procedure in the [database runbook](runbooks/database-operations.md) §4 with its data-loss cost accepted in writing | Founder (P2-D1) / engineering |
-| R2-11 | The Phase 0 MVP ingress controller (community ingress-nginx) is unmaintained since March 2026 | High (if used) / High | Decision within P2-D1 (ADR-013 open question); until then no public exposure | Founder |
+| R2-11 | The Phase 0 MVP ingress controller (community ingress-nginx) is unmaintained since March 2026 | High (if used) / High | Decision within P2-D1 (**ADR-030**); until then no public exposure | Founder |
+| R2-12 | Third-party packaging changes: Bitnami's free images unmaintained since 2025; Redis ≥ 7.4 not open source | Medium / Medium | No Bitnami charts or images used; Valkey recommended (ADR-008 open question); pins verified against upstream tags | Engineering / founder (Valkey) |
+| R2-13 | Image signatures depend on a release key that does not exist yet (ceremony needs a second person) | Medium / High | Enforcement built; key ceremony before pilot with M-of-N custody (P2-D2) | Founder / engineering |
 | R2-9 | Over-engineering for an unvalidated market (O-RISK) | Medium / Medium | Design-only ADRs for later phases; nothing built beyond Phase 0 §19 items | Engineering |
 
 ## 6. Quality checks run for this report

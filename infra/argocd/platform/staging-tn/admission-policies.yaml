@@ -5,7 +5,7 @@ kind: Application
 metadata:
   name: admission-policies-staging-tn
   namespace: argocd
-  annotations: { argocd.argoproj.io/sync-wave: "-30" }
+  annotations: { argocd.argoproj.io/sync-wave: "-20" }   # after policy-controller (-25): its CRD is needed
 spec:
   project: civora-platform
   source:

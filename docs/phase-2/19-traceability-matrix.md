@@ -20,11 +20,11 @@
 | O-D7 | Synthetic data generator (TN country pack v0) | `packages/synthetic-data`, `packages/country-packs/tn` | Determinism and pattern tests; pack integrity tests | **Done** |
 | O-D8 | Coding standards | [18](18-coding-standards.md) | Fitness check in CI | **Done** |
 | O-A1 | Modular monolith skeleton | `services/core` (9 bounded contexts + platform modules) | e2e tests; boundary check | **Done** |
-| O-A2 | Keycloak | Dev cell, realm `civora-dev`; [06](06-identity-and-access.md) | Smoke test (OIDC discovery) | **Done** (dev) |
+| O-A2 | Keycloak | Dev cell, realm `civora-dev`; [06](06-identity-and-access.md). Staging: Keycloak Operator 26.8.1 + 3 clustered instances (`infra/k8s/keycloak`) | Smoke test (OIDC discovery); HA test: session survives node loss (R33); operator under restricted Pod Security (patched, with control) | **Done** (dev); staging HA written and tested |
 | O-A3 | PostgreSQL clusters | Dev cell: pg-public, pg-core, pg-consent-audit; ADR-003. Staging and production: role `postgresql_ha` (Patroni, etcd, pgBackRest) + `pg-router` chart | Smoke tests; migration test; database suite on systemd containers, 2 and 3 servers (31/31, 35/35 — [17](17-technical-validation-strategy.md) §17.2.1) | **Done** (dev); staging tier container-tested, real hosts need a provider |
-| O-A4 | Redis | Dev cell (auth, AOF) | Smoke test (auth required) | **Done** (dev) |
+| O-A4 | Redis | Dev cell (auth, AOF). Staging: Valkey HA chart (3 data nodes + 3 Sentinels) — Valkey pending the founder's licence answer | Smoke test (auth required); failover test 7 s (R34) | **Done** (dev); staging HA written and tested |
 | O-A5 | Object storage | Dev cell SeaweedFS; ADR-020 | Smoke test (anonymous refused) | **Done** (dev) |
-| O-A6 | Observability stack | Dev cell OTel + Prometheus + Loki + Tempo + Grafana; core metrics, logs and **traces** (allow-list exporter); [15](15-observability-backup-and-dr.md) | Smoke tests (login required; traces reach Tempo without request data); e2e `/metrics`; e2e trace-scrubbing test with negative control; log-privacy test with negative control (R27) | **Done** |
+| O-A6 | Observability stack | Dev cell OTel + Prometheus + Loki + Tempo + Grafana; core metrics, logs and **traces** (allow-list exporter); [15](15-observability-backup-and-dr.md) | Smoke tests (login required; traces reach Tempo without request data); e2e `/metrics`; e2e trace-scrubbing test with negative control; log-privacy test with negative control (R27) | **Done** (dev); staging stack as Argo CD apps + infrastructure alerts unit-tested (R35) |
 | O-A7 | OPA/Cedar evaluation spike | `spikes/policy-engine`; ADR-006 | 24/24 decisions agree; CI job | **Done** |
 | O-F1 | Health-check endpoints | `GET /health`, `GET /health/ready` | e2e; dev cell; Kubernetes probes | **Done** |
 | O-F2 | Feature-flag framework | `packages/feature-flags`; ADR-021 | Unit tests; used by core | **Done** |

@@ -137,11 +137,12 @@ Details are in [07](07-security-and-privacy-architecture.md) §7.7.
 |---|---|
 | Hosting adapter for the chosen provider (OpenTofu provider, networks, VMs, volumes, DNS) | 3–5 days |
 | ~~Ansible role: PostgreSQL 16 + Patroni + pgBackRest (+ etcd DCS)~~ **Written and container-tested 19 Nov 2026** (role `postgresql_ha`); remaining: first run on real hosts | 0.5–1 day (was 4–6) |
-| Platform services via Argo CD: ingress controller (**choice pending — see ADR-013 open question**), cert-manager, External Secrets, OpenBao HA, Keycloak HA, Redis Sentinel, observability stack | 5–7 days |
+| Platform services via Argo CD — **written and validated 20 Nov 2026**: cert-manager, External Secrets, OpenBao HA, Keycloak HA (operator), Valkey HA, monitoring (Prometheus, Alertmanager, Grafana, Loki, Tempo), signature enforcement. Remaining: the ingress/gateway (**pending ADR-030**), first sync on real hosts, tuning | 2–3 days (was 5–7) |
 | ~~Application path to the database primary~~ **`pg-router` chart written and tested 20 Nov 2026** | — |
-| Signature verification at admission (Sigstore policy controller or Kyverno); registry + digest policy **done** (built-in admission policy) | 1 day (was 1–2) |
+| ~~Signature verification at admission~~ **built 20 Nov 2026** (policy-controller + release-key policy); remaining: release-key ceremony in OpenBao/HSM | 0.5 day |
+| ~~Second backup site and DR procedure~~ **built and rehearsed 20 Nov 2026** (repository 2, rebuild from repository); remaining: first run on real hosts | in the role run |
 | End-to-end timed rebuild, fixes, runbook | 2–3 days |
-| **Total** | **11.5–17 engineer-days** (was 15–23) |
+| **Total** | **8–12.5 engineer-days** (was 15–23; 11.5–17 on 20 Nov morning) |
 
 **Six-week plan (O-TIME), started 19 Nov 2026:**
 

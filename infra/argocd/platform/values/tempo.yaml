@@ -1,0 +1,6 @@
+# Tempo chart 1.24.4 (tag of 30 Jan 2026). Traces: 14 days (doc 15 §15.1); spans arrive already reduced to the
+# attribute allow-list by civora-core (tested) and the collector.
+tempo:
+  retention: 336h
+  securityContext: { runAsNonRoot: true, runAsUser: 10001, allowPrivilegeEscalation: false, capabilities: { drop: [ALL] } }
+securityContext: { runAsNonRoot: true, runAsUser: 10001, fsGroup: 10001, seccompProfile: { type: RuntimeDefault } }

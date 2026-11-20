@@ -53,3 +53,6 @@
 
 - name: First backup and backup schedule
   ansible.builtin.import_tasks: backup.yml
+
+- name: Metrics for alerting (node exporter over TLS, text-file collectors)
+  ansible.builtin.import_tasks: monitoring.yml

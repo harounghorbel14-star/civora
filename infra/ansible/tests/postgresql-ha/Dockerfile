@@ -11,6 +11,6 @@ RUN --mount=type=secret,id=proxy_ca,required=false \
     if [ -n "$HTTPS_PROXY" ]; then printf 'Acquire::https::Proxy "%s";\n' "$HTTPS_PROXY" > /etc/apt/apt.conf.d/99proxy; fi && \
     apt-get update -qq && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
-      postgresql-16 patroni etcd-server etcd-client pgbackrest python3-psycopg2 >/dev/null && \
+      postgresql-16 patroni etcd-server etcd-client pgbackrest python3-psycopg2 prometheus-node-exporter curl >/dev/null && \
     rm -f /etc/apt/apt.conf.d/99proxy /usr/local/share/ca-certificates/proxy.crt && update-ca-certificates --fresh >/dev/null && \
     rm -rf /var/lib/apt/lists/*

@@ -152,6 +152,10 @@ check "repository unreadable without the cipher passphrase (control with it: rea
   "test \"\$(info_status keep)\" = 0 && test \"\$(info_status strip)\" != 0"
 check "WAL archiving end to end (pgbackrest check)" "docker exec -u pgbackrest tn-t-bk1 pgbackrest --stanza=civora check"
 check "backup timers scheduled" "docker exec tn-t-bk1 systemctl is-enabled pgbackrest-backup-full.timer pgbackrest-backup-diff.timer"
+metrics_of() { curl -sf --noproxy '*' --max-time 5 --cacert "$work/ca.crt" "https://${ip[$1]}:9100/metrics"; }
+check "node exporter over TLS (certificate verified): backup metrics on the repository node, archiving metrics on the primary" \
+  "for i in \$(seq 1 40); do b=\$(metrics_of tn-t-bk1 || true); p=\$(metrics_of $L || true); grep -q 'civora_pgbackrest_last_backup_timestamp_seconds{repo=\"1\",type=\"full\"} [1-9]' <<<\"\$b\" && grep -q '^civora_postgres_is_primary 1' <<<\"\$p\" && grep -q '^civora_postgres_last_archived_timestamp_seconds [1-9]' <<<\"\$p\" && exit 0; sleep 3; done; exit 1"   # no pipe into grep -q: with pipefail, curl's SIGPIPE would fail a match
+check "node exporter refuses plain HTTP" "! curl -sf --noproxy '*' --max-time 3 http://${ip[tn-t-bk1]}:9100/metrics"
 check "pg_hba rejects everything outside the allowed CIDRs" "docker exec $L grep -q 'host all all 0.0.0.0/0 reject' /var/lib/postgresql/16/patroni/pg_hba.conf"
 
 if [[ "${SETUP_ONLY:-0}" == 1 ]]; then

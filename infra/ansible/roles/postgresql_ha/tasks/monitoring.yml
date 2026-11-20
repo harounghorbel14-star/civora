@@ -1,0 +1,74 @@
+---
+# Metrics for the alerts in docs/phase-2/15-observability-backup-and-dr.md §15.2 (database, backup, disk):
+# Ubuntu's node exporter over TLS (node certificate) with two text-file collectors written by systemd timers.
+- name: Node exporter account reads the node certificate
+  ansible.builtin.user:
+    name: prometheus
+    groups: civora-tls
+    append: true
+
+- name: Node exporter configuration directory
+  ansible.builtin.file:
+    path: /etc/prometheus
+    state: directory
+    owner: root
+    group: prometheus
+    mode: "0750"
+
+- name: Node exporter TLS configuration
+  ansible.builtin.copy:
+    dest: /etc/prometheus/node-exporter-web.yml
+    owner: root
+    group: prometheus
+    mode: "0640"
+    content: |
+      # Managed by Ansible (CIVORA, role postgresql_ha)
+      tls_server_config:
+        cert_file: {{ postgresql_ha_tls_dir }}/node.crt
+        key_file: {{ postgresql_ha_tls_dir }}/node.key
+  register: postgresql_ha_exporter_web
+
+- name: Node exporter arguments (TLS, text-file collector)
+  ansible.builtin.copy:
+    dest: /etc/default/prometheus-node-exporter
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      # Managed by Ansible (CIVORA, role postgresql_ha)
+      ARGS="--web.config.file=/etc/prometheus/node-exporter-web.yml --collector.textfile.directory={{ postgresql_ha_textfile_dir }}"
+  register: postgresql_ha_exporter_args
+
+- name: Node exporter running (restarted on change)  # noqa: no-handler
+  ansible.builtin.systemd_service:
+    name: prometheus-node-exporter
+    state: "{{ 'restarted' if (postgresql_ha_exporter_web is changed or postgresql_ha_exporter_args is changed) else 'started' }}"
+    enabled: true
+
+- name: Text-file collector scripts
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/usr/local/sbin/{{ item }}"
+    owner: root
+    group: root
+    mode: "0755"
+  loop: "{{ ['civora-db-metrics'] if inventory_hostname in groups['db_nodes'] else ['civora-backup-metrics'] }}"
+
+- name: Text-file collector units (every minute; first run 10 s after start)
+  ansible.builtin.copy:
+    dest: "/etc/systemd/system/{{ item.0 }}.{{ item.1 }}"
+    owner: root
+    group: root
+    mode: "0644"
+    content: "{{ postgresql_ha_metrics_units[item.1] | replace('@NAME@', item.0) }}"
+  loop: "{{ (['civora-db-metrics'] if inventory_hostname in groups['db_nodes'] else ['civora-backup-metrics']) | product(['service', 'timer']) | list }}"
+  loop_control:
+    label: "{{ item.0 }}.{{ item.1 }}"
+  register: postgresql_ha_metrics_unit_files
+
+- name: Text-file collector timers enabled
+  ansible.builtin.systemd_service:
+    name: "{{ 'civora-db-metrics' if inventory_hostname in groups['db_nodes'] else 'civora-backup-metrics' }}.timer"
+    state: started
+    enabled: true
+    daemon_reload: "{{ postgresql_ha_metrics_unit_files is changed }}"
