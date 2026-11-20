@@ -13,6 +13,8 @@
 # DNS instead, the failover stalled for minutes on GitHub runners (nightly runs 6-7, 20 Nov 2026) and the Sentinels
 # answered slowly. Cause not established: a lookup through Docker's resolver, printed by each run, measured 0.00 s
 # on GitHub (run 8). With /etc/hosts the failover passes there in 6 s.
+# NAMES=docker-dns reproduces the earlier setup (Docker's DNS, no fixed addresses) for diagnosis: it prints the
+# lookup times through the C library (as Sentinel resolves) and the Sentinel logs.
 # Needs docker, python3. Synthetic data; password generated per run.
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -22,6 +24,8 @@ net=civora-vk-test; subnet=172.31.244
 nodes="vk-0 vk-1 vk-2"; sentinels="vs-0 vs-1 vs-2"
 declare -A ip=([vk-0]=$subnet.10 [vk-1]=$subnet.11 [vk-2]=$subnet.12 [vs-0]=$subnet.20 [vs-1]=$subnet.21 [vs-2]=$subnet.22)
 hosts=(); for h in "${!ip[@]}"; do hosts+=(--add-host "$h:${ip[$h]}"); done
+names="${NAMES:-hosts}"
+[[ "$names" == hosts || "$names" == docker-dns ]] || { echo "NAMES must be hosts or docker-dns" >&2; exit 2; }
 start=$(date +%s)
 stamp() { echo "[$(( $(date +%s) - start ))s] $*"; }
 cleanup() { [[ "${KEEP:-0}" == 1 ]] || { for n in $nodes $sentinels; do docker rm -f "$n" >/dev/null 2>&1 || true; done; docker network rm "$net" >/dev/null 2>&1 || true; }; }
@@ -32,11 +36,12 @@ pw=$(head -c 48 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 32)
 secret_dir=$(mktemp -d); chmod 755 "$secret_dir"; printf '%s' "$pw" > "$secret_dir/password"; chmod 644 "$secret_dir/password"
 
 cleanup
-docker network create --subnet "$subnet.0/24" "$net" >/dev/null
+if [[ "$names" == hosts ]]; then docker network create --subnet "$subnet.0/24" "$net" >/dev/null; else docker network create "$net" >/dev/null; fi
 run_node() { # name role(valkey|sentinel)
   local script=start-valkey.sh dir=/data
   [[ "$2" == sentinel ]] && { script=start-sentinel.sh; dir=/sentinel; }
-  docker run -d --name "$1" --hostname "$1" --network "$net" --ip "${ip[$1]}" "${hosts[@]}" --user 10999:10999 --read-only \
+  local addr=(--ip "${ip[$1]}" "${hosts[@]}"); [[ "$names" == hosts ]] || addr=()
+  docker run -d --name "$1" --hostname "$1" --network "$net" "${addr[@]}" --user 10999:10999 --read-only \
     --tmpfs "$dir:uid=10999,gid=10999" -v "$files:/scripts:ro" -v "$secret_dir:/secrets:ro" \
     -e ME="${1/vs-/vk-}" -e SENTINEL_ME="$1" -e NODES="$nodes" -e SENTINELS="$sentinels" -e VALKEY_PASSWORD_FILE=/secrets/password \
     --entrypoint sh "$image" "/scripts/$script" >/dev/null
@@ -64,7 +69,8 @@ check "after the primary is killed, the Sentinels promote a replica" \
 failover_s=$(( $(date +%s) - t_kill ))
 # Evidence only (not a check): Docker's own resolver for the stopped container's name, bypassing /etc/hosts.
 dns_s=$(docker exec vs-1 time sh -c 'nslookup vk-0 127.0.0.11 >/dev/null 2>&1' 2>&1 | sed -n 's/^real[[:space:]]*//p' || true)
-stamp "Docker DNS lookup of the stopped primary's name took ${dns_s:-?} (not used by the test)"
+libc_s=$(docker exec vs-1 time sh -c 'getent hosts vk-0 >/dev/null 2>&1' 2>&1 | sed -n 's/^real[[:space:]]*//p' || true)
+stamp "lookups of the stopped primary's name: Docker resolver ${dns_s:-?}; C library as Sentinel uses ${libc_s:-?} (names: $names)"
 new=$(master_seen_by vs-1)
 check "writes accepted by the new primary ($new) once its remaining replica is attached" \
   "for i in \$(seq 1 30); do cli $new 'set synthetic:after after-failover' 2>&1 | grep -q OK && exit 0; sleep 1; done; exit 1"
@@ -73,6 +79,6 @@ docker start vk-0 >/dev/null
 check "the old primary restarts as a replica of the new one (asks the Sentinels first)" \
   "for i in \$(seq 1 40); do [ \"\$(info_field vk-0 role)\" = slave ] && [ \"\$(info_field vk-0 master_host)\" = $new ] && [ \"\$(info_field vk-0 master_link_status)\" = up ] && exit 0; sleep 1; done; exit 1"
 check "the new primary has 2 replicas again" "for i in \$(seq 1 30); do [ \"\$(info_field $new connected_slaves)\" = 2 ] && exit 0; sleep 1; done; exit 1"
-[[ $fail == 0 ]] || for s in $sentinels; do echo "--- $s (last lines)"; docker logs --tail 15 "$s" 2>&1; done
+[[ $fail == 0 && "$names" == hosts ]] || for s in $sentinels; do echo "--- $s (last lines)"; docker logs --tail 25 "$s" 2>&1; done
 stamp "done (fail=$fail; failover ${failover_s}s after the primary was killed)"
 exit $fail

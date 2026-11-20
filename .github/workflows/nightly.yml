@@ -129,6 +129,35 @@ jobs:
       - name: Valkey HA
         run: infra/tests/valkey-ha/run.sh | tee -a "$GITHUB_STEP_SUMMARY"
 
+  valkey-chart-on-kubernetes:
+    name: Valkey chart on Kubernetes (k3s) — primary pod deleted, primary process crashed, NetworkPolicy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: azure/setup-helm@2f5e7bc67f1f9972ab16657bb795f36d8f04de0e # v5.1.0
+        with: { version: v3.22.1 }
+      - name: Chart failover on Kubernetes
+        run: infra/tests/valkey-ha/k8s.sh | tee -a "$GITHUB_STEP_SUMMARY"
+
+  # Diagnostic, does not gate (R38): reproduces the earlier Docker-DNS setup three times and prints lookup
+  # times and Sentinel logs. Removed once the cause of the GitHub-only stall is established.
+  valkey-dns-diagnostic:
+    name: Diagnostic (non-gating) — Valkey Sentinel with Docker DNS names, 3 attempts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - name: Docker-DNS attempts (outcome recorded, never fails the job)
+        run: |
+          docker version --format 'Docker {{.Server.Version}}'; cat /etc/resolv.conf
+          for n in 1 2 3; do
+            echo "=== attempt $n"
+            if NAMES=docker-dns infra/tests/valkey-ha/run.sh; then echo "RESULT attempt $n: pass"; else echo "RESULT attempt $n: FAIL"; fi
+          done 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+
   image-signature-enforcement:
     name: Image signatures enforced at admission (policy-controller, signed vs unsigned, private TLS registry)
     runs-on: ubuntu-24.04
