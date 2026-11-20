@@ -8,11 +8,11 @@
 #   4. the primary is killed → a replica is promoted;
 #   5. writes resume; the confirmed write survives;
 #   6. the old primary restarts as a replica of the new one.
-# Name resolution: every container resolves the six names from /etc/hosts (fixed addresses). In Kubernetes the
-# headless Service publishes a crashed pod's address (publishNotReadyAddresses) and cluster DNS answers for
-# cluster.local itself. Docker's resolver instead forwards the name of a stopped container to the runner's upstream
-# DNS. On GitHub runners (20 Nov 2026) the failover stalled for minutes and the Sentinels answered slowly; the
-# suspected cause (not proven) is Sentinel's synchronous name lookups. The run prints how long that Docker lookup takes.
+# Name resolution: every container resolves the six names from /etc/hosts (fixed addresses), as Kubernetes keeps
+# publishing a crashed pod's address (headless Service, publishNotReadyAddresses). With names resolved by Docker's
+# DNS instead, the failover stalled for minutes on GitHub runners (nightly runs 6-7, 20 Nov 2026) and the Sentinels
+# answered slowly. Cause not established: a lookup through Docker's resolver, printed by each run, measured 0.00 s
+# on GitHub (run 8). With /etc/hosts the failover passes there in 6 s.
 # Needs docker, python3. Synthetic data; password generated per run.
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -49,12 +49,13 @@ master_seen_by() { cli "$1" "sentinel get-master-addr-by-name civora" 26379 | he
 stamp "3 data nodes and 3 Sentinels started (UID 10999, read-only root)"
 
 echo "Checks:"
-check "vk-0 is primary with 2 connected replicas" \
-  "for i in \$(seq 1 30); do [ \"\$(info_field vk-0 role)\" = master ] && [ \"\$(info_field vk-0 connected_slaves)\" = 2 ] && exit 0; sleep 1; done; exit 1"
+# "Connected" includes replicas still in their initial sync; a write can only be confirmed once one is online.
+check "vk-0 is primary with 2 replicas in sync (state=online)" \
+  "for i in \$(seq 1 30); do [ \"\$(info_field vk-0 role)\" = master ] && [ \"\$(cli vk-0 'info replication' | grep -c 'state=online')\" = 2 ] && exit 0; sleep 1; done; exit 1"
 check "all 3 Sentinels agree on the primary and see 2 replicas and 2 other Sentinels" \
   "for i in \$(seq 1 30); do ok=1; for s in $sentinels; do [ \"\$(master_seen_by \$s)\" = vk-0 ] || ok=0; [ \"\$(cli \$s 'sentinel replicas civora' 26379 | grep -c '^name\$')\" = 2 ] || ok=0; [ \"\$(cli \$s 'sentinel sentinels civora' 26379 | grep -c '^name\$')\" = 2 ] || ok=0; done; [ \$ok = 1 ] && exit 0; sleep 2; done; exit 1"
 check "a write confirmed by at least one replica (WAIT 1) is readable on the replicas" \
-  "cli vk-0 'set synthetic:confirmed before-failover' >/dev/null && [ \"\$(cli vk-0 'wait 1 2000' | tr -d '\r')\" -ge 1 ] && for r in vk-1 vk-2; do for i in \$(seq 1 10); do [ \"\$(cli \$r 'get synthetic:confirmed' | tr -d '\r')\" = before-failover ] && break; sleep 0.5; done; [ \"\$(cli \$r 'get synthetic:confirmed' | tr -d '\r')\" = before-failover ] || exit 1; done"
+  "[ \"\$(cli vk-0 'set synthetic:confirmed before-failover' | tr -d '\r')\" = OK ] && [ \"\$(cli vk-0 'wait 1 2000' | tr -d '\r')\" -ge 1 ] && for r in vk-1 vk-2; do for i in \$(seq 1 10); do [ \"\$(cli \$r 'get synthetic:confirmed' | tr -d '\r')\" = before-failover ] && break; sleep 0.5; done; [ \"\$(cli \$r 'get synthetic:confirmed' | tr -d '\r')\" = before-failover ] || exit 1; done"
 
 docker kill vk-0 >/dev/null
 t_kill=$(date +%s)
