@@ -12,6 +12,7 @@ on:
     paths:
       - "infra/ansible/roles/postgresql_ha/**"
       - "infra/ansible/tests/**"
+      - "infra/tests/**"
       - "infra/helm/**"
       - "infra/scripts/**"
       - "infra/compose/**"
@@ -97,3 +98,33 @@ jobs:
         env:
           ANSIBLE_PLAYBOOK: ${{ runner.temp }}/ansible/bin/ansible-playbook
         run: infra/scripts/staging-rehearsal.sh | tee -a "$GITHUB_STEP_SUMMARY"
+
+  disaster-recovery:
+    name: Disaster recovery — lose site A, rebuild the database cluster at site B from repository 2, timed
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: azure/setup-helm@2f5e7bc67f1f9972ab16657bb795f36d8f04de0e # v5.1.0
+        with: { version: v3.22.1 }
+      - name: Ansible with the docker connection plugin (test harness only)
+        run: |
+          python3 -m venv "$RUNNER_TEMP/ansible"
+          "$RUNNER_TEMP/ansible/bin/pip" install --quiet "ansible==11.13.0"
+      - name: DR rehearsal
+        env:
+          ANSIBLE_PLAYBOOK: ${{ runner.temp }}/ansible/bin/ansible-playbook
+        run: infra/ansible/tests/postgresql-ha/dr.sh | tee -a "$GITHUB_STEP_SUMMARY"
+
+  identity-and-cache-ha:
+    name: Keycloak cluster (session survives node loss) and Valkey Sentinel failover
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - name: Keycloak HA
+        run: infra/tests/keycloak-ha/run.sh | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Valkey HA
+        run: infra/tests/valkey-ha/run.sh | tee -a "$GITHUB_STEP_SUMMARY"

@@ -7,6 +7,12 @@
         "tn-stg-bk1":
           "ansible_host": "192.0.2.41"
           "zone": "c"
+    "backup_dr":
+      "hosts":
+        "tn-stg-bk2":
+          "ansible_host": "192.0.2.51"
+          "site": "second"
+          "zone": "a"
     "db_nodes":
       "hosts":
         "tn-stg-db1":

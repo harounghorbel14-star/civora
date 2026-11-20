@@ -6,8 +6,8 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User={{ 'pgbackrest' if inventory_hostname in groups['backup'] else 'postgres' }}
-Group={{ 'pgbackrest' if inventory_hostname in groups['backup'] else 'postgres' }}
+User={{ 'pgbackrest' if inventory_hostname in postgresql_ha_repo_nodes else 'postgres' }}
+Group={{ 'pgbackrest' if inventory_hostname in postgresql_ha_repo_nodes else 'postgres' }}
 ExecStart=/usr/bin/pgbackrest server
 ExecReload=/bin/kill -HUP $MAINPID
 Restart=always

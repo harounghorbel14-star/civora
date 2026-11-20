@@ -10,7 +10,7 @@
     shell: /usr/sbin/nologin
     groups: civora-tls
     append: true
-  when: inventory_hostname in groups['backup']
+  when: inventory_hostname in postgresql_ha_repo_nodes
 
 - name: Repository directory (backup node)
   ansible.builtin.file:
@@ -19,15 +19,15 @@
     owner: pgbackrest
     group: pgbackrest
     mode: "0750"
-  when: inventory_hostname in groups['backup']
+  when: inventory_hostname in postgresql_ha_repo_nodes
 
 - name: Create pgBackRest log and spool directories
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
-    owner: "{{ 'pgbackrest' if inventory_hostname in groups['backup'] else 'postgres' }}"
-    group: "{{ 'pgbackrest' if inventory_hostname in groups['backup'] else 'postgres' }}"
-    mode: "{{ '0770' if inventory_hostname in groups['backup'] else '0750' }}"   # backup node: restore drills (postgres) log here too
+    owner: "{{ 'pgbackrest' if inventory_hostname in postgresql_ha_repo_nodes else 'postgres' }}"
+    group: "{{ 'pgbackrest' if inventory_hostname in postgresql_ha_repo_nodes else 'postgres' }}"
+    mode: "{{ '0770' if inventory_hostname in postgresql_ha_repo_nodes else '0750' }}"   # backup node: restore drills (postgres) log here too
   loop:
     - /var/log/pgbackrest
     - /var/spool/pgbackrest
@@ -37,7 +37,7 @@
     src: pgbackrest.conf.j2
     dest: /etc/pgbackrest.conf
     owner: root
-    group: "{{ 'pgbackrest' if inventory_hostname in groups['backup'] else 'postgres' }}"
+    group: "{{ 'pgbackrest' if inventory_hostname in postgresql_ha_repo_nodes else 'postgres' }}"
     mode: "0640"
   register: postgresql_ha_pgbackrest_config
 

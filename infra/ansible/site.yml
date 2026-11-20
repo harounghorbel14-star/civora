@@ -10,7 +10,7 @@
     - role: base_hardening
 
 - name: Database and backup nodes (PostgreSQL 16 + Patroni + etcd + pgBackRest; ADR-003, ADR-029)
-  hosts: db_nodes:backup
+  hosts: db_nodes:backup:backup_dr
   become: true
   roles:
     - role: postgresql_ha

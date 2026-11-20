@@ -1,0 +1,35 @@
+# Keycloak Operator 26.8.1 (tag of 31 Oct 2026) from the upstream keycloak-k8s-resources repository: CRDs, RBAC and
+# the operator Deployment, installed into the keycloak namespace (restricted Pod Security). ADR-005.
+# The upstream Deployment does not meet restricted Pod Security (no seccomp profile, privilege escalation and
+# capabilities not dropped); the patch below adds them. The image runs as UID 1000 (upstream Dockerfile), so
+# runAsNonRoot holds. infra/scripts/validate-manifests.sh applies this same patch and checks Pod Security.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: keycloak-operator-staging-tn
+  namespace: argocd
+  annotations: { argocd.argoproj.io/sync-wave: "-4" }
+spec:
+  project: civora-platform
+  source:
+    repoURL: https://github.com/keycloak/keycloak-k8s-resources.git
+    targetRevision: 26.8.1
+    path: kubernetes
+    kustomize:
+      patches:
+        - target: { kind: Deployment, name: keycloak-operator }
+          patch: |-
+            - op: add
+              path: /spec/template/spec/securityContext
+              value: { runAsNonRoot: true, seccompProfile: { type: RuntimeDefault } }
+            - op: add
+              path: /spec/template/spec/containers/0/securityContext
+              value: { allowPrivilegeEscalation: false, capabilities: { drop: [ALL] } }
+  destination: { server: https://kubernetes.default.svc, namespace: keycloak }
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: ["CreateNamespace=true", "ServerSideApply=true"]
+    managedNamespaceMetadata:
+      labels:
+        pod-security.kubernetes.io/enforce: restricted
+        civora.tn/image-policy: enforced

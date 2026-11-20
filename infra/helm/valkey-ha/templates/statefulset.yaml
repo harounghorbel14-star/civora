@@ -1,0 +1,88 @@
+{{- if lt (int .Values.replicas) 3 }}{{ fail "replicas: at least 3 (Sentinel quorum 2 must survive one node)" }}{{ end }}
+{{- if eq .Release.Namespace "default" }}{{ fail "install into the cell's namespace, not default" }}{{ end }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels: {{- include "valkey-ha.labels" . | nindent 4 }}
+  annotations:
+    checkov.io/skip1: CKV_K8S_11=No CPU limit by design (avoids CFS throttling on the data path); CPU requests set
+spec:
+  serviceName: {{ .Release.Name }}-headless
+  replicas: {{ .Values.replicas }}
+  podManagementPolicy: Parallel
+  selector:
+    matchLabels: {{- include "valkey-ha.selector" . | nindent 6 }}
+  template:
+    metadata:
+      labels: {{- include "valkey-ha.labels" . | nindent 8 }}
+      annotations:
+        checksum/scripts: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10999
+        runAsGroup: 10999
+        fsGroup: 10999
+        seccompProfile: { type: RuntimeDefault }
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels: {{- include "valkey-ha.selector" . | nindent 14 }}
+      containers:
+        {{- range $c := list "valkey" "sentinel" }}
+        - name: {{ $c }}
+          image: "{{ $.Values.image.repository }}@{{ $.Values.image.digest }}"
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "/scripts/start-{{ $c }}.sh"]
+          env:
+            - { name: POD_NAME, valueFrom: { fieldRef: { fieldPath: metadata.name } } }
+            - { name: ME, value: "$(POD_NAME).{{ $.Release.Name }}-headless.{{ $.Release.Namespace }}.svc.cluster.local" }
+            - { name: NODES, value: {{ include "valkey-ha.hosts" $ | quote }} }
+            - { name: SENTINELS, value: {{ include "valkey-ha.hosts" $ | quote }} }
+            - { name: MASTER_NAME, value: {{ $.Values.masterName | quote }} }
+            - { name: VALKEY_PASSWORD_FILE, value: /secrets/password }
+          ports:
+            - { name: {{ ternary "valkey" "sentinel" (eq $c "valkey") }}, containerPort: {{ ternary 6379 26379 (eq $c "valkey") }} }
+          readinessProbe:
+            exec: { command: ["sh", "-c", "valkey-cli --no-auth-warning -a \"$(cat /secrets/password)\" -p {{ ternary 6379 26379 (eq $c "valkey") }} ping | grep -q PONG"] }
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket: { port: {{ ternary 6379 26379 (eq $c "valkey") }} }
+            periodSeconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          resources: {{- toYaml (index $.Values.resources $c) | nindent 12 }}
+          volumeMounts:
+            - { name: scripts, mountPath: /scripts, readOnly: true }
+            - { name: password, mountPath: /secrets, readOnly: true }
+            {{- if eq $c "valkey" }}
+            - { name: data, mountPath: /data }
+            {{- else }}
+            - { name: sentinel, mountPath: /sentinel }
+            {{- end }}
+        {{- end }}
+      volumes:
+        - name: scripts
+          configMap: { name: {{ .Release.Name }}-scripts, defaultMode: 0555 }
+        - name: sentinel
+          emptyDir: { sizeLimit: 16Mi }
+        - name: password
+          secret:
+            secretName: {{ .Values.passwordSecret.name }}
+            defaultMode: 0440
+            items: [{ key: {{ .Values.passwordSecret.key }}, path: password }]
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        {{- with .Values.storage.storageClassName }}
+        storageClassName: {{ . }}
+        {{- end }}
+        resources: { requests: { storage: {{ .Values.storage.size }} } }

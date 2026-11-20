@@ -22,6 +22,7 @@ caSecretName: pg-router-ca
 networkPolicy:
   enabled: true
   clientPodSelector: { app.kubernetes.io/name: civora-core }   # who may connect (same namespace)
+  extraClients: []   # e.g. [{ namespace: keycloak, podSelector: { app: keycloak } }]
   databaseCidrs: []                                              # database nodes (egress 5432 + 8008)
 
 resources:

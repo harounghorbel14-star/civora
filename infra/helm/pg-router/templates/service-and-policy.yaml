@@ -36,6 +36,11 @@ spec:
     - from:
         - podSelector:
             matchLabels: {{- toYaml .Values.networkPolicy.clientPodSelector | nindent 14 }}
+        {{- range .Values.networkPolicy.extraClients }}
+        - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: {{ .namespace }} } }
+          podSelector:
+            matchLabels: {{- toYaml .podSelector | nindent 14 }}
+        {{- end }}
       ports:
         - { port: {{ .Values.postgresPort }}, protocol: TCP }
   egress:

@@ -6,7 +6,7 @@
       - postgresql_ha_replication_password | length >= 16
       - postgresql_ha_rewind_password | length >= 16
       - postgresql_ha_restapi_password | length >= 16
-      - postgresql_ha_repo_cipher_pass | length >= 32
+      - postgresql_ha_repo_cipher_pass | length >= 32 or groups.get('backup', []) | length == 0
       - postgresql_ha_tls_ca is search('BEGIN CERTIFICATE')
       - postgresql_ha_tls_cert is search('BEGIN CERTIFICATE')
       - postgresql_ha_tls_key is search('PRIVATE KEY')
@@ -14,11 +14,16 @@
     quiet: true
   no_log: true
 
-- name: Inventory has 2+ database nodes and a backup node, and an odd etcd quorum
+- name: Inventory has 2+ database nodes, a backup repository (second site optional, own key), an odd etcd quorum
   ansible.builtin.assert:
     that:
       - groups['db_nodes'] | length >= 2
-      - groups['backup'] | length >= 1
+      - postgresql_ha_repo_nodes | length >= 1
+      - groups.get('backup', []) | length <= 1 and groups.get('backup_dr', []) | length <= 1
+      - >-
+        groups.get('backup_dr', []) | length == 0
+        or (postgresql_ha_repo2_cipher_pass | length >= 32 and postgresql_ha_repo2_cipher_pass != postgresql_ha_repo_cipher_pass)
+      - postgresql_ha_bootstrap_from_repo | int == 0 or postgresql_ha_bootstrap_from_repo | int in (postgresql_ha_repos | map(attribute='index') | list)
       - postgresql_ha_etcd_members | length is odd
       - postgresql_ha_databases | map(attribute='owner') | reject('in', postgresql_ha_role_passwords) | list | length == 0
       - postgresql_ha_databases | map(attribute='app_user') | reject('in', postgresql_ha_role_passwords) | list | length == 0

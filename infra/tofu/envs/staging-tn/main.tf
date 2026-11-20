@@ -18,6 +18,8 @@ module "hosting" {
     { name = "tn-stg-db1", address = "192.0.2.31", role = "db", country = "TN", zone = "a" },
     { name = "tn-stg-db2", address = "192.0.2.32", role = "db", country = "TN", zone = "b" },
     { name = "tn-stg-bk1", address = "192.0.2.41", role = "backup", country = "TN", zone = "c" },
+    # Second in-country site: backup repository 2 (ADR-029). Disaster recovery rebuilds the cluster there.
+    { name = "tn-stg-bk2", address = "192.0.2.51", role = "backup_dr", country = "TN", zone = "a", site = "second" },
   ]
 }
 

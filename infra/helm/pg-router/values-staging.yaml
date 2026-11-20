@@ -7,3 +7,5 @@ servers:
   - { name: tn-stg-db2, address: 192.0.2.32 }
 networkPolicy:
   databaseCidrs: ["192.0.2.31/32", "192.0.2.32/32"]
+  extraClients:
+    - { namespace: keycloak, podSelector: { app: keycloak } }   # Keycloak database (infra/k8s/keycloak)

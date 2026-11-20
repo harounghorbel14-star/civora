@@ -1,7 +1,8 @@
 ---
 # PostgreSQL 16 high availability on dedicated database nodes (ADR-003) with backups to a separate node (ADR-029).
 #   db_nodes : PostgreSQL + Patroni (automatic failover) + etcd member + pgBackRest TLS server
-#   backup   : etcd member (quorum) + pgBackRest repository (TLS server) + scheduled backups + restore drills
+#   backup   : pgBackRest repository 1 (TLS server) + scheduled backups + restore drills; etcd voter at 2-server sites
+#   backup_dr: (optional) pgBackRest repository 2 at the second in-country site, same duties, own encryption key
 # All packages come from the Ubuntu 24.04 archive, so an air-gapped site can install from a local mirror.
 
 postgresql_ha_version: 16
@@ -17,11 +18,18 @@ postgresql_ha_packages:
   - pgbackrest
   - python3-psycopg2
 
-# etcd quorum must be odd: database nodes + backup node when that is odd (2 + 1 in staging), otherwise the
-# database nodes only (3 database nodes → 3 members).
+# Backup repositories (ADR-029): repo1 = backup node at the main site (group "backup"); repo2 = backup node at the
+# second in-country site (group "backup_dr", optional). Each repository host holds only its own repository, with its
+# own encryption passphrase. Database nodes archive WAL to every repository.
+postgresql_ha_repo_nodes: "{{ groups.get('backup', []) + groups.get('backup_dr', []) }}"
+postgresql_ha_repos: >-
+  {{ ([{'index': 1, 'host': groups['backup'][0]}] if groups.get('backup', []) else [])
+     + ([{'index': 2, 'host': groups['backup_dr'][0]}] if groups.get('backup_dr', []) else []) }}
+postgresql_ha_local_repo: "{{ 1 if inventory_hostname in groups.get('backup', []) else 2 }}"
+# etcd quorum (odd): the database nodes, plus the first repository node when the database nodes are even.
 postgresql_ha_etcd_members: >-
-  {{ (groups['db_nodes'] + groups['backup']) if ((groups['db_nodes'] + groups['backup']) | length) is odd
-     else groups['db_nodes'] }}
+  {{ groups['db_nodes'] if (groups['db_nodes'] | length) is odd
+     else groups['db_nodes'] + postgresql_ha_repo_nodes[:1] }}
 
 # Network rules (pg_hba). Application access only from these CIDRs (Kubernetes nodes); everything else is rejected.
 postgresql_ha_app_cidrs: []
@@ -40,6 +48,10 @@ postgresql_ha_repo_path: /var/lib/pgbackrest
 postgresql_ha_retention_full: 4
 postgresql_ha_backup_full_schedule: "Sun *-*-* 01:00:00"
 postgresql_ha_backup_diff_schedule: "Mon..Sat *-*-* 01:00:00"
+# Repository 2 is backed up later: pgBackRest allows one backup per stanza at a time (lock on the database host),
+# so overlapping schedules make the second backup fail (found by the DR rehearsal, 20 Nov 2026).
+postgresql_ha_repo2_backup_full_schedule: "Sun *-*-* 03:30:00"
+postgresql_ha_repo2_backup_diff_schedule: "Mon..Sat *-*-* 03:30:00"
 
 # Add database-tier names to /etc/hosts (set false where DNS already resolves them).
 postgresql_ha_manage_hosts_file: true
@@ -56,4 +68,9 @@ postgresql_ha_superuser_password: ""
 postgresql_ha_replication_password: ""
 postgresql_ha_rewind_password: ""
 postgresql_ha_restapi_password: ""
-postgresql_ha_repo_cipher_pass: ""
+postgresql_ha_repo_cipher_pass: ""     # repo1 (main site)
+postgresql_ha_repo2_cipher_pass: ""    # repo2 (second site); must differ from repo1
+# Disaster recovery (runbook §8): build a NEW cluster from backup repository N instead of initdb (0 = initdb).
+# Optional point in time; empty = replay all archived WAL.
+postgresql_ha_bootstrap_from_repo: 0
+postgresql_ha_bootstrap_target_time: ""

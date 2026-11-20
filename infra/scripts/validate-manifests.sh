@@ -47,6 +47,10 @@ label="pg-router chart refuses to render without database nodes"; run bash -c "!
 label="pg-router chart (values-staging): lint + server dry-run (restricted)"
 run bash -c "helm lint '$root/infra/helm/pg-router' -f '$root/infra/helm/pg-router/values-staging.yaml' >/dev/null && helm template pg-router '$root/infra/helm/pg-router' --kube-version 1.33.4 -n $ns -f '$root/infra/helm/pg-router/values-staging.yaml' | psa_apply $ns"
 
+label="valkey-ha chart refuses fewer than 3 data nodes"; run bash -c "! helm template v '$root/infra/helm/valkey-ha' --set replicas=2 >/dev/null 2>&1"
+label="valkey-ha chart (values-staging): lint + server dry-run under restricted Pod Security"
+run bash -c "helm lint '$root/infra/helm/valkey-ha' -f '$root/infra/helm/valkey-ha/values-staging.yaml' >/dev/null && helm template valkey-ha '$root/infra/helm/valkey-ha' --kube-version 1.33.4 -n $ns -f '$root/infra/helm/valkey-ha/values-staging.yaml' | psa_apply $ns"
+
 # Image admission policy (ADR-027): allowed registry + digest, in namespaces labelled civora.tn/image-policy=enforced.
 pol_ns=civora-policy-test
 digest="sha256:$(printf 'a%.0s' {1..64})"
@@ -70,6 +74,8 @@ label="image policy: pg-router (staging values, mirrored by digest) allowed"
 run bash -c "helm template pg-router '$root/infra/helm/pg-router' --kube-version 1.33.4 -n $pol_ns -f '$root/infra/helm/pg-router/values-staging.yaml' -s templates/deployment.yaml | docker exec -i $name kubectl -n $pol_ns apply --dry-run=server -f -"
 label="image policy: pg-router with default values (Docker Hub) denied"
 run bash -c "helm template pg-router '$root/infra/helm/pg-router' --kube-version 1.33.4 -n $pol_ns --set 'servers[0].name=a' --set 'servers[0].address=192.0.2.1' -s templates/deployment.yaml | docker exec -i $name kubectl -n $pol_ns apply --dry-run=server -f - 2>&1 | grep -q 'registry not allowed'"
+label="image policy: valkey-ha (staging values, mirrored by digest) allowed"
+run bash -c "helm template valkey-ha '$root/infra/helm/valkey-ha' --kube-version 1.33.4 -n $pol_ns -f '$root/infra/helm/valkey-ha/values-staging.yaml' -s templates/statefulset.yaml | docker exec -i $name kubectl -n $pol_ns apply --dry-run=server -f -"
 label="image policy: Docker Hub image denied"; run bash -c "$(declare -f pod dry); pod docker.io/library/busybox@$digest | dry | grep -q 'registry not allowed'"
 label="image policy: tag without digest denied"; run bash -c "$(declare -f pod dry); pod registry.staging.civora.invalid/civora/core:1.0.0 | dry | grep -q 'pinned by digest'"
 label="image policy: look-alike registry prefix denied"; run bash -c "$(declare -f pod dry); pod registry.staging.civora.invalid.evil.example/civora/core@$digest | dry | grep -q 'registry not allowed'"
@@ -97,6 +103,19 @@ label="OpenBao rendered as 3-replica StatefulSet with TLS listener and no inject
 run bash -c "helm template openbao '$up/openbao/charts/openbao' -n openbao --kube-version 1.33.4 --no-hooks -f '$root/infra/argocd/platform/values/openbao.yaml' > '$up/openbao.yaml' && grep -q 'replicas: 3' '$up/openbao.yaml' && grep -q 'tls_cert_file' '$up/openbao.yaml' && ! grep -q 'agent-injector' '$up/openbao.yaml'"
 label="External Secrets (CRDs, controller, webhook, cert controller): server dry-run under restricted Pod Security"
 run bash -c "helm template external-secrets '$up/eso/deploy/charts/external-secrets' -n external-secrets --kube-version 1.33.4 --no-hooks -f '$root/infra/argocd/platform/values/external-secrets.yaml' | psa_apply external-secrets"
+# Keycloak (ADR-005): operator 26.8.1 from the pinned upstream tag under restricted Pod Security; our Keycloak
+# resource validated against the operator's CRD schema.
+label="Keycloak Operator 26.8.1 with the Argo CD patch: CRDs installed, operator dry-run under restricted Pod Security"
+run bash -c "git -c advice.detachedHead=false clone -q --depth 1 --branch 26.8.1 https://github.com/keycloak/keycloak-k8s-resources.git '$up/kc' \
+  && for c in '$up'/kc/kubernetes/*.k8s.keycloak.org-v1.yml; do docker exec -i $name kubectl apply --server-side -f - < \$c >/dev/null || exit 1; done \
+  && docker exec $name kubectl create ns keycloak >/dev/null && docker exec $name kubectl label ns keycloak pod-security.kubernetes.io/enforce=restricted pod-security.kubernetes.io/warn=restricted >/dev/null \
+  && python3 '$root/infra/scripts/argocd-kustomize-overlay.py' '$root/infra/argocd/platform/staging-tn/keycloak-operator.yaml' '$up/kc/kubernetes/kubernetes.yml' '$up/kc-overlay' \
+  && docker cp '$up/kc-overlay' $name:/tmp/kc-overlay && docker exec $name kubectl kustomize /tmp/kc-overlay > '$up/kc-patched.yml' \
+  && psa_apply keycloak < '$up/kc-patched.yml'"
+label="control: the upstream Keycloak Operator manifest without our patch violates restricted Pod Security"
+run bash -c "! psa_apply keycloak < '$up/kc/kubernetes/kubernetes.yml'"
+label="Keycloak resource (3 instances, DB via pg-router, TLS): server dry-run against the CRD schema"
+run bash -c "docker exec -i $name kubectl -n keycloak apply --dry-run=server -f - < '$root/infra/k8s/keycloak/keycloak.yaml'"
 for f in "$root"/infra/argocd/platform/*.yaml "$root"/infra/argocd/platform/staging-tn/*.yaml; do
   label="argocd/platform/$(basename "$f"): server dry-run against the CRD schema"; run bash -c "docker exec -i $name kubectl apply --dry-run=server -f - < '$f'"
 done

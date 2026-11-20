@@ -1,0 +1,64 @@
+# Keycloak (ADR-005) for a CIVORA cell: 3 instances managed by the Keycloak Operator 26.8.1
+# (infra/argocd/platform/staging-tn/keycloak-operator.yaml). Instances form one Infinispan cluster through the
+# database (jdbc-ping) and keep user sessions in it, so losing a pod does not log users out (tested:
+# infra/tests/keycloak-ha/run.sh). Database: own database "keycloak" on the HA PostgreSQL tier through pg-router,
+# verify-full TLS. Secrets (keycloak-db, keycloak-tls, keycloak-db-ca) come from OpenBao via External Secrets.
+# Exposure: no Ingress from the operator; the edge gateway is pending founder decision ADR-030.
+apiVersion: k8s.keycloak.org/v2beta1
+kind: Keycloak
+metadata:
+  name: keycloak
+  namespace: keycloak
+spec:
+  instances: 3
+  # Mirrored into the cell registry from quay.io/keycloak/keycloak:26.8.1 (same digest as docker.io/keycloak/keycloak:26.8.1).
+  image: registry.staging.civora.invalid/mirror/keycloak@sha256:3f3c5f8e03c614774b4bd9173b88391fefa4153bfc010d8012d59ad825377332
+  db:
+    vendor: postgres
+    host: pg-router.civora-tn.svc
+    port: 5432
+    database: keycloak
+    usernameSecret: { name: keycloak-db, key: username }
+    passwordSecret: { name: keycloak-db, key: password }
+    poolMinSize: 5
+    poolMaxSize: 30
+  additionalOptions:
+    - name: db-url-properties
+      value: "?sslmode=verify-full&sslrootcert=/opt/keycloak/conf/db-ca/ca.crt"
+    - name: metrics-enabled
+      value: "true"
+  http:
+    tlsSecret: keycloak-tls
+  hostname:
+    hostname: https://auth.staging.civora.invalid   # placeholder until DNS and the edge gateway exist
+    strict: true
+  proxy:
+    headers: xforwarded
+  ingress:
+    enabled: false
+  scheduling:
+    topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: ScheduleAnyway
+        labelSelector: { matchLabels: { app: keycloak } }
+  resources:
+    requests: { cpu: 500m, memory: 1Gi }
+    limits: { memory: 2Gi }
+  unsupported:
+    podTemplate:
+      spec:
+        automountServiceAccountToken: false
+        securityContext:
+          runAsNonRoot: true
+          seccompProfile: { type: RuntimeDefault }
+        containers:
+          - name: keycloak
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities: { drop: [ALL] }
+            volumeMounts:
+              - { name: db-ca, mountPath: /opt/keycloak/conf/db-ca, readOnly: true }
+        volumes:
+          - name: db-ca
+            secret: { secretName: keycloak-db-ca }

@@ -31,6 +31,22 @@ etcd3:
   key: {{ postgresql_ha_tls_dir }}/node.key
 
 bootstrap:
+{% if postgresql_ha_bootstrap_from_repo | int > 0 %}
+  # Disaster recovery (ADR-029; runbook §8): this NEW cluster is built from backup repository
+  # {{ postgresql_ha_bootstrap_from_repo }} instead of initdb; Patroni then replays the archived WAL and promotes.
+  method: pgbackrest
+  pgbackrest:
+    command: /usr/local/sbin/civora-bootstrap-from-backup
+    keep_existing_recovery_conf: false
+    no_params: true
+    recovery_conf:
+      recovery_target_action: promote
+      recovery_target_timeline: latest
+{% if postgresql_ha_bootstrap_target_time %}
+      recovery_target_time: "{{ postgresql_ha_bootstrap_target_time }}"
+{% endif %}
+      restore_command: pgbackrest --stanza={{ postgresql_ha_stanza }} --repo={{ postgresql_ha_bootstrap_from_repo }} archive-get %f "%p"
+{% endif %}
   dcs:
     ttl: 30
     loop_wait: 10

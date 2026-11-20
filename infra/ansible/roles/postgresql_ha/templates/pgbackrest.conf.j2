@@ -10,16 +10,17 @@ tls-server-address=*
 tls-server-ca-file={{ postgresql_ha_tls_dir }}/ca.crt
 tls-server-cert-file={{ postgresql_ha_tls_dir }}/node.crt
 tls-server-key-file={{ postgresql_ha_tls_dir }}/node.key
-{% if inventory_hostname in groups['backup'] %}
-# Repository node: accepts archive-push/get from the database nodes only (one tls-server-auth line per client
-# certificate name; commas in the value separate stanzas, not clients).
+{% if inventory_hostname in postgresql_ha_repo_nodes %}
+{% set n = postgresql_ha_local_repo | int %}
+# Repository node (repo{{ n }}): accepts archive-push/get from the database nodes only (one tls-server-auth line per
+# client certificate name; commas in the value separate stanzas, not clients).
 {% for h in groups['db_nodes'] %}
 tls-server-auth={{ h }}={{ postgresql_ha_stanza }}
 {% endfor %}
-repo1-path={{ postgresql_ha_repo_path }}
-repo1-retention-full={{ postgresql_ha_retention_full }}
-repo1-cipher-type=aes-256-cbc
-repo1-cipher-pass={{ postgresql_ha_repo_cipher_pass }}
+repo{{ n }}-path={{ postgresql_ha_repo_path }}
+repo{{ n }}-retention-full={{ postgresql_ha_retention_full }}
+repo{{ n }}-cipher-type=aes-256-cbc
+repo{{ n }}-cipher-pass={{ postgresql_ha_repo_cipher_pass if n == 1 else postgresql_ha_repo2_cipher_pass }}
 compress-type=zst
 process-max=2
 
@@ -33,15 +34,17 @@ pg{{ loop.index }}-host-key-file={{ postgresql_ha_tls_dir }}/node.key
 pg{{ loop.index }}-path={{ postgresql_ha_data_dir }}
 {% endfor %}
 {% else %}
-# Database node: accepts backup/restore commands from the repository node only.
-{% for h in groups['backup'] %}
-tls-server-auth={{ h }}={{ postgresql_ha_stanza }}
+# Database node: accepts backup/restore commands from the repository nodes only; archives WAL to every repository.
+{% for r in postgresql_ha_repos %}
+tls-server-auth={{ r.host }}={{ postgresql_ha_stanza }}
 {% endfor %}
-repo1-host={{ groups['backup'][0] }}
-repo1-host-type=tls
-repo1-host-ca-file={{ postgresql_ha_tls_dir }}/ca.crt
-repo1-host-cert-file={{ postgresql_ha_tls_dir }}/node.crt
-repo1-host-key-file={{ postgresql_ha_tls_dir }}/node.key
+{% for r in postgresql_ha_repos %}
+repo{{ r.index }}-host={{ r.host }}
+repo{{ r.index }}-host-type=tls
+repo{{ r.index }}-host-ca-file={{ postgresql_ha_tls_dir }}/ca.crt
+repo{{ r.index }}-host-cert-file={{ postgresql_ha_tls_dir }}/node.crt
+repo{{ r.index }}-host-key-file={{ postgresql_ha_tls_dir }}/node.key
+{% endfor %}
 archive-async=y
 
 [{{ postgresql_ha_stanza }}]

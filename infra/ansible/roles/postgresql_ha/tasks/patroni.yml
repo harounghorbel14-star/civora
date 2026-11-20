@@ -22,6 +22,17 @@
     mode: "0750"
   when: inventory_hostname in groups['db_nodes']
 
+- name: Disaster-recovery bootstrap script (only when building a new cluster from a backup repository)
+  ansible.builtin.template:
+    src: civora-bootstrap-from-backup.sh.j2
+    dest: /usr/local/sbin/civora-bootstrap-from-backup
+    owner: root
+    group: root
+    mode: "0755"
+  when:
+    - inventory_hostname in groups['db_nodes']
+    - postgresql_ha_bootstrap_from_repo | int > 0
+
 - name: Patroni configuration
   ansible.builtin.template:
     src: patroni.yml.j2

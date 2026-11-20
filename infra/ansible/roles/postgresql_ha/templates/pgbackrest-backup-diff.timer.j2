@@ -3,7 +3,7 @@
 Description=Daily differential backup
 
 [Timer]
-OnCalendar={{ postgresql_ha_backup_diff_schedule }}
+OnCalendar={{ postgresql_ha_backup_diff_schedule if postgresql_ha_local_repo | int == 1 else postgresql_ha_repo2_backup_diff_schedule }}
 Persistent=true
 Unit=pgbackrest-backup@diff.service
 

@@ -16,9 +16,10 @@ Contents:
 5. A standby that does not rejoin
 6. Backups
 7. Restore drills (monthly)
-8. Keys and secrets
-9. What the application sees during a failover
-10. Evidence to keep
+8. Disaster recovery: rebuild the cluster from a repository
+9. Keys and secrets
+10. What the application sees during a failover
+11. Evidence to keep
 
 ## 1. Where things are
 
@@ -131,7 +132,7 @@ This erases that member's data directory and copies the leader again, so **never
 | Manual full backup | `sudo -u pgbackrest pgbackrest --stanza=civora backup --type=full` on the backup node |
 | Status | `pgbackrest info` (§2). Alert if no backup in 26 h or a WAL gap > 15 min ([15 §15.2](../15-observability-backup-and-dr.md)) |
 | Encryption | Repository encrypted (`aes-256-cbc`). Without the passphrase the repository is unreadable (tested) |
-| Second copy | Repository 2 at the second in-country site: **not built yet** (needs the provider) |
+| Second copy | **Repository 2** at the second in-country site (group `backup_dr`), its own encryption key, WAL archived to both. Built and tested on containers; real hosts need the provider |
 
 ## 7. Restore drills (monthly)
 
@@ -153,18 +154,55 @@ The drill:
 
 Measured: 2 s on the test data set. Real drills take as long as the data needs; record the time.
 
-**Restoring the production cluster itself** (corruption, human error) means restoring into a **new** Patroni cluster from a chosen point in time, then pointing `pg-router` at it. This has **not been rehearsed yet**. It is the first DR exercise on staging once the provider is chosen.
+**Restoring the production cluster itself** (corruption, human error, or loss of the main site) means building a **new** Patroni cluster from a repository (§8 below), then pointing `pg-router` at it.
 
-## 8. Keys and secrets
+## 8. Disaster recovery: rebuild the cluster from a repository (tested 20 Nov 2026)
+
+**When.** Use it in either case:
+- the main site is lost; rebuild at the second site from **repository 2**;
+- data is corrupted; rebuild anywhere from either repository, to a point in time before the damage.
+
+**Steps:**
+
+1. Provision the new database servers (OpenTofu, same cell). Generate the inventory with the database servers at the new site and the surviving repository host:
+   - repository 2 stays in group `backup_dr`;
+   - group `backup` is empty if the main site is lost.
+2. Set `postgresql_ha_bootstrap_from_repo: 2` (or `1`). Optionally set `postgresql_ha_bootstrap_target_time: "2026-11-20 09:00:00+00"` to stop before the damage.
+3. Run `site.yml` (database play). Patroni does the rest:
+   - it restores the latest backup set;
+   - it replays the archived WAL (to the end, or to the target time);
+   - it promotes the first server;
+   - it clones the second server from it.
+4. Update `pg-router`'s `servers` (Helm values, through Argo CD) to the new servers. Applications reconnect by themselves.
+5. Remove `postgresql_ha_bootstrap_from_repo` from the inventory afterwards: it only matters when a cluster is first created.
+6. Check:
+   - `pgbackrest check` (the new timeline is archived);
+   - take a new full backup;
+   - plan the re-creation of the lost site's repository.
+
+**Measured** (`infra/ansible/tests/postgresql-ha/dr.sh`, both sites on containers; nightly on GitHub):
+
+| | Result |
+|---|---|
+| Data restored | Every acknowledged write up to the last archived WAL, with no gaps |
+| Data lost (RPO) | The writes of the last **16 s** before the loss (63 of 291 in the test). WAL is archived at least every 60 s (`archive_timeout`); the target is ≤ 15 min |
+| Time until writes are accepted again (RTO, test) | **85 s**: server start, role, restore, replay, promotion, router. Real servers add provisioning time; the target is ≤ 4 h |
+
+**Repository schedules.**
+- pgBackRest allows **one backup per stanza at a time** (it takes a lock on the database host).
+- Repository 1 is backed up at 01:00 and repository 2 at 03:30. A unit that meets a lock retries after 10 minutes.
+- If the link to the second site is down, WAL accumulates on the database servers until it returns. Watch the archive alert (§15.2 of the observability document).
+
+## 9. Keys and secrets
 
 | Secret | Where it lives | If lost |
 |---|---|---|
-| Repository passphrase (`repo1-cipher-pass`) | OpenBao; a sealed copy offline under M-of-N | **All backups become unreadable.** Keep two copies in separate places |
+| Repository passphrases (`repo1-cipher-pass`, `repo2-cipher-pass` — different per repository, enforced by the role) | OpenBao; a sealed copy offline under M-of-N, **one copy at each site** | **That repository's backups become unreadable.** Keep two copies in separate places |
 | Superuser, replication, rewind, REST API passwords | OpenBao → Ansible variables | Rotate with the role (re-run the playbook) |
 | Application and owner account passwords | OpenBao → Kubernetes Secret (file mount) | Rotate in OpenBao, re-run the role, restart the pods |
 | Node certificates | Cell CA (OpenBao PKI). Database node certificates also carry the `pg-router` service names (clients verify the server name) | Re-issue and re-run the role |
 
-## 9. What the application sees during a failover
+## 10. What the application sees during a failover
 
 Measured through `pg-router`, with a client writing every 100 ms as the application account (`verify-full` TLS):
 
@@ -176,7 +214,7 @@ Measured through `pg-router`, with a client writing every 100 ms as the applicat
 - The application must retry transactions that fail with a connection error. That is a Phase 3 coding standard for every module.
 - The core service keeps running through failovers. Earlier, an unhandled pool error stopped the process; this was fixed on 19 Nov 2026 and is covered by a test.
 
-## 10. Evidence to keep
+## 11. Evidence to keep
 
 For every drill or incident, keep:
 

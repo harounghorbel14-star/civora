@@ -1,0 +1,23 @@
+# Valkey HA for the staging TN cell (ADR-008): 3 data nodes + 3 Sentinels, in the application namespace.
+# Valkey pending the founder's answer on the Redis licence question (final technical decision package §8).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: valkey-staging-tn
+  namespace: argocd
+  finalizers: ["resources-finalizer.argocd.argoproj.io"]
+spec:
+  project: civora-tn
+  source:
+    repoURL: https://github.com/harounghorbel14-star/civora.git
+    targetRevision: main
+    path: infra/helm/valkey-ha
+    helm:
+      releaseName: valkey-ha
+      valueFiles: ["values.yaml", "values-staging.yaml"]
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: civora-tn
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: ["ServerSideApply=true"]
