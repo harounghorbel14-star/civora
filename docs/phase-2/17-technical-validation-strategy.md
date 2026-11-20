@@ -50,7 +50,7 @@
 | R27 | Log privacy | V3 | Canary in query, path, headers, cookies, JSON, malformed JSON and form bodies: never in a log line; all log lines are fixed-field JSON. **Defect found:** 404 responses echoed the full URL with its query string in `title`; fixed (reason phrase). The test failed before the fix (negative control) | `pnpm test` (`log-privacy.e2e.test.ts`) |
 | R28 | Image admission policy (ADR-027) | V3 | Built-in ValidatingAdmissionPolicy on a k3s 1.33 API server: pinned image from the cell registry allowed; Docker Hub, tag without digest, look-alike registry prefix, bad init container, unpinned CronJob all **denied**; missing parameters **deny** (fail closed); unlabelled namespaces unaffected. Observed green on GitHub (CI run 10) | `validate-manifests.sh` (CI `iac`) |
 | R29 | CI failure propagation | V1 | **Defect found:** steps of the form `script | tee` passed even when the script failed (GitHub's default shell has no `pipefail`). Workflows now set `shell: bash` | `.github/workflows/*.yml` |
-| R30 | Staging-shaped rehearsal (database tier + k3s + pg-router + civora-core) | V4 | Runs on GitHub runners (nested containers needed). Result: see §17.2.2 | `staging-rehearsal.sh` (nightly workflow) |
+| R30 | Staging-shaped rehearsal (database tier + k3s + pg-router + civora-core) | V4 | **Pass on GitHub (run 5, 20 Nov 2026): from nothing to smoke tests in 169 s; application back 44 s after the leader froze, no pod restart.** Runs 1–4 found two defects (§17.2.2) | `staging-rehearsal.sh` (nightly workflow) |
 | R31 | Platform services as code (Argo CD) | V3 | cert-manager v1.21.3, External Secrets chart 2.14.0, OpenBao chart 0.30.7: pins checked against upstream release tags (each at least 2 weeks old). OpenBao (3 replicas, Raft, TLS) and External Secrets rendered from the tagged sources with our values, then dry-run on a Kubernetes 1.33 API server with Pod Security warnings treated as failures. **Finding:** the OpenBao chart's default container settings would be refused under "restricted"; fixed in our values, and the default kept as a negative control | `validate-manifests.sh` |
 
 ### 17.2.1 Database tier integration test (R24, 19 Nov 2026)
@@ -118,7 +118,40 @@ Failover time is the Patroni leader lease (`ttl` 30 s) plus up to one loop (`loo
 
 ### 17.2.2 Staging-shaped rehearsal (R30)
 
-Result of the first GitHub run: _pending — recorded here when the run completes._
+**Setup** (GitHub runner, nested containers; [`staging-rehearsal.sh`](../../infra/scripts/staging-rehearsal.sh)):
+- 2 database servers + backup node built from nothing by the `postgresql_ha` role;
+- single-node k3s on the same network, with the application image imported (air-gapped);
+- `pg-router` and civora-core installed from their Helm charts into a namespace with restricted Pod Security and NetworkPolicy enforced;
+- migrations as the database owner; runtime as the NOBYPASSRLS account through `pg-router` with `verify-full` TLS.
+
+**Result, nightly workflow run 5 (20 Nov 2026): pass.**
+
+| Step | Time from nothing |
+|---|---|
+| Database tier ready (role applied, 10 checks) | 105 s |
+| k3s ready, image imported | 142 s |
+| `pg-router` ready (primary known) | 147 s |
+| civora-core deployed (migrations applied) | 159 s |
+| Smoke tests pass (6/6) | **169 s** |
+
+The smoke tests:
+- database up through `pg-router`;
+- Arabic RTL locale;
+- the policy blocks other namespaces;
+- schemas owned by the migrator;
+- 2 application replicas under restricted Pod Security;
+- 2 router replicas.
+
+Then the leader was frozen. The application, observed from inside the cluster, reported the database up again after **44 s**, and **no application pod restarted**. A Helm upgrade with the migration hook passed. Total 225 s.
+
+**How it got there (runs 1–4), each a real finding:**
+
+| Run | What happened | Fix |
+|---|---|---|
+| 1–2 | The migration Job was refused by `pg-router` on every attempt (2, then 5), although endpoints and DNS were ready | Diagnostic matrix added to the script |
+| 3 | Matrix: labelled client → Service accepted; unlabelled → refused (correct); without the policy → accepted. The policy is right, but **a brand-new pod can be refused until network policy is programmed for its IP**. Each Job retry is a new pod that connects within its first second | civora-core `wait-for-database` before migrating (also covers a deploy during a database failover); tested against a real PostgreSQL |
+| 4 | Reported green, but the log stopped after the smoke tests: the failover check contains `exit 0`, and the script's `check()` evaluated it without a subshell, so the script ended "successfully" early (**false green**) | `check()` runs in a subshell in all three rehearsal scripts; no earlier check in the other two contained `exit` |
+| 5 | Full pass (above) | — |
 
 ## 17.3 Test strategy by layer (Phase 3 onward)
 

@@ -29,7 +29,8 @@
 | Database tier: role `postgresql_ha` (Patroni, etcd, pgBackRest, TLS, least-privilege accounts, PITR drill), `pg-router` chart, operations runbook | `infra/ansible/roles/postgresql_ha`, `infra/helm/pg-router`, [runbooks/database-operations.md](runbooks/database-operations.md) | Suite on systemd containers: 2 servers 31/31, 3 servers 35/35 ([17](17-technical-validation-strategy.md) §17.2.1) |
 | Image admission policy (allowed registries + digest pins) | `infra/k8s/policies` | 10 cases on a Kubernetes 1.33 API server (R28) |
 | Log-privacy test; database-failover resilience in the core service | `services/core` | Both found a real defect before passing (R26, R27) |
-| Staging-shaped rehearsal (database tier + k3s + `pg-router` + civora-core) | `infra/scripts/staging-rehearsal.sh` | GitHub runners ([17](17-technical-validation-strategy.md) §17.2.2) |
+| Staging-shaped rehearsal (database tier + k3s + `pg-router` + civora-core) | `infra/scripts/staging-rehearsal.sh` | **Pass on GitHub:** from nothing to smoke tests in 169 s; application back 44 s after the database leader froze, no pod restart ([17](17-technical-validation-strategy.md) §17.2.2) |
+| Platform services as code (Argo CD): admission policies, cert-manager, External Secrets, OpenBao | `infra/argocd/platform` | Pinned to upstream tags; OpenBao and External Secrets rendered and dry-run under restricted Pod Security (R31) |
 | OPA vs Cedar spike → ADR-006 (Cedar) | `spikes/policy-engine` | 24/24 decisions agree across Cedar, OPA-wasm, OPA-REST |
 
 **Security results this week:**
@@ -56,26 +57,35 @@
 | CI steps written as `script \| tee` could not fail (GitHub's default shell has no `pipefail`) — affected all three nightly jobs | `shell: bash` set for both workflows |
 | The nightly rehearsals had never run: scheduled workflows start only from the default branch, and `nightly.yml` is not on `main` yet | Rehearsals now also run on pushes to working branches that touch what they exercise |
 | My server-side chart validation (R8) claimed "restricted Pod Security", but Pod Security only warns for Deployments/StatefulSets and the script discarded the warnings | Warnings now fail the check, with a control. It immediately caught the OpenBao chart's non-compliant default (fixed in values). civora-core and pg-router pods have since run for real in restricted namespaces on GitHub |
+| A new pod (the migration Job) can be refused for a moment until network policy is programmed for it; every Job retry is a new pod, so migrations failed in the staging rehearsal | civora-core waits for the database before migrating (up to 60 s; tested) |
+| **False green in my staging rehearsal script:** a check containing `exit 0` ended the script early with success | Checks run in a subshell in all rehearsal scripts; the rehearsal then passed in full (run 5) |
 | Applications had no designed path to a *moving* primary (staging values pointed straight at database IPs) | `pg-router` chart (HAProxy asks Patroni which node is primary; TLS verified); recorded as an implementation detail of ADR-003, not a new decision |
 
 ## 3. Acceptance-criteria status
 
 | ID | Criterion (Phase 0 §19) | Status | What closes it |
 |---|---|---|---|
-| **O-AC1** | Staging cell reproducible from IaC in < 2 h | **BLOCKED** — no hosting provider. Proven so far: dev cell 82 s; manifests valid on a real API server; IaC validates | Founder: obtain hosting quotes and choose a provider (Phase 1 action 10, E-07). Then 15–23 engineer-days of provider-specific IaC ([16](16-infrastructure-plan.md) §16.7) and a timed rebuild |
+| **O-AC1** | Staging cell reproducible from IaC in < 2 h | **BLOCKED** — no hosting provider. Proven so far, everything that needs no provider: on GitHub runners, a staging-shaped cell (HA database tier built by the Ansible role + Kubernetes + `pg-router` + civora-core) goes from nothing to passing smoke tests in **169 s** and survives a database leader crash; IaC validates. This is evidence, not the criterion: real hosts, OS hardening, RKE2, DNS/TLS and platform services on hosts are not in it | Founder: obtain hosting quotes and choose a provider (Phase 1 action 10, E-07). Then 11.5–17 engineer-days of provider-specific IaC ([16](16-infrastructure-plan.md) §16.7) and a timed rebuild |
 | **O-AC2** | All ADRs approved | **OPEN — founder** (29 ADRs "Proposed") | Founder decision P2-D1 (§4) |
 | **O-AC3** | Threat model reviewed by an external security adviser | **OPEN — external** (no adviser engaged) | Founder decision P2-D3; request text in §7.2 |
 | Additive R-1 to R-5 | ADR coverage of FI tenants, on-premises, financial data, rule packs, Tunisian hosting | **MET in design** ([19](19-traceability-matrix.md) §19.2) | — (R-2 rehearsal confirmed when CI runs) |
 
 Partially met original items (details in [19](19-traceability-matrix.md) §19.1):
 - **O-SEC2.** Signing and provenance run only on `main`; not yet observed (needs a merge).
-- **O-D6.** Staging IaC written, database tier container-tested, not applied (no provider); platform-service charts still to write.
-- **O-T3.** The k3s rehearsal could not run in this sandbox; it runs nightly from `main`.
+- **O-D6.** Staging IaC written; database tier, `pg-router` and application tested together on GitHub runners; not applied to real hosts (no provider). Platform services: cert-manager, External Secrets, OpenBao and admission policies written (Argo CD); ingress (open question), Keycloak HA, Redis HA and observability still to write.
 - **O-SEC4/O-SEC5.** Repository settings are a founder action.
 
 Closed on 19 Nov 2026 (second session): **O-D5** (CI observed green on GitHub), **O-A6** (tracing with a privacy allow-list), **O-API3** (OpenAPI 3.1 with schema validation).
 
-Advanced: **O-AC1** remaining work fell from 15–23 to 11.5–18 engineer-days. The database tier (ADR-003/029, still Proposed) is written and tested on containers: 17/17 checks, crash failover 29 s, verified restore drill.
+Advanced: **O-AC1** remaining work fell from 15–23 to 11.5–17 engineer-days. The database tier (ADR-003/029, still Proposed) is written and tested on containers: 17/17 checks, crash failover 29 s, verified restore drill.
+
+Closed on 20 Nov 2026 (third session): **O-T3** (deploy-from-scratch: dev cell, air-gapped k3s and staging-shaped rehearsal all green on GitHub runners). Advanced:
+- the database tier now has 31/31 checks with 2 servers and 35/35 with 3, including PITR and the application path through `pg-router`;
+- the image admission policy is in place;
+- the log-privacy test is in place;
+- the platform services are written as code.
+
+Defects found and fixed are listed in §2.
 
 ## 4. Unresolved decisions (founder)
 

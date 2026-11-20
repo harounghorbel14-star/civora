@@ -42,7 +42,7 @@
 | O-SEC5 | 2-reviewer rule | CODEOWNERS; settings specified | — | **Open — founder** (needs a 2nd engineer or a waiver) |
 | O-T1 | Unit/integration scaffolds in the pipeline | 30 tests + migration test; CI `build-test` | Pass locally and on GitHub (run 2) | **Done** |
 | O-T2 | IaC scanning | Checkov in CI; `validate-manifests.sh`; tofu; ansible-lint | All pass; findings handled ([17](17-technical-validation-strategy.md) §17.4) | **Done** |
-| O-T3 | Deploy-from-scratch test | `dev-cell-up.sh --fresh` (82 s, 9/9); `deploy-from-scratch.sh` (k3s, air-gapped); `staging-rehearsal.sh` (database tier + k3s + `pg-router` + civora-core) | Dev variant passes; k3s variants run on GitHub runners (they cannot run in this sandbox) — results in [17](17-technical-validation-strategy.md) §17.2.2 | **Partial** until the k3s variants are observed green |
+| O-T3 | Deploy-from-scratch test | `dev-cell-up.sh --fresh` (82 s, 9/9); `deploy-from-scratch.sh` (k3s, air-gapped); `staging-rehearsal.sh` (database tier + k3s + `pg-router` + civora-core) | All three pass on GitHub runners (20 Nov 2026): dev cell 107 s (10/10); air-gapped k3s 79 s (6/6 + upgrade); staging-shaped rehearsal 169 s to smoke tests, database failover survived without pod restart ([17](17-technical-validation-strategy.md) R18, §17.2.2) | **Done** for everything that needs no provider; the real-host run is O-AC1 |
 | O-AC1 | Staging reproducible from IaC in < 2 h | [16](16-infrastructure-plan.md) §16.7 | — | **Blocked**: no hosting provider (E-07) |
 | O-AC2 | All ADRs approved | ADR index | — | **Open — founder** |
 | O-AC3 | Threat model reviewed by an external security adviser | [08](08-threat-model.md) §8.8 | — | **Open — external** (adviser not engaged) |

@@ -127,9 +127,9 @@ Details are in [07](07-security-and-privacy-architecture.md) §7.7.
 | OS + Kubernetes + Argo CD (L1–L3) | Playbooks lint-clean; not run on hosts | — |
 | Application manifests (L5) | Valid on a real Kubernetes 1.33 API server under restricted Pod Security | Validation 16 s |
 | Whole application stack (single node) | Dev cell from nothing: 3 PostgreSQL clusters, Redis, S3 store, Keycloak, OpenBao, observability, core + migrations, 9 smoke checks | **82 s** (image pre-built) |
-| Air-gapped Kubernetes deploy | Script written. **Could not run in this sandbox** (nested containers are not supported here); runs on GitHub runners | See [17](17-technical-validation-strategy.md) §17.2.2 |
+| Air-gapped Kubernetes deploy | **Passes on GitHub runners** (cannot run in this sandbox) | **79 s** from nothing to green |
 | Database tier (L2) | Role `postgresql_ha` on systemd containers, 2 and 3 servers: accounts, TLS, backups, PITR, failover, `pg-router` application path (31/31 and 35/35 checks) | Role from nothing ≈ 65–75 s |
-| Staging-shaped rehearsal (database tier + k3s + `pg-router` + civora-core) | Script written (`staging-rehearsal.sh`); runs on GitHub runners | See [17](17-technical-validation-strategy.md) §17.2.2 |
+| Staging-shaped rehearsal (database tier + k3s + `pg-router` + civora-core) | **Passes on GitHub runners**, including a database leader crash with the application running | **169 s** to smoke tests; 225 s with failover and upgrade |
 
 **Remaining IaC work to meet O-AC1 once a provider is chosen** (estimates [A]):
 
