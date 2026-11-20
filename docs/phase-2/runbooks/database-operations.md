@@ -34,7 +34,7 @@ Contents:
 | pgBackRest | `/etc/pgbackrest.conf`; repository on the backup node `/var/lib/pgbackrest`; stanza `civora` |
 | Backup timers (backup node) | `pgbackrest-backup-full.timer` (Sunday 01:00), `pgbackrest-backup-diff.timer` (Monday–Saturday 01:00) |
 | Restore drill | `/usr/local/sbin/civora-restore-drill` on the backup node |
-| Application entry point | Service `pg-router` (HAProxy): port 5432 for clients, `:8404/healthz` for probes (ready only while a primary is known) |
+| Application entry point | Service `pg-router` (HAProxy): port 5432 for clients, `:8404/healthz` for probes (ready only while a primary is known). A starting router sends no client anywhere until a check has shown which server is primary (the first checks run at start-up; ready in under a second in tests) |
 | Accounts | Per database: an owner (migrations only) and an application account (`NOSUPERUSER NOBYPASSRLS`, connect and temporary only) |
 
 ## 2. Health check

@@ -20,8 +20,9 @@ fail=0
 run() { if out=$("$@" 2>&1); then echo "  ok   ${label}"; else echo "  FAIL ${label}"; echo "$out" | sed 's/^/       /'; fail=1; fi; }
 # Pod Security Admission enforces on Pods only; for Deployments, StatefulSets and Jobs it only warns. A dry-run of a
 # chart therefore passes even when its pods would be refused at runtime, unless the warnings are checked: they are.
-psa_apply() {  # $1 = namespace (labelled enforce+warn=restricted); manifests on stdin
-  local out; out=$(docker exec -i "$name" kubectl -n "$1" apply --dry-run=server -f - 2>&1) || { echo "$out"; return 1; }
+psa_apply() {  # $1 = namespace (labelled enforce+warn=restricted), or "" when every object names its own; manifests on stdin
+  local out ns=(); [[ -n "$1" ]] && ns=(-n "$1")
+  out=$(docker exec -i "$name" kubectl "${ns[@]}" apply --dry-run=server -f - 2>&1) || { echo "$out"; return 1; }
   if grep -q "would violate PodSecurity" <<<"$out"; then grep "would violate PodSecurity" <<<"$out"; return 1; fi
 }
 export -f psa_apply; export name
@@ -125,9 +126,10 @@ run bash -c "git -c advice.detachedHead=false clone -q --depth 1 --filter=blob:n
   && for c in '$up'/kps/charts/kube-prometheus-stack/charts/crds/crds/*.yaml; do docker exec -i $name kubectl apply --server-side -f - < \$c >/dev/null || exit 1; done \
   && docker exec $name kubectl create ns observability >/dev/null && docker exec $name kubectl label ns observability pod-security.kubernetes.io/enforce=restricted pod-security.kubernetes.io/warn=restricted >/dev/null \
   && docker exec -i $name kubectl apply --dry-run=server -f - < '$root/infra/k8s/monitoring/civora-infrastructure-alerts.yaml'"
+# Every object carries its namespace: observability, plus scrape Services the chart puts in kube-system.
 label="kube-prometheus-stack with CIVORA values: rendered, server dry-run under restricted Pod Security"
 if helm dependency build "$up/kps/charts/kube-prometheus-stack" >/dev/null 2>&1; then
-  run bash -c "helm template kps '$up/kps/charts/kube-prometheus-stack' -n observability --kube-version 1.33.4 --no-hooks --skip-crds -f '$root/infra/argocd/platform/values/kube-prometheus-stack.yaml' | psa_apply observability"
+  run bash -c "helm template kps '$up/kps/charts/kube-prometheus-stack' -n observability --kube-version 1.33.4 --no-hooks --skip-crds -f '$root/infra/argocd/platform/values/kube-prometheus-stack.yaml' | psa_apply ''"
 elif [[ -n "${CI:-}" ]]; then
   echo "  FAIL ${label} (chart dependencies could not be fetched)"; fail=1
 else

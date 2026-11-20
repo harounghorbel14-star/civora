@@ -32,10 +32,10 @@
 | Staging-shaped rehearsal (database tier + k3s + `pg-router` + civora-core) | `infra/scripts/staging-rehearsal.sh` | **Pass on GitHub:** from nothing to smoke tests in 169 s; application back 44 s after the database leader froze, no pod restart ([17](17-technical-validation-strategy.md) §17.2.2) |
 | Platform services as code (Argo CD): admission policies, cert-manager, External Secrets, OpenBao | `infra/argocd/platform` | Pinned to upstream tags; OpenBao and External Secrets rendered and dry-run under restricted Pod Security (R31) |
 | **Final technical decision package** (six decisions + P2-D2 to P2-D5) and ADR-030 (APISIX, Proposed) | [founder-review/P2-final-technical-decision-package.md](founder-review/P2-final-technical-decision-package.md) | Nothing approved; all 30 ADRs Proposed |
-| Second backup site (repository 2) and full disaster recovery | Role `postgresql_ha` (`backup_dr`, `bootstrap_from_repo`); OpenTofu cell (`backup_dr`, site guard); [runbook](runbooks/database-operations.md) §8 | Site-loss rehearsal: 16 s of data lost, writes back after 85 s (R32) |
-| HA Keycloak (operator, 3 instances) and HA Valkey (3 + 3 Sentinels) | `infra/k8s/keycloak`, `infra/helm/valkey-ha` | Session survives node loss (R33); failover 7 s (R34) |
+| Second backup site (repository 2) and full disaster recovery | Role `postgresql_ha` (`backup_dr`, `bootstrap_from_repo`); OpenTofu cell (`backup_dr`, site guard); [runbook](runbooks/database-operations.md) §8 | Site-loss rehearsal: 16 s of data lost, writes back after 85 s (R32); green on GitHub (nightly runs 6–7) |
+| HA Keycloak (operator, 3 instances) and HA Valkey (3 + 3 Sentinels) | `infra/k8s/keycloak`, `infra/helm/valkey-ha` | Session survives node loss (R33; green on GitHub); Valkey failover 7 s here, but stalled on GitHub runners — test changed, result pending (R34, R38) |
 | Monitoring stack and infrastructure alerts | `infra/argocd/platform` (kube-prometheus-stack, Loki, Tempo), `infra/k8s/monitoring` | 11 alert rules unit-tested with promtool (R35); database-tier metrics over TLS |
-| Image signature enforcement | `infra/k8s/policies/image-signatures.yaml`, policy-controller app | Restricted Pod Security (with control); runtime test on GitHub runners (R36) |
+| Image signature enforcement | `infra/k8s/policies/image-signatures.yaml`, policy-controller app | Restricted Pod Security (with control); **runtime test green on GitHub: 7/7 in 56 s** (R36, nightly run 7) |
 | OPA vs Cedar spike → ADR-006 (Cedar) | `spikes/policy-engine` | 24/24 decisions agree across Cedar, OPA-wasm, OPA-REST |
 
 **Security results this week:**
@@ -67,6 +67,9 @@
 | Two backup repositories started backups at the same moment; pgBackRest allows one backup per stanza at a time, so one failed (found by the DR rehearsal) | First backups serialised; repository 2 scheduled 2.5 h later; backup units retry |
 | Upstream manifests that would be refused under restricted Pod Security: Keycloak Operator Deployment, policy-controller chart defaults (as earlier OpenBao) | Patched through Argo CD / values; each upstream default kept as a negative control in the validation |
 | Test pitfalls found in my own checks: a token issuer bound to the node address (Keycloak test without a fixed hostname); `curl | grep -q` failing under `pipefail` on large outputs | Fixed in the tests; the hostname requirement is also in the Keycloak resource |
+| **`pg-router` could send clients to a standby just after it started**: HAProxy treats servers as up until their first check fails (found on GitHub, 3-server leg, runs 6–7) | `init-state down`: no client goes to a server before a check shows it is the primary; readiness now waits for that (R37) |
+| Valkey failover passed here (7 s) but stalled on GitHub runners; suspected cause, not proven: synchronous name lookups of the stopped container through Docker's upstream DNS | Test resolves names as Kubernetes does (stable records) and prints the Docker lookup time; start scripts no longer wait indefinitely on a silent Sentinel (R38) |
+| My kube-prometheus-stack check forced every rendered object into one namespace; the chart puts five scrape Services in `kube-system` (CI run 19) | Objects keep their own namespace |
 | Applications had no designed path to a *moving* primary (staging values pointed straight at database IPs) | `pg-router` chart (HAProxy asks Patroni which node is primary; TLS verified); recorded as an implementation detail of ADR-003, not a new decision |
 
 ## 3. Acceptance-criteria status

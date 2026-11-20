@@ -9,7 +9,8 @@ set -eu
 if [ -n "${VALKEY_PASSWORD_FILE:-}" ]; then VALKEY_PASSWORD=$(cat "$VALKEY_PASSWORD_FILE"); fi
 : "${VALKEY_PASSWORD:?VALKEY_PASSWORD or VALKEY_PASSWORD_FILE is required}"
 : "${MASTER_NAME:=civora}" "${DATA_DIR:=/data}"
-cli() { valkey-cli --no-auth-warning -a "$VALKEY_PASSWORD" "$@"; }
+# Bounded: a Sentinel that does not answer must not stop this node from starting (seen on GitHub runners).
+cli() { timeout 3 valkey-cli --no-auth-warning -a "$VALKEY_PASSWORD" "$@"; }
 primary=""
 for s in $SENTINELS; do
   p=$(cli -h "$s" -p 26379 sentinel get-master-addr-by-name "$MASTER_NAME" 2>/dev/null | head -1) || true

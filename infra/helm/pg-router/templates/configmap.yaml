@@ -34,7 +34,10 @@ data:
       option httpchk
       http-check send meth GET uri /primary
       http-check expect status 200
-      default-server inter {{ .Values.checkIntervalMs }} fall 2 rise 2 on-marked-down shutdown-sessions
+      # init-state down: a server receives no client until its first check proves it is the primary. HAProxy's
+      # default ("up" until the first check fails) sent writes to a standby just after a router start (found on
+      # GitHub runners, 20 Nov 2026: "cannot execute CREATE TABLE in a read-only transaction").
+      default-server inter {{ .Values.checkIntervalMs }} fall 2 rise 2 init-state down on-marked-down shutdown-sessions
       {{- range .Values.servers }}
       server {{ .name }} {{ .address }}:{{ $.Values.postgresPort }} check port {{ $.Values.patroniApiPort }} check-ssl check-sni {{ .name }} verify required verifyhost {{ .name }} ca-file /etc/pg-router/ca.crt
       {{- end }}
