@@ -92,6 +92,7 @@ flowchart LR
 | Observability stack | Running in the dev cell; Grafana requires login (smoke test) |
 | Application metrics and logs | Built and tested (`/metrics` exposed; e2e test) |
 | Tracing in the application | **Built and tested** (allow-list exporter; e2e scrubbing test; spans reach Tempo in the dev cell) |
-| Backups | **Role written and tested on systemd containers** (encrypted repository, WAL archiving, weekly full + daily differential timers, restore drill with checksum verification). Real database nodes need a hosting provider |
+| Backups | **Role written and tested on systemd containers**: encrypted repository (unreadable without the passphrase — tested), WAL archiving, weekly full + daily differential timers, restore drill with checksum verification, **point-in-time restore** (tested 20 Nov 2026). Real database nodes need a hosting provider |
+| Database failover as the application sees it | Through `pg-router`: no acknowledged write lost; longest write gap 26.7 s (2 servers) / 39.0 s (3 servers); application process survives (R25, R26) |
 | etcd snapshots | In the RKE2 configuration template |
-| Drills | Restore-drill script in the role (`civora-restore-drill`); first drill on staging after provider selection |
+| Drills | Restore-drill script in the role (`civora-restore-drill`, latest or point in time); procedures in the [database runbook](runbooks/database-operations.md); first drill on staging after provider selection. Restoring into a new cluster (DR) not rehearsed yet |

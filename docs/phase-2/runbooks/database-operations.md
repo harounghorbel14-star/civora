@@ -64,7 +64,7 @@ patronictl -c /etc/patroni/config.yml switchover civora-<cell> --leader <current
 
 - Choose the **synchronous standby** as candidate: it holds every acknowledged transaction.
 - Check with §2 that the old leader is back as `streaming`.
-- Stopping Patroni on the leader (`systemctl stop patroni`) also hands over leadership; the test measured 2 s.
+- Stopping Patroni on the leader (`systemctl stop patroni`) also hands over leadership; both were tested, measured 2 s.
 - Clients through `pg-router` see their sessions to the old leader cut and reconnect to the new one (§9).
 
 ## 4. Leader lost and no synchronous standby: the manual decision (2-server sites)
@@ -101,7 +101,17 @@ Then:
 
 3. Confirm a `sync_standby` is designated again.
 
-Measured by `sync-safety-experiment.sh` with `MANUAL_RECOVERY=1`: see the timeline in [17 §17.2.1](../17-technical-validation-strategy.md).
+`patronictl` may first print an error about the frozen node's etcd endpoint. It then uses the other members, so the error is expected.
+
+Measured with `sync-safety-experiment.sh` on 20 Nov 2026 ([17 §17.2.1](../17-technical-validation-strategy.md)):
+
+| Step | Result |
+|---|---|
+| Waiting for automatic promotion | None for 120 s |
+| Standby promoted | 5 s after the operator action |
+| Writes the old leader had acknowledged in the window | **50 of 50 lost** |
+| Old leader rejoined through `pg_rewind` | 4 s after the server returned |
+| Synchronous standby designated again | 4 s after re-enabling |
 
 ## 5. A standby that does not rejoin
 
@@ -160,8 +170,8 @@ Measured through `pg-router`, with a client writing every 100 ms as the applicat
 
 | Event | Write interruption | Acknowledged writes lost |
 |---|---|---|
-| Leader crash (frozen, no clean shutdown) | Patroni detection (leader key TTL 30 s) + router check (2 × 2 s): about 25–30 s | 0 |
-| Planned switchover | A few seconds | 0 |
+| Leader crash (frozen, no clean shutdown) | Leader lease (30 s) + up to one Patroni loop (10 s) + two router checks (2 × 2 s). Measured: longest gap 26.7 s (2 servers), 39.0 s (3 servers) | **0** |
+| Planned failover or switchover | Measured: leadership moved in 2 s | **0** |
 
 - The application must retry transactions that fail with a connection error. That is a Phase 3 coding standard for every module.
 - The core service keeps running through failovers. Earlier, an unhandled pool error stopped the process; this was fixed on 19 Nov 2026 and is covered by a test.

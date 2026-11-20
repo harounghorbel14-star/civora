@@ -54,6 +54,29 @@
   - idempotent re-run.
 - Final suite run: 17/17 checks in 162 s; crash failover 29 s; old leader rejoins via `pg_rewind`.
 - Finding (confirmed by a controlled experiment): with two database nodes in synchronous mode, Patroni refuses automatic failover when no synchronous standby is designated (for example, right after a restart). The standby was not promoted for 120 s; no split-brain. This protects commits, at the cost of automatic recovery. Option to decide: 3 database nodes per production site.
+- Second round (20 Nov 2026), both topologies (2 servers: 31/31 checks; 3 servers: 35/35):
+  - least-privilege accounts;
+  - point-in-time restore;
+  - the application path through `pg-router` with `verify-full` TLS;
+  - a client writing during a leader crash lost no acknowledged write;
+  - with 3 servers and one standby already down, failover was still automatic (35 s);
+  - with 2 servers, the manual way out lost the 50 writes acknowledged in the window.
+  - Details: [17 §17.2.1](../17-technical-validation-strategy.md).
+
+## Implementation details added in Phase 2 (within this decision, not new decisions)
+
+- **Application connectivity to a moving primary:** `pg-router` (HAProxy).
+  - It asks each node's Patroni REST API `GET /primary` over TLS, verifying the certificate by name, and sends connections only to the node that answers 200.
+  - Applications connect to one service name with `sslmode=verify-full`, so database node certificates carry the `pg-router` service names.
+  - Chart: `infra/helm/pg-router`.
+- **Accounts per database:**
+  - an owner used only by migrations;
+  - an application account with `NOSUPERUSER NOBYPASSRLS`, which can only connect and create temporary objects; its table rights come from migrations.
+  - This keeps row-level security effective for the running service.
+- **etcd quorum:**
+  - 2 database servers: etcd runs on both database servers plus the backup node (3 members);
+  - 3 database servers: etcd runs on the database servers only.
+- These follow from the decision above and change nothing in it; they are listed so the founder sees them when deciding P2-D1.
 
 ## Revisit when
 

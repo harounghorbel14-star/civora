@@ -18,6 +18,13 @@ K create ns "$ns" >/dev/null
 K label ns "$ns" pod-security.kubernetes.io/enforce=restricted pod-security.kubernetes.io/warn=restricted >/dev/null
 fail=0
 run() { if out=$("$@" 2>&1); then echo "  ok   ${label}"; else echo "  FAIL ${label}"; echo "$out" | sed 's/^/       /'; fail=1; fi; }
+# Pod Security Admission enforces on Pods only; for Deployments, StatefulSets and Jobs it only warns. A dry-run of a
+# chart therefore passes even when its pods would be refused at runtime, unless the warnings are checked: they are.
+psa_apply() {  # $1 = namespace (labelled enforce+warn=restricted); manifests on stdin
+  local out; out=$(docker exec -i "$name" kubectl -n "$1" apply --dry-run=server -f - 2>&1) || { echo "$out"; return 1; }
+  if grep -q "would violate PodSecurity" <<<"$out"; then grep "would violate PodSecurity" <<<"$out"; return 1; fi
+}
+export -f psa_apply; export name
 echo "Manifest validation (k3s $k3s_image, Pod Security restricted):"
 label="helm lint (local, staging)"; run bash -c "helm lint '$root/infra/helm/civora-core' -f '$root/infra/helm/civora-core/values-local.yaml' >/dev/null && helm lint '$root/infra/helm/civora-core' -f '$root/infra/helm/civora-core/values-staging.yaml' >/dev/null"
 fake_digest="sha256:$(printf '0%.0s' {1..64})"   # staging/pilot/prod require a digest (ADR-027)
@@ -26,7 +33,7 @@ for v in local staging; do
   digest_arg=""
   [[ "$v" != "local" ]] && digest_arg="--set image.digest=$fake_digest"
   label="chart values-$v: server dry-run"
-  run bash -c "helm template civora-core '$root/infra/helm/civora-core' --kube-version 1.33.4 -n $ns -f '$root/infra/helm/civora-core/values-$v.yaml' $digest_arg | docker exec -i $name kubectl -n $ns apply --dry-run=server -f - | grep -v Warning"
+  run bash -c "helm template civora-core '$root/infra/helm/civora-core' --kube-version 1.33.4 -n $ns -f '$root/infra/helm/civora-core/values-$v.yaml' $digest_arg | psa_apply $ns"
 done
 label="infra/k8s/local/pg-core.yaml: server dry-run"; run bash -c "docker exec -i $name kubectl -n $ns apply --dry-run=server -f - < '$root/infra/k8s/local/pg-core.yaml'"
 argocd_version=v3.4.13   # keep in step with infra/ansible/roles/argocd_bootstrap/defaults/main.yml
@@ -38,7 +45,7 @@ for f in "$root"/infra/argocd/*.yaml "$root"/infra/argocd/apps/*.yaml; do
 done
 label="pg-router chart refuses to render without database nodes"; run bash -c "! helm template pg-router '$root/infra/helm/pg-router' >/dev/null 2>&1"
 label="pg-router chart (values-staging): lint + server dry-run (restricted)"
-run bash -c "helm lint '$root/infra/helm/pg-router' -f '$root/infra/helm/pg-router/values-staging.yaml' >/dev/null && helm template pg-router '$root/infra/helm/pg-router' --kube-version 1.33.4 -n $ns -f '$root/infra/helm/pg-router/values-staging.yaml' | docker exec -i $name kubectl -n $ns apply --dry-run=server -f - | grep -v Warning"
+run bash -c "helm lint '$root/infra/helm/pg-router' -f '$root/infra/helm/pg-router/values-staging.yaml' >/dev/null && helm template pg-router '$root/infra/helm/pg-router' --kube-version 1.33.4 -n $ns -f '$root/infra/helm/pg-router/values-staging.yaml' | psa_apply $ns"
 
 # Image admission policy (ADR-027): allowed registry + digest, in namespaces labelled civora.tn/image-policy=enforced.
 pol_ns=civora-policy-test
@@ -72,6 +79,31 @@ label="image policy: missing cell parameters deny (fail closed)"
 run bash -c "docker exec $name kubectl -n civora-system delete configmap civora-image-policy >/dev/null && sleep 3 && $(declare -f pod dry); pod '$good' | dry | grep -qi 'denied'"
 label="image policy: namespaces without the label unaffected"; run bash -c "$(declare -f pod dry); pod docker.io/library/busybox | sed 's/namespace: $pol_ns/namespace: default/' | dry"
 
+# Platform services (infra/argocd/platform): render the pinned chart tags from their Git sources with our values and
+# dry-run them under restricted Pod Security. cert-manager's chart is generated at release time (not renderable from
+# Git); its Application object is validated with the others below.
+up="$(mktemp -d)"
+label="platform charts fetched at the pinned tags (OpenBao openbao-0.30.7, External Secrets helm-chart-2.14.0)"
+run bash -c "git clone -q --depth 1 --branch openbao-0.30.7 https://github.com/openbao/openbao-helm.git '$up/openbao' \
+  && git -c advice.detachedHead=false clone -q --depth 1 --filter=blob:none --sparse --branch helm-chart-2.14.0 https://github.com/external-secrets/external-secrets.git '$up/eso' \
+  && git -C '$up/eso' sparse-checkout set deploy/charts/external-secrets \
+  && sed -i '/^dependencies:/,/condition:/d' '$up/eso/deploy/charts/external-secrets/Chart.yaml'"   # optional Bitwarden subchart, disabled
+for p in openbao external-secrets; do docker exec $name kubectl create ns $p >/dev/null 2>&1; docker exec $name kubectl label ns $p pod-security.kubernetes.io/enforce=restricted pod-security.kubernetes.io/warn=restricted >/dev/null 2>&1; done
+label="OpenBao (3 replicas, Raft, TLS): server dry-run under restricted Pod Security"
+run bash -c "helm template openbao '$up/openbao/charts/openbao' -n openbao --kube-version 1.33.4 --no-hooks -f '$root/infra/argocd/platform/values/openbao.yaml' | psa_apply openbao"
+label="control: OpenBao with the chart's default security settings is rejected by restricted Pod Security"
+run bash -c "! helm template openbao '$up/openbao/charts/openbao' -n openbao --kube-version 1.33.4 --no-hooks --set server.ha.enabled=true --set injector.enabled=false | psa_apply openbao"
+label="OpenBao rendered as 3-replica StatefulSet with TLS listener and no injector"
+run bash -c "helm template openbao '$up/openbao/charts/openbao' -n openbao --kube-version 1.33.4 --no-hooks -f '$root/infra/argocd/platform/values/openbao.yaml' > '$up/openbao.yaml' && grep -q 'replicas: 3' '$up/openbao.yaml' && grep -q 'tls_cert_file' '$up/openbao.yaml' && ! grep -q 'agent-injector' '$up/openbao.yaml'"
+label="External Secrets (CRDs, controller, webhook, cert controller): server dry-run under restricted Pod Security"
+run bash -c "helm template external-secrets '$up/eso/deploy/charts/external-secrets' -n external-secrets --kube-version 1.33.4 --no-hooks -f '$root/infra/argocd/platform/values/external-secrets.yaml' | psa_apply external-secrets"
+for f in "$root"/infra/argocd/platform/*.yaml "$root"/infra/argocd/platform/staging-tn/*.yaml; do
+  label="argocd/platform/$(basename "$f"): server dry-run against the CRD schema"; run bash -c "docker exec -i $name kubectl apply --dry-run=server -f - < '$f'"
+done
+rm -rf "$up"
+
+label="negative control: a Deployment whose pods would violate restricted Pod Security fails the check"
+run bash -c "! printf 'apiVersion: apps/v1\nkind: Deployment\nmetadata: {name: bad}\nspec:\n  selector: {matchLabels: {a: b}}\n  template:\n    metadata: {labels: {a: b}}\n    spec:\n      containers: [{name: x, image: busybox}]\n' | psa_apply $ns"
 label="negative control: privileged pod rejected"
 run bash -c "! printf 'apiVersion: v1\nkind: Pod\nmetadata: {name: bad}\nspec:\n  containers: [{name: x, image: busybox, securityContext: {privileged: true}}]\n' | docker exec -i $name kubectl -n $ns apply --dry-run=server -f -"
 exit $fail

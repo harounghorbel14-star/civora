@@ -127,7 +127,9 @@ Details are in [07](07-security-and-privacy-architecture.md) §7.7.
 | OS + Kubernetes + Argo CD (L1–L3) | Playbooks lint-clean; not run on hosts | — |
 | Application manifests (L5) | Valid on a real Kubernetes 1.33 API server under restricted Pod Security | Validation 16 s |
 | Whole application stack (single node) | Dev cell from nothing: 3 PostgreSQL clusters, Redis, S3 store, Keycloak, OpenBao, observability, core + migrations, 9 smoke checks | **82 s** (image pre-built) |
-| Air-gapped Kubernetes deploy | Script written. **Could not run in this sandbox** (nested containers are not supported here); scheduled nightly on GitHub runners | Pending first CI run |
+| Air-gapped Kubernetes deploy | Script written. **Could not run in this sandbox** (nested containers are not supported here); runs on GitHub runners | See [17](17-technical-validation-strategy.md) §17.2.2 |
+| Database tier (L2) | Role `postgresql_ha` on systemd containers, 2 and 3 servers: accounts, TLS, backups, PITR, failover, `pg-router` application path (31/31 and 35/35 checks) | Role from nothing ≈ 65–75 s |
+| Staging-shaped rehearsal (database tier + k3s + `pg-router` + civora-core) | Script written (`staging-rehearsal.sh`); runs on GitHub runners | See [17](17-technical-validation-strategy.md) §17.2.2 |
 
 **Remaining IaC work to meet O-AC1 once a provider is chosen** (estimates [A]):
 
@@ -135,10 +137,11 @@ Details are in [07](07-security-and-privacy-architecture.md) §7.7.
 |---|---|
 | Hosting adapter for the chosen provider (OpenTofu provider, networks, VMs, volumes, DNS) | 3–5 days |
 | ~~Ansible role: PostgreSQL 16 + Patroni + pgBackRest (+ etcd DCS)~~ **Written and container-tested 19 Nov 2026** (role `postgresql_ha`); remaining: first run on real hosts | 0.5–1 day (was 4–6) |
-| Platform services via Argo CD: ingress controller, cert-manager, External Secrets, OpenBao HA, Keycloak HA, Redis Sentinel, observability stack | 5–7 days |
-| Signature verification at admission (Sigstore policy controller or Kyverno) | 1–2 days |
+| Platform services via Argo CD: ingress controller (**choice pending — see ADR-013 open question**), cert-manager, External Secrets, OpenBao HA, Keycloak HA, Redis Sentinel, observability stack | 5–7 days |
+| ~~Application path to the database primary~~ **`pg-router` chart written and tested 20 Nov 2026** | — |
+| Signature verification at admission (Sigstore policy controller or Kyverno); registry + digest policy **done** (built-in admission policy) | 1 day (was 1–2) |
 | End-to-end timed rebuild, fixes, runbook | 2–3 days |
-| **Total** | **11.5–18 engineer-days** (was 15–23) |
+| **Total** | **11.5–17 engineer-days** (was 15–23) |
 
 **Six-week plan (O-TIME), started 19 Nov 2026:**
 

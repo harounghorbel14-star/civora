@@ -65,7 +65,7 @@ flowchart LR
 | Practice | How it is enforced |
 |---|---|
 | Minimisation checklist per feature | Pull-request template section; blocking review by the DPO (or counsel until appointed) for T0/T1 |
-| No personal data in logs, metrics or traces | Logger writes fixed fields only (timestamp, level, service, context, message); request bodies and headers are never logged. Error responses never echo input. Phase 3 adds log-scrubbing tests |
+| No personal data in logs, metrics or traces | Logger writes fixed fields only (timestamp, level, service, context, message); request bodies and headers are never logged. Error responses echo neither the query string, nor headers, nor the body: only the path, as RFC 9457 `instance`; personal identifiers are never allowed in paths ([10](10-api-architecture-and-standards.md)). **Tested:** canary values in query, path, headers, cookies and bodies never reach a log line ([17](17-technical-validation-strategy.md) R27). Traces are tested in the same way (R21). Phase 3 extends the test to every module |
 | Synthetic data outside pilot and production | Reserved identifier ranges; CI fitness check; pilot and production refuse the synthetic pack; demo banner flag `platform.synthetic-banner` |
 | DPIA for every T0/T1 module before pilot | Template in Phase 3; shared with the tenant and, where required, the INPDP |
 | Records of processing | Generated from schema annotations ([05](05-data-architecture-and-governance.md) §5.3) |
@@ -92,7 +92,9 @@ flowchart LR
 |---|---|---|
 | Security headers: `X-Content-Type-Options`, `Referrer-Policy: no-referrer`, `Cache-Control: no-store`, `Cross-Origin-Resource-Policy`; `X-Powered-By` removed | `RequestContextMiddleware`, `app.factory.ts` | e2e test |
 | Correlation id: an incoming `X-Request-Id` is accepted only if it matches `^[A-Za-z0-9-]{8,64}$`, otherwise replaced (no header injection) | Middleware | e2e test |
-| Errors as RFC 9457 problem details; no stack traces or input echo; 5xx logged with request id only | `ProblemDetailsFilter` | e2e test |
+| Errors as RFC 9457 problem details. `title` is the standard reason phrase, never an exception message: the router's 404 message contained the full URL with its query string (defect found and fixed 20 Nov 2026). No stack traces; 5xx logged with request id only | `ProblemDetailsFilter` | e2e + log-privacy test |
+| Database failover does not stop the service: a dropped idle connection is logged with a fixed message and replaced. Before the fix (20 Nov 2026) the process exited on the first failover | `DatabaseProbe` | Unit test (fails without the fix) + database suite |
+| Database access: migrations as the schema owner, runtime as a `NOSUPERUSER NOBYPASSRLS` account, `verify-full` TLS to `pg-router` | Role `postgresql_ha`, charts | Database suite (R24/R25) |
 | Configuration validated at start (`CIVORA_ENV`, `PORT`); fail closed | `app-config.ts` | Unit tests |
 | Country pack integrity and environment gate | `country-config.module.ts` | Unit + e2e; manual check: `CIVORA_ENV=prod` refuses to start |
 | Metrics not in the public API contract | `@ApiExcludeController` | e2e test |
@@ -112,6 +114,8 @@ flowchart LR
 | SBOM | Syft → CycloneDX JSON | 878 components for `civora-core:dev` |
 | Signing and provenance | cosign keyless + SBOM attestation + SLSA build provenance (`actions/attest-build-provenance`) | Configured for `main` (needs GitHub to run) |
 | Third-party actions | Pinned to full commit SHAs (resolved 19 Nov 2026) | In place |
+| Admission: allowed registries + digest pins | Built-in Kubernetes ValidatingAdmissionPolicy ([infra/k8s/policies](../../infra/k8s/policies/image-admission.yaml)); per-cell registry list in a ConfigMap; missing list = deny | **Built and tested 20 Nov 2026** on a Kubernetes 1.33 API server: 10 cases, including a look-alike registry prefix and an unpinned CronJob (R28) |
+| Admission: signature verification (cosign) | Needs an admission controller (Sigstore policy-controller or Kyverno) | Before pilot (B7) |
 
 ## 7.7 Repository protection (O-SEC4, O-SEC5)
 

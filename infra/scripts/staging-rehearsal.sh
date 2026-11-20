@@ -52,6 +52,8 @@ kc() { docker exec -i "$k3s_name" kubectl "$@"; }
 until kc get --raw /readyz >/dev/null 2>&1; do sleep 2; done
 until kc get nodes -o name 2>/dev/null | grep -q node; do sleep 2; done
 kc wait --for=condition=Ready node --all --timeout=180s >/dev/null
+until kc -n kube-system get deploy coredns >/dev/null 2>&1; do sleep 2; done
+kc -n kube-system rollout status deploy/coredns --timeout=180s >/dev/null
 docker exec "$k3s_name" cat /etc/rancher/k3s/k3s.yaml | sed "s#https://127.0.0.1:6443#https://127.0.0.1:$port#" > "$work/kubeconfig"
 export KUBECONFIG="$work/kubeconfig" NO_PROXY="${NO_PROXY:+$NO_PROXY,}127.0.0.1,localhost" no_proxy="${no_proxy:+$no_proxy,}127.0.0.1,localhost"
 until docker exec "$k3s_name" ctr -n k8s.io images ls -q 2>/dev/null | grep -q civora-core; do sleep 2; done
@@ -83,7 +85,8 @@ helm upgrade --install civora-core "$root/infra/helm/civora-core" -n "$ns" -f "$
   --set networkPolicy.databasePodSelector.app\\.kubernetes\\.io/name=pg-router \
   --set migrations.databaseSecret.name=civora-core-db-migrate --set databaseTls.caSecretName=civora-core-db-ca \
   --wait --timeout 5m >/dev/null \
-  || { kc -n "$ns" get pods -o wide; kc -n "$ns" logs -l app.kubernetes.io/component=migrate --tail=30 || true; exit 1; }
+  || { kc -n "$ns" get pods -o wide; kc -n "$ns" get endpointslices -o wide; kc get pods -A -o wide | grep -E "coredns|pg-router";
+       for p in $(kc -n "$ns" get pods -l app.kubernetes.io/component=migrate -o name); do echo "== $p"; kc -n "$ns" logs "$p" --tail=15 || true; done; exit 1; }
 stamp "civora-core deployed (migrations applied)"
 
 # 6. Smoke tests

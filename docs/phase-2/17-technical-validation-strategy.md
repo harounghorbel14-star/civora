@@ -28,7 +28,7 @@
 | R5 | Module-boundary fitness check catches a planted violation | V1 | Pass (violation detected, then removed) | `pnpm arch:check` |
 | R6 | OpenAPI drift check | V1 | Caught a real drift after the Swagger upgrade | `openapi:check` |
 | R7 | Dev cell from scratch | V4 | **82 s**, 9/9 smoke checks (database, RTL locales, base schemas, Keycloak realm, Redis auth, object store refuses anonymous, OpenBao unsealed, Grafana login, separate audit cluster) | `infra/scripts/dev-cell-up.sh --fresh`; nightly CI |
-| R8 | Kubernetes manifests on a real API server, restricted Pod Security, Argo CD CRDs | V3 | 9/9 checks pass in 16 s, incl. "staging refuses an image without a digest" and "privileged pod rejected" | `infra/scripts/validate-manifests.sh` |
+| R8 | Kubernetes manifests on a real API server, restricted Pod Security, Argo CD CRDs | V3 | 9/9 checks pass in 16 s, incl. "staging refuses an image without a digest" and "privileged pod rejected". **Correction (20 Nov 2026):** for Deployments and StatefulSets Pod Security only *warns*, and the script discarded the warnings, so chart pod templates were not actually checked against "restricted". Warnings now fail the check, and a control proves it (a non-compliant Deployment fails). civora-core and pg-router pods were since created for real in restricted namespaces on GitHub (R18, R30) | `infra/scripts/validate-manifests.sh` |
 | R9 | Server-side validation found a defect | V3 | Real bug: NetworkPolicy selector missing `matchLabels` (rejected by the API). Fixed. Also guarded against an empty `from` list (which would allow all) | Same |
 | R10 | OpenTofu cell: validate, plan, apply (offline) | V1/V3 | Pass; a node outside TN **blocks** the plan (negative test) | CI `iac` |
 | R11 | Ansible: syntax check + `ansible-lint` production profile | V1 | 0 failures, 0 warnings | CI `iac` |
@@ -38,13 +38,20 @@
 | R15 | Secrets in history | V1 | gitleaks: no leaks | CI `secret-scan` |
 | R16 | Policy engines | V3 | Cedar 4.14.0 and OPA 1.4.2 (wasm and REST): **24/24 expected decisions**; Cedar strict schema validation passes; latency in the spike README | CI `policy-engine-spike` |
 | R17 | Performance baseline | V5 (baseline only) | `/health` 9,155 req/s p99 12 ms; `/v1/meta/locales` 4,002 req/s p99 24 ms (one process) | [14](14-scalability-and-performance.md) §14.4 |
-| R18 | Air-gapped k3s deploy from scratch | V4 | **Not run here** (sandbox cannot run nested containers: `runc ... can't get final child's PID`). Scheduled nightly on GitHub runners | `deploy-from-scratch.sh` |
+| R18 | Air-gapped k3s deploy from scratch | V4 | Cannot run in this sandbox (nested containers). **First run on GitHub, 20 Nov 2026: from nothing to green in 79 s** — cluster 35 s, database 47 s, civora-core 59 s; 6/6 smoke checks (database up, RTL locale, network policy blocks other namespaces, schemas migrated, 2 non-root read-only replicas, restricted Pod Security) + upgrade with migration hook. Same run: dev cell from scratch 107 s, 10/10 | `deploy-from-scratch.sh`, `dev-cell-up.sh` (nightly workflow run 1) |
 | R19 | CI workflows on GitHub | V3 | **Observed 19 Nov 2026.** Run 1: five jobs ran, IaC failed on Checkov (default namespace; skip annotations on pod templates). Fixed. **Run 2: all six jobs green**, incl. Trivy gate and SBOM upload. Run 3 (tracing) green. Runs 4–6 failed: Checkov flagged the database test-node Dockerfile (root/systemd, no health check, by design) — justified inline skips added, and the local check now uses CI's exact command. Signing and provenance run only on `main` (not yet observed) | GitHub Actions `ci` |
 | R20 | OpenAPI 3.1 contract | V1 | Contract converted to 3.1.0 and valid against the official schema; house rules pass; the previous 3.0 contract is **rejected** by the gate (negative test) | `openapi:check` (CI `build-test`) |
 | R21 | Trace privacy | V3 | Unit test of the allow-list; e2e test with synthetic CIN, phone, e-mail and user agent in query and headers: none reaches the exported spans. **Negative control:** with the filter disabled the test fails on `99123456`. Dev cell: traces reach Tempo with only allow-listed attributes | `pnpm test`; dev-cell check 10 |
 | R22 | Dev cell with tracing | V4 | From scratch 64 s (image cached), **10/10** smoke checks | `dev-cell-up.sh --fresh` |
 | R23 | Image with tracing dependencies | V3 | Trivy fixable HIGH/CRITICAL: **0**; `pnpm audit --prod`: no high/critical | CI `image`, `build-test` |
-| R24 | Database tier role `postgresql_ha` | V3/V5 | See §17.2.1 | `infra/ansible/tests/postgresql-ha/run.sh` (nightly CI) |
+| R24 | Database tier role `postgresql_ha` | V3/V5 | See §17.2.1 (2 servers: 31/31; 3 servers: 35/35, 20 Nov 2026). **Also green on GitHub runners** (nightly workflow run 1, both matrix legs) | `infra/ansible/tests/postgresql-ha/run.sh` (nightly CI, matrix 2/3) |
+| R25 | Application path to a moving primary (`pg-router`) | V3/V5 | Migrations as owner and `/health` as the NOBYPASSRLS account through `pg-router`, `verify-full` TLS. Client writing every 100 ms during a leader crash: **no acknowledged write lost**; longest write gap 26.7 s (2 servers) / 39.0 s (3 servers) | `run.sh` (R24) |
+| R26 | Application survives database failover | V3 | **Defect found:** civora-core exited on the first failover (unhandled pool `error` event). Fixed; regression test fails without the fix; suite checks the same process stays up through planned and crash failovers | `pnpm test`; `run.sh` |
+| R27 | Log privacy | V3 | Canary in query, path, headers, cookies, JSON, malformed JSON and form bodies: never in a log line; all log lines are fixed-field JSON. **Defect found:** 404 responses echoed the full URL with its query string in `title`; fixed (reason phrase). The test failed before the fix (negative control) | `pnpm test` (`log-privacy.e2e.test.ts`) |
+| R28 | Image admission policy (ADR-027) | V3 | Built-in ValidatingAdmissionPolicy on a k3s 1.33 API server: pinned image from the cell registry allowed; Docker Hub, tag without digest, look-alike registry prefix, bad init container, unpinned CronJob all **denied**; missing parameters **deny** (fail closed); unlabelled namespaces unaffected. Observed green on GitHub (CI run 10) | `validate-manifests.sh` (CI `iac`) |
+| R29 | CI failure propagation | V1 | **Defect found:** steps of the form `script | tee` passed even when the script failed (GitHub's default shell has no `pipefail`). Workflows now set `shell: bash` | `.github/workflows/*.yml` |
+| R30 | Staging-shaped rehearsal (database tier + k3s + pg-router + civora-core) | V4 | Runs on GitHub runners (nested containers needed). Result: see §17.2.2 | `staging-rehearsal.sh` (nightly workflow) |
+| R31 | Platform services as code (Argo CD) | V3 | cert-manager v1.21.3, External Secrets chart 2.14.0, OpenBao chart 0.30.7: pins checked against upstream release tags (each at least 2 weeks old). OpenBao (3 replicas, Raft, TLS) and External Secrets rendered from the tagged sources with our values, then dry-run on a Kubernetes 1.33 API server with Pod Security warnings treated as failures. **Finding:** the OpenBao chart's default container settings would be refused under "restricted"; fixed in our values, and the default kept as a negative control | `validate-manifests.sh` |
 
 ### 17.2.1 Database tier integration test (R24, 19 Nov 2026)
 
@@ -81,6 +88,38 @@
 - This protects commits, at the cost of automatic recovery during that window.
 - Option for production: 3 database nodes per site ([role README](../../infra/ansible/roles/postgresql_ha/README.md); ADR-003; review package §3.1).
 
+**Second round (20 Nov 2026): accounts, encryption, PITR, application path, both topologies.**
+
+| Check | 2 servers + backup node | 3 servers + backup node |
+|---|---|---|
+| Least privilege: application account `NOSUPERUSER NOBYPASSRLS`, owns nothing; migrator owns the database and the schemas it creates | Pass | Pass |
+| Repository unreadable without the cipher passphrase (same command with it: readable — control) | Pass | Pass |
+| Point-in-time restore to T: 100 rows written before T present, 100 written after T absent; checksums verified | Pass (2 s) | Pass (3 s) |
+| Migrations and `/health` through `pg-router` (configuration rendered from the Helm chart), `verify-full` TLS | Pass | Pass |
+| Planned failover (Patroni stopped on the leader) | 2 s | 2 s |
+| `patronictl switchover` to the synchronous standby; `patronictl reinit` of a member | Pass | Pass |
+| Leader crash: promotion of the synchronous standby | 23–25 s | 36 s |
+| Writes through `pg-router` during the crash (client every 100 ms): longest gap; acknowledged writes lost | 26.7 s; **0** | 39.0 s; **0** |
+| civora-core process survives both failovers and reports the database up | Pass (after fix R26) | Pass |
+| With one standby already down, leader crash → the other standby is promoted **automatically** | Not possible (see finding above) | **Pass, 35 s** |
+| Restore drill (latest); second role run changes nothing | Pass | Pass |
+| Whole suite | **31/31, 227 s** | **35/35, 339 s** |
+
+Failover time is the Patroni leader lease (`ttl` 30 s) plus up to one loop (`loop_wait` 10 s) plus two router checks (2 s each): 23–40 s is the expected range. Shorter values trade speed against false failovers on a slow network; tune on staging.
+
+**Manual recovery for a 2-server site (R2-10), measured with `sync-safety-experiment.sh`:**
+
+- No synchronous standby designated, 50 rows acknowledged by the leader, leader frozen.
+- No automatic promotion for 120 s.
+- The operator disabled synchronous mode ([runbook](runbooks/database-operations.md) §4). The standby was promoted **5 s** later.
+- **All 50 acknowledged rows were lost**: they had not reached the standby.
+- When unfrozen, the old leader rejoined through `pg_rewind` (4 s). Synchronous mode was re-enabled and a synchronous standby designated again (4 s).
+- This is the concrete cost a 2-server site accepts each time this path is used. With 3 servers the same fault needs no operator and loses nothing (row above).
+
+### 17.2.2 Staging-shaped rehearsal (R30)
+
+Result of the first GitHub run: _pending — recorded here when the run completes._
+
 ## 17.3 Test strategy by layer (Phase 3 onward)
 
 | Layer | Required tests | Gate |
@@ -112,16 +151,16 @@ The accepted findings are annotated on the pod templates (`checkov.io/skip*`), s
 
 | # | Validation | Due |
 |---|---|---|
-| B1 | First green CI run on GitHub (all six jobs) — **done 19 Nov 2026 (run 2)**; first nightly rehearsals pending (nightly runs only from the default branch) | Week 2 of Phase 2 |
+| B1 | First green CI run on GitHub (all six jobs) — **done 19 Nov 2026 (run 2)**. Rehearsals: scheduled runs only start from the default branch, so since 20 Nov 2026 they also run on pushes to working branches that touch what they exercise | Week 2 of Phase 2 |
 | B2 | Staging rebuild from IaC < 2 h (O-AC1) | Phase 2 week 5 (needs a provider) |
 | B3 | External threat-model review (O-AC3) | Phase 2 week 6 (needs an adviser) |
 | B4 | Second synthetic country pack `xx` → no code change needed | Phase 3 |
-| B5 | Trace scrubbing test with reserved-range identifiers — **done for traces** (unit + e2e + dev-cell check); log scrubbing test still Phase 3 | Phase 3 (logs) |
+| B5 | Trace scrubbing test — **done 19 Nov 2026**; log privacy test — **done 20 Nov 2026** (R27). Per-module extensions as modules are built | Phase 3 (per module) |
 | B6 | RLS presence test and IDOR suite templates | Phase 3 |
-| B7 | Image signature verification at admission | Before pilot |
+| B7 | Image signature verification at admission. Registry + digest admission policy **done 20 Nov 2026** (R28); cosign signature verification needs an admission controller | Before pilot |
 | B8 | OpenAPI 3.1 conversion + schema validation — **done 19 Nov 2026**; breaking-change detection when the first business endpoint exists | Phase 3 (breaking changes) |
 | B9 | Load, noisy-neighbour, soak, failover tests (§14.5) | Phase 6 |
-| B10 | First restore drill; first DR test | Before pilot |
+| B10 | First restore drill on real hosts; first DR test (restore into a new cluster, then switch `pg-router`) — drills on containers done (latest and point in time) | Before pilot |
 | B11 | ANCS-certified audit; penetration test | Before pilot (Phase 11/13) |
 
 ## 17.6 Environment limitations met in Phase 2 (recorded, not worked around)

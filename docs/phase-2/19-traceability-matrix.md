@@ -21,10 +21,10 @@
 | O-D8 | Coding standards | [18](18-coding-standards.md) | Fitness check in CI | **Done** |
 | O-A1 | Modular monolith skeleton | `services/core` (9 bounded contexts + platform modules) | e2e tests; boundary check | **Done** |
 | O-A2 | Keycloak | Dev cell, realm `civora-dev`; [06](06-identity-and-access.md) | Smoke test (OIDC discovery) | **Done** (dev) |
-| O-A3 | PostgreSQL clusters | Dev cell: pg-public, pg-core, pg-consent-audit; ADR-003 | Smoke tests; migration test | **Done** (dev); staging role planned |
+| O-A3 | PostgreSQL clusters | Dev cell: pg-public, pg-core, pg-consent-audit; ADR-003. Staging and production: role `postgresql_ha` (Patroni, etcd, pgBackRest) + `pg-router` chart | Smoke tests; migration test; database suite on systemd containers, 2 and 3 servers (31/31, 35/35 — [17](17-technical-validation-strategy.md) §17.2.1) | **Done** (dev); staging tier container-tested, real hosts need a provider |
 | O-A4 | Redis | Dev cell (auth, AOF) | Smoke test (auth required) | **Done** (dev) |
 | O-A5 | Object storage | Dev cell SeaweedFS; ADR-020 | Smoke test (anonymous refused) | **Done** (dev) |
-| O-A6 | Observability stack | Dev cell OTel + Prometheus + Loki + Tempo + Grafana; core metrics, logs and **traces** (allow-list exporter); [15](15-observability-backup-and-dr.md) | Smoke tests (login required; traces reach Tempo without request data); e2e `/metrics`; e2e trace-scrubbing test with negative control | **Done** |
+| O-A6 | Observability stack | Dev cell OTel + Prometheus + Loki + Tempo + Grafana; core metrics, logs and **traces** (allow-list exporter); [15](15-observability-backup-and-dr.md) | Smoke tests (login required; traces reach Tempo without request data); e2e `/metrics`; e2e trace-scrubbing test with negative control; log-privacy test with negative control (R27) | **Done** |
 | O-A7 | OPA/Cedar evaluation spike | `spikes/policy-engine`; ADR-006 | 24/24 decisions agree; CI job | **Done** |
 | O-F1 | Health-check endpoints | `GET /health`, `GET /health/ready` | e2e; dev cell; Kubernetes probes | **Done** |
 | O-F2 | Feature-flag framework | `packages/feature-flags`; ADR-021 | Unit tests; used by core | **Done** |
@@ -36,13 +36,13 @@
 | O-API3 | OpenAPI pipeline | `generate-openapi.ts` (→ OpenAPI **3.1.0**); committed contract; drift check; `validate-openapi.mjs` | Drift check caught a real change; 3.1 schema validation + house rules pass; old 3.0 contract rejected (negative test) | **Done** |
 | O-DEP | P1 IA outputs (partially) | Phase 1 docs 15, 12, 18 | [00](00-specification-and-constraint-audit.md) §1 | **Done** (dependency met) |
 | O-SEC1 | Secrets management | [07](07-security-and-privacy-architecture.md) §7.4; OpenBao dev; `NAME_FILE`; secret volumes | Unit test; gitleaks clean | **Done** (dev/design); OpenBao HA in staging |
-| O-SEC2 | Signed builds | cosign keyless + provenance in CI (ADR-027) | Configured | **Partial**: runs on GitHub `main` only; not yet observed |
+| O-SEC2 | Signed builds | cosign keyless + provenance in CI (ADR-027); admission policy for allowed registries + digest pins (`infra/k8s/policies`) | Signing configured; admission policy tested on a Kubernetes 1.33 API server, 10 cases (R28) | **Partial**: signing runs on GitHub `main` only, not yet observed; signature verification at admission before pilot |
 | O-SEC3 | SBOM | Syft CycloneDX in CI | Generated locally (878 components) | **Done** |
 | O-SEC4 | Branch protection | Settings specified ([07](07-security-and-privacy-architecture.md) §7.7) | — | **Open — founder** (GitHub admin) |
 | O-SEC5 | 2-reviewer rule | CODEOWNERS; settings specified | — | **Open — founder** (needs a 2nd engineer or a waiver) |
 | O-T1 | Unit/integration scaffolds in the pipeline | 30 tests + migration test; CI `build-test` | Pass locally and on GitHub (run 2) | **Done** |
 | O-T2 | IaC scanning | Checkov in CI; `validate-manifests.sh`; tofu; ansible-lint | All pass; findings handled ([17](17-technical-validation-strategy.md) §17.4) | **Done** |
-| O-T3 | Deploy-from-scratch test | `dev-cell-up.sh --fresh` (82 s, 9/9); `deploy-from-scratch.sh` (k3s, air-gapped) | Dev variant passes; k3s variant scheduled nightly in CI | **Partial**: k3s variant could not run in this sandbox |
+| O-T3 | Deploy-from-scratch test | `dev-cell-up.sh --fresh` (82 s, 9/9); `deploy-from-scratch.sh` (k3s, air-gapped); `staging-rehearsal.sh` (database tier + k3s + `pg-router` + civora-core) | Dev variant passes; k3s variants run on GitHub runners (they cannot run in this sandbox) — results in [17](17-technical-validation-strategy.md) §17.2.2 | **Partial** until the k3s variants are observed green |
 | O-AC1 | Staging reproducible from IaC in < 2 h | [16](16-infrastructure-plan.md) §16.7 | — | **Blocked**: no hosting provider (E-07) |
 | O-AC2 | All ADRs approved | ADR index | — | **Open — founder** |
 | O-AC3 | Threat model reviewed by an external security adviser | [08](08-threat-model.md) §8.8 | — | **Open — external** (adviser not engaged) |
@@ -69,7 +69,7 @@
 | M-3 | Multi-tenant architecture | [04](04-multi-tenant-architecture.md) | 016, 003, 012 | Tenant-isolation policy rules proven (spike) |
 | M-4 | Database and data governance | [05](05-data-architecture-and-governance.md), [inventory](data/data-inventory.csv) | 003, 018, 022, 024 | 3 clusters, base schemas, migrations |
 | M-5 | Identity and access management | [06](06-identity-and-access.md) | 005, 006 | Keycloak realm; Cedar model |
-| M-6 | Security and privacy | [07](07-security-and-privacy-architecture.md), [08](08-threat-model.md) | 012, 025, 027 | Hardened image and chart; scans; secrets pattern |
+| M-6 | Security and privacy | [07](07-security-and-privacy-architecture.md), [08](08-threat-model.md) | 012, 025, 027 | Hardened image and chart; scans; secrets pattern; image admission policy; log-privacy test |
 | M-7 | API architecture and integrations | [10](10-api-architecture-and-standards.md), [11](11-integration-architecture.md) | 015, 028, 008 | 3 operations; contract pipeline; locked adapter flag |
 | M-8 | AI and agent infrastructure | [12](12-ai-and-agent-infrastructure.md) | 010, 026 | Design only (non-goal before Phase 10) |
 | M-9 | Cloud and deployment architecture | [13](13-cloud-and-deployment-architecture.md), [16](16-infrastructure-plan.md) | 004, 013, 019, 020, 025 | Dev cell; chart; IaC validated |

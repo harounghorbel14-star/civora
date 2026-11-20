@@ -40,6 +40,10 @@
 ## Validation
 
 - Trivy fixable HIGH/CRITICAL 21 → 0; SBOM 878 components; gitleaks clean; Checkov Dockerfile 31/31, Actions 36/36. Signing and provenance run on GitHub (`main`).
+- Admission (20 Nov 2026):
+  - a built-in Kubernetes ValidatingAdmissionPolicy allows only the cell's registries and digest-pinned images (`infra/k8s/policies`);
+  - it was tested on a Kubernetes 1.33 API server: 10 cases, including a look-alike registry prefix and fail-closed parameters.
+- Signature verification at admission is still to come (before pilot).
 
 ## Revisit when
 

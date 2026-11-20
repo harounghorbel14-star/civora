@@ -18,7 +18,9 @@ databaseSecret:
 
 migrations:
   enabled: true               # pre-install/pre-upgrade Job running node-pg-migrate (ADR-024)
-  backoffLimit: 1
+  # Retries cover a database failover during a deploy and the seconds before network policy is programmed for a
+  # new pod (seen in the staging rehearsal, 20 Nov 2026). node-pg-migrate takes a lock, so a retry is safe.
+  backoffLimit: 4
   # Migrations run as the database owner; the application runs as a NOBYPASSRLS account (ADR-003).
   # Empty = use databaseSecret (dev only).
   databaseSecret: { name: "", key: DATABASE_URL }

@@ -38,7 +38,17 @@
 
 ## Validation
 
-- Residency and backup-zone preconditions tested in OpenTofu; etcd snapshot schedule in the RKE2 template. Backups themselves need database nodes (provider).
+- Residency and backup-zone preconditions tested in OpenTofu; etcd snapshot schedule in the RKE2 template.
+- Backups tested on systemd containers (role `postgresql_ha`, 19–20 Nov 2026):
+  - encrypted repository, unreadable without the passphrase (tested, with a control);
+  - WAL archiving;
+  - restore drill to the latest point and to a chosen time (rows before T present, rows after T absent);
+  - page checksums verified after every restore.
+- Not yet done:
+  - the second repository at the other site;
+  - restoring into a new cluster (DR);
+  - drills on real hosts (they need the provider).
+- Procedures: [database runbook](../runbooks/database-operations.md).
 
 ## Revisit when
 

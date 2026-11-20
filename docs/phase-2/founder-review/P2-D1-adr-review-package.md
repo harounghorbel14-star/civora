@@ -158,7 +158,20 @@ The platform runs PostgreSQL in "synchronous" mode, so a confirmed save is never
 | **3 database servers**, synchronous (engineering recommendation for bank production) | No confirmed save lost | Still automatic if one server is unavailable | One more database server per site (in hosting quotes) |
 | 2 servers, asynchronous | May lose the last seconds of saves | Always automatic | Lowest |
 
+**Measured on 20 Nov 2026** (test servers in containers, not real hardware):
+
+| Situation | 2 database servers | 3 database servers |
+|---|---|---|
+| Leader server crashes, normal conditions | Takeover in 23–25 s, no confirmed save lost | Takeover in 36 s, no confirmed save lost |
+| Leader crashes while another server is already down or restarting | Writes stop until a person acts. Forcing the takeover lost **all 50 saves** made in that window | Takeover **automatic** (35 s), nothing lost |
+| The application during a crash | Keeps running and reconnects by itself, through the new `pg-router` component | Same |
+
+The "two or three servers" choice is therefore about this rare situation. With two servers it costs either downtime or lost saves; with three it costs one more server per site.
+
 You can approve ADR-003 with a condition such as "3 database servers per production site".
+
+- **Also done, within ADR-003 (not a new decision):** a small component, `pg-router`, always sends the application to whichever database server is currently in charge.
+- **Also done, within ADR-003 (not a new decision):** the running application uses a database account that cannot bypass the per-institution separation rules.
 
 **Questions you may want answered first.**
 - Do the hosting providers you are asking for quotes offer managed PostgreSQL in Tunisia with backups in a second Tunisian site?

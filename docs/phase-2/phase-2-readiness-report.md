@@ -18,14 +18,18 @@
 | Data-flow diagrams (DFD-0 to DFD-8, trust boundaries TB1–TB10) | [09](09-data-flow-diagrams.md) | Diagram QA |
 | API standards | [10](10-api-architecture-and-standards.md), ADR-015 | Contract drift check |
 | Infrastructure plan | [16](16-infrastructure-plan.md) | IaC validation |
-| Technical validation strategy with 19 recorded results | [17](17-technical-validation-strategy.md) | — |
+| Technical validation strategy with 30 recorded results (R1–R30) | [17](17-technical-validation-strategy.md) | — |
 | Traceability matrix | [19](19-traceability-matrix.md) | All 39 original items + R-1–R-5 + 12 mission topics traced |
 | Data inventory (43 items) | [data/data-inventory.csv](data/data-inventory.csv) | CSV and counts checked |
 | Monorepo + walking skeleton (`civora-core`: `/health`, `/health/ready`, `/v1/meta/locales`, `/metrics`) | `services/core` | 24 tests + migration test pass; image runs non-root |
 | Shared packages: i18n/RTL, feature flags, country packs (TN v0 + 3 BCT rule packs), synthetic data | `packages/*` | Unit tests; tamper detection; prod refuses synthetic pack |
 | Dev cell (3 PostgreSQL clusters, Redis, S3 store, Keycloak, OpenBao, observability, core) | `infra/compose` | From scratch in **82 s**, 9/9 smoke checks |
 | Helm chart, OpenTofu cell, Ansible (OS, RKE2, Argo CD), Argo CD objects | `infra/*` | Server-side validation on Kubernetes 1.33 (9/9); tofu validate/plan + residency negative test; ansible-lint production profile 0 failures |
-| CI/CD with security gates; nightly rehearsals | `.github/` | Gates executed locally; Checkov on workflows 36/36 |
+| CI/CD with security gates; nightly rehearsals | `.github/` | Gates executed locally; Checkov on workflows 36/36; CI run 10 (20 Nov 2026) all six jobs green |
+| Database tier: role `postgresql_ha` (Patroni, etcd, pgBackRest, TLS, least-privilege accounts, PITR drill), `pg-router` chart, operations runbook | `infra/ansible/roles/postgresql_ha`, `infra/helm/pg-router`, [runbooks/database-operations.md](runbooks/database-operations.md) | Suite on systemd containers: 2 servers 31/31, 3 servers 35/35 ([17](17-technical-validation-strategy.md) §17.2.1) |
+| Image admission policy (allowed registries + digest pins) | `infra/k8s/policies` | 10 cases on a Kubernetes 1.33 API server (R28) |
+| Log-privacy test; database-failover resilience in the core service | `services/core` | Both found a real defect before passing (R26, R27) |
+| Staging-shaped rehearsal (database tier + k3s + `pg-router` + civora-core) | `infra/scripts/staging-rehearsal.sh` | GitHub runners ([17](17-technical-validation-strategy.md) §17.2.2) |
 | OPA vs Cedar spike → ADR-006 (Cedar) | `spikes/policy-engine` | 24/24 decisions agree across Cedar, OPA-wasm, OPA-REST |
 
 **Security results this week:**
@@ -47,6 +51,12 @@
 | First GitHub CI run: Checkov failed on default namespaces and on skip annotations placed where Checkov does not read them | Explicit namespaces; skip annotations at resource level; CI green from run 2 |
 | Database role: pgBackRest checks certificates by name; `tls-server-auth` syntax; drill config paths; **missing local replication rule blocked `pg_rewind` rejoin after a crash** | All fixed; suite 17/17 |
 | CI runs 4–6 failed on Checkov findings in the test-node Dockerfile (I had run a narrower local scan) | Justified inline skips; local scan now uses CI's exact command |
+| **civora-core exited on the first database failover** (unhandled connection-pool error), found by the new application-path test (20 Nov 2026) | Handler added; regression test fails without it; the suite now checks the process survives planned and crash failovers |
+| **404 error responses echoed the full URL including the query string** — contrary to [07](07-security-and-privacy-architecture.md) §7.3 — found by the new log-privacy test | `title` is now the standard reason phrase; test kept as a gate |
+| CI steps written as `script \| tee` could not fail (GitHub's default shell has no `pipefail`) — affected all three nightly jobs | `shell: bash` set for both workflows |
+| The nightly rehearsals had never run: scheduled workflows start only from the default branch, and `nightly.yml` is not on `main` yet | Rehearsals now also run on pushes to working branches that touch what they exercise |
+| My server-side chart validation (R8) claimed "restricted Pod Security", but Pod Security only warns for Deployments/StatefulSets and the script discarded the warnings | Warnings now fail the check, with a control. It immediately caught the OpenBao chart's non-compliant default (fixed in values). civora-core and pg-router pods have since run for real in restricted namespaces on GitHub |
+| Applications had no designed path to a *moving* primary (staging values pointed straight at database IPs) | `pg-router` chart (HAProxy asks Patroni which node is primary; TLS verified); recorded as an implementation detail of ADR-003, not a new decision |
 
 ## 3. Acceptance-criteria status
 
@@ -72,7 +82,8 @@ Advanced: **O-AC1** remaining work fell from 15–23 to 11.5–18 engineer-days.
 | ID | Decision | Options | Recommendation | Needed by |
 |---|---|---|---|---|
 | **P2-D1** | Approve the 29 ADRs (individually or as a set). **Review package:** [founder-review/P2-D1-adr-review-package.md](founder-review/P2-D1-adr-review-package.md); decision form: [P2-D1-decision-form.csv](founder-review/P2-D1-decision-form.csv) | Approve / approve with changes / reject per ADR | Approve as a set. Read first the ADRs that commit money or exclude options: ADR-003 (DB on VMs with Patroni + pgBackRest), ADR-006 (Cedar), ADR-016 (tenancy tiers), ADR-019 (customer-hosted), ADR-020 (no MinIO) | Week 2 |
-| *(within P2-D1)* | ADR-003: 2 or 3 database servers per production site (testing showed that 2 servers in synchronous mode can block automatic failover in a short window) | 2 (lower cost) / 3 (RPO 0 **and** automatic failover) | 3 for bank production; 2 acceptable for staging | With P2-D1 |
+| *(within P2-D1)* | ADR-003: 2 or 3 database servers per production site. **Measured 20 Nov 2026:** with 3, a leader crash while one standby is already down still fails over automatically (35 s, nothing lost). With 2, the same situation stops writes until an operator acts, and the operator's way out lost **all 50** writes acknowledged in the window ([17](17-technical-validation-strategy.md) §17.2.1) | 2 (lower cost) / 3 (RPO 0 **and** automatic failover) | 3 for bank production; 2 acceptable for staging | With P2-D1 |
+| *(within P2-D1, new)* | ADR-013: the MVP ingress controller named in Phase 0 ("NGINX ingress") — the community ingress-nginx was retired upstream in March 2026 and gets no security fixes | (a) APISIX from the MVP (Phase 0's pilot choice, brought forward); (b) a maintained NGINX product; (c) another Gateway API controller until pilot | (a) | Before staging is exposed publicly |
 | **P2-D2** | Interim exception to the 2-reviewer rule while there is one engineer | (a) time-limited waiver with founder self-review; (b) external reviewer for `infra/`, migrations and policies; (c) pause merges | **(b)** for security-relevant paths + (a) for documentation; end the waiver when engineer #2 joins | Week 2 |
 | **P2-D3** | Engage an external security adviser to review the threat model (O-AC3) | Separate engagement / add to the ANCS audit RFQ | Add it as a line item to the ANCS-auditor quote requests already prepared (2–3 days) | Week 2 |
 | **P2-D4** | Hosting provider for staging (and later pilot) | Per quotes (E-07) | Choose on the criteria in [13](13-cloud-and-deployment-architecture.md) §13.6; staging may start on any host with synthetic data (D9) if the Tunisian provider is slow to contract | Week 3 |
@@ -98,7 +109,8 @@ Open questions for counsel that affect the architecture (already in the Phase 1 
 | R2-6 | Counsel concludes SaaS is not possible for banks without BCT approval | Medium / Medium | Tier 4 (customer-hosted) designed and rehearsable air-gapped | Founder / counsel |
 | R2-7 | Tunisian GPU capacity unknown (Phase 10) | Medium / Medium | Location policy; decision deferred to Phase 10 | — |
 | R2-8 | Fast-moving dependencies (NestJS 12, TypeScript 7, Keycloak) | Medium / Low | Pins, Dependabot, ADR-002 revisit in Phase 3 | Engineering |
-| R2-10 | With 2 database servers in synchronous mode, automatic failover is refused while no synchronous standby is designated (measured: 120 s with no promotion; no data loss, no split-brain) | Low / Medium | 3 database servers per production site, or documented manual failover in the runbook | Founder (P2-D1) / engineering |
+| R2-10 | With 2 database servers in synchronous mode, automatic failover is refused while no synchronous standby is designated (measured: 120 s with no promotion; no split-brain). The manual way out loses the writes acknowledged in that window (measured: 50 of 50) | Low / Medium | 3 database servers per production site (tested: automatic, nothing lost), or the manual procedure in the [database runbook](runbooks/database-operations.md) §4 with its data-loss cost accepted in writing | Founder (P2-D1) / engineering |
+| R2-11 | The Phase 0 MVP ingress controller (community ingress-nginx) is unmaintained since March 2026 | High (if used) / High | Decision within P2-D1 (ADR-013 open question); until then no public exposure | Founder |
 | R2-9 | Over-engineering for an unvalidated market (O-RISK) | Medium / Medium | Design-only ADRs for later phases; nothing built beyond Phase 0 §19 items | Engineering |
 
 ## 6. Quality checks run for this report
