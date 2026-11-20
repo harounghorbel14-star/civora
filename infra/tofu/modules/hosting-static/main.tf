@@ -10,11 +10,11 @@ variable "nodes" {
     role    = string
     country = string
     zone    = string
-    site    = optional(string, "main") # data centre; the second in-country site holds backup repository 2
+    site    = optional(string, "main") # data centre; the second in-country site holds repository 2 (+ standby cluster)
   }))
   validation {
-    condition     = alltrue([for n in var.nodes : contains(["server", "agent", "db", "backup", "backup_dr"], n.role)])
-    error_message = "role must be server, agent, db, backup or backup_dr."
+    condition     = alltrue([for n in var.nodes : contains(["server", "agent", "db", "backup", "backup_dr", "db_standby"], n.role)])
+    error_message = "role must be server, agent, db, backup, backup_dr or db_standby."
   }
   validation {
     condition     = length(distinct([for n in var.nodes : n.name])) == length(var.nodes)

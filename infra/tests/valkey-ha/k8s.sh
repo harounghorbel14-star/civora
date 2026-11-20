@@ -31,7 +31,7 @@ stamp "k3s ready"
 pw=$(head -c 48 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 32)
 for n in "$ns" client other; do kc create namespace "$n" >/dev/null; kc label namespace "$n" pod-security.kubernetes.io/enforce=restricted >/dev/null; done
 kc -n "$ns" create secret generic valkey-ha-auth --from-literal=password="$pw" >/dev/null
-helm install "$rel" "$root/infra/helm/valkey-ha" -n "$ns" --kube-version 1.33.4 --set storage.size=1Gi \
+helm install "$rel" "$root/infra/helm/valkey-ha" -n "$ns" --set storage.size=1Gi \
   --set 'networkPolicy.clients[0].namespace=client' --set 'networkPolicy.clients[0].podSelector.app=cache-client' >/dev/null
 kc -n "$ns" rollout status statefulset/"$rel" --timeout=420s >/dev/null || { kc -n "$ns" get pods -o wide; kc -n "$ns" describe pods | tail -40; exit 1; }
 stamp "chart installed: 3 data nodes + 3 Sentinels ready (restricted Pod Security)"

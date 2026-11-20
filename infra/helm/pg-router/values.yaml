@@ -25,6 +25,12 @@ networkPolicy:
   extraClients: []   # e.g. [{ namespace: keycloak, podSelector: { app: keycloak } }]
   databaseCidrs: []                                              # database nodes (egress 5432 + 8008)
 
+# Metrics on the health port (:8404/metrics). Only the monitoring namespace may scrape them (NetworkPolicy).
+metrics:
+  enabled: true
+  namespace: observability
+  serviceMonitor: false   # true where the Prometheus Operator CRDs exist (staging values)
+
 resources:
   requests: { cpu: 50m, memory: 64Mi }
   limits: { memory: 128Mi }

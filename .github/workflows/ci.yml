@@ -101,10 +101,10 @@ jobs:
         with: { version: v3.22.1 }
       - uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
         with: { tofu_version: 1.13.9, tofu_wrapper: false }
-      - name: OpenTofu fmt + validate (offline; no provider needed yet)
+      - name: OpenTofu fmt, validate, plan (staging and pilot) and topology guards (offline; no provider needed yet)
         run: |
           tofu fmt -recursive -check infra/tofu
-          cd infra/tofu/envs/staging-tn && tofu init -backend=false -input=false && tofu validate && tofu plan -input=false
+          infra/scripts/tofu-guards.sh
       - name: Ansible syntax + lint (production profile)
         run: |
           # Ubuntu 24.04 marks the system Python as externally managed: use a virtual environment.

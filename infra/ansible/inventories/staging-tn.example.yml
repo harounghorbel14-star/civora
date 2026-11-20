@@ -40,6 +40,8 @@
         "tn-stg-s3":
           "ansible_host": "192.0.2.13"
           "zone": "c"
+    "standby_db_nodes":
+      "hosts": {}
   "vars":
     "civora_cell_id": "tn-staging"
     "civora_country": "TN"

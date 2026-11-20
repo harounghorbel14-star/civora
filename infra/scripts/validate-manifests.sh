@@ -126,6 +126,8 @@ run bash -c "git -c advice.detachedHead=false clone -q --depth 1 --filter=blob:n
   && for c in '$up'/kps/charts/kube-prometheus-stack/charts/crds/crds/*.yaml; do docker exec -i $name kubectl apply --server-side -f - < \$c >/dev/null || exit 1; done \
   && docker exec $name kubectl create ns observability >/dev/null && docker exec $name kubectl label ns observability pod-security.kubernetes.io/enforce=restricted pod-security.kubernetes.io/warn=restricted >/dev/null \
   && docker exec -i $name kubectl apply --dry-run=server -f - < '$root/infra/k8s/monitoring/civora-infrastructure-alerts.yaml'"
+label="pg-router metrics: ServiceMonitor rendered when the CRD exists, valid against it"
+run bash -c "helm template pg-router '$root/infra/helm/pg-router' --kube-version 1.33.4 -n $ns -f '$root/infra/helm/pg-router/values-staging.yaml' --api-versions monitoring.coreos.com/v1/ServiceMonitor -s templates/servicemonitor.yaml | docker exec -i $name kubectl -n $ns apply --dry-run=server -f - | grep -q 'servicemonitor.monitoring.coreos.com/pg-router created'"
 # Every object carries its namespace: observability, plus scrape Services the chart puts in kube-system.
 label="kube-prometheus-stack with CIVORA values: rendered, server dry-run under restricted Pod Security"
 if helm dependency build "$up/kps/charts/kube-prometheus-stack" >/dev/null 2>&1; then

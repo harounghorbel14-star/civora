@@ -9,3 +9,8 @@ networkPolicy:
   databaseCidrs: ["192.0.2.31/32", "192.0.2.32/32"]
   extraClients:
     - { namespace: keycloak, podSelector: { app: keycloak } }   # Keycloak database (infra/k8s/keycloak)
+
+metrics:
+  enabled: true
+  namespace: observability
+  serviceMonitor: true   # kube-prometheus-stack (Argo CD) provides the CRD in staging

@@ -10,11 +10,11 @@
 #   6. the old primary restarts as a replica of the new one.
 # Name resolution: every container resolves the six names from /etc/hosts (fixed addresses), as Kubernetes keeps
 # publishing a crashed pod's address (headless Service, publishNotReadyAddresses). With names resolved by Docker's
-# DNS instead, the failover stalled for minutes on GitHub runners (nightly runs 6-7, 20 Nov 2026) and the Sentinels
-# answered slowly. Cause not established: a lookup through Docker's resolver, printed by each run, measured 0.00 s
-# on GitHub (run 8). With /etc/hosts the failover passes there in 6 s.
-# NAMES=docker-dns reproduces the earlier setup (Docker's DNS, no fixed addresses) for diagnosis: it prints the
-# lookup times through the C library (as Sentinel resolves) and the Sentinel logs.
+# DNS instead, the failover stalled for minutes on GitHub runners (nightly runs 6, 7, 10). Cause (run 10, 3 of 3
+# attempts): looking up the stopped primary's name through the C library takes 10 s there (the runner's search domain
+# is tried upstream); Sentinel resolves synchronously, so it keeps entering TILT mode (no failover for 30 s each time).
+# NAMES=docker-dns reproduces it (prints lookup times and Sentinel logs). DNS_BOUND=1 adds the chart's mitigation
+# (resolver timeout 1 s, 1 attempt), which must restore the failover.
 # Needs docker, python3. Synthetic data; password generated per run.
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -41,6 +41,7 @@ run_node() { # name role(valkey|sentinel)
   local script=start-valkey.sh dir=/data
   [[ "$2" == sentinel ]] && { script=start-sentinel.sh; dir=/sentinel; }
   local addr=(--ip "${ip[$1]}" "${hosts[@]}"); [[ "$names" == hosts ]] || addr=()
+  [[ "${DNS_BOUND:-0}" == 1 ]] && addr+=(--dns-option timeout:1 --dns-option attempts:1)
   docker run -d --name "$1" --hostname "$1" --network "$net" "${addr[@]}" --user 10999:10999 --read-only \
     --tmpfs "$dir:uid=10999,gid=10999" -v "$files:/scripts:ro" -v "$secret_dir:/secrets:ro" \
     -e ME="${1/vs-/vk-}" -e SENTINEL_ME="$1" -e NODES="$nodes" -e SENTINELS="$sentinels" -e VALKEY_PASSWORD_FILE=/secrets/password \

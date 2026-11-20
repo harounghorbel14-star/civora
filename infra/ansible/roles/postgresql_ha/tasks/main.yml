@@ -25,6 +25,11 @@
         or (postgresql_ha_repo2_cipher_pass | length >= 32 and postgresql_ha_repo2_cipher_pass != postgresql_ha_repo_cipher_pass)
       - postgresql_ha_bootstrap_from_repo | int == 0 or postgresql_ha_bootstrap_from_repo | int in (postgresql_ha_repos | map(attribute='index') | list)
       - postgresql_ha_etcd_members | length is odd
+      # Second-site standby cluster: needs both repository nodes (one etcd voter per site) and 2+ servers there.
+      - >-
+        postgresql_ha_standby_nodes | length == 0
+        or (postgresql_ha_standby_nodes | length >= 2 and groups.get('backup', []) | length == 1
+            and groups.get('backup_dr', []) | length == 1 and postgresql_ha_bootstrap_from_repo | int == 0)
       - postgresql_ha_databases | map(attribute='owner') | reject('in', postgresql_ha_role_passwords) | list | length == 0
       - postgresql_ha_databases | map(attribute='app_user') | reject('in', postgresql_ha_role_passwords) | list | length == 0
     fail_msg: "Topology invalid, or a database account has no password in postgresql_ha_role_passwords."

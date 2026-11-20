@@ -25,7 +25,7 @@ variable "nodes" {
   type = list(object({
     name    = string
     address = string
-    role    = string # server | agent | db | backup | backup_dr
+    role    = string # server | agent | db | backup | backup_dr | db_standby
     country = string # where the node physically runs
     zone    = string
     site    = optional(string, "main") # data centre (ADR-029: repository 2 at a second in-country site)
@@ -38,7 +38,9 @@ locals {
   db      = [for n in var.nodes : n if n.role == "db"]
   backup  = [for n in var.nodes : n if n.role == "backup"]
   # Backup repository 2 (ADR-029) at the second in-country site.
-  backup_dr  = [for n in var.nodes : n if n.role == "backup_dr"]
+  backup_dr = [for n in var.nodes : n if n.role == "backup_dr"]
+  # Optional database servers at the second site: a standby cluster streaming from the main site (runbook §8.1).
+  db_standby = [for n in var.nodes : n if n.role == "db_standby"]
   main_sites = toset([for n in concat(local.db, local.backup) : n.site])
 }
 
@@ -69,6 +71,13 @@ output "ansible_inventory" {
     condition     = length(local.backup_dr) <= 1 && length(setintersection(toset([for n in local.backup_dr : n.site]), local.main_sites)) == 0
     error_message = "A backup_dr node must be at a different site from the database and backup nodes."
   }
+  precondition {
+    condition = length(local.db_standby) == 0 || (
+      length(local.db_standby) >= 2 && length(local.backup_dr) == 1 && length(local.backup) >= 1
+      && length(setsubtract(toset([for n in local.db_standby : n.site]), toset([for n in local.backup_dr : n.site]))) == 0
+    )
+    error_message = "db_standby nodes (second-site standby cluster): at least 2, at the backup_dr site, with backup and backup_dr nodes."
+  }
   value = yamlencode({
     all = {
       vars = {
@@ -77,11 +86,12 @@ output "ansible_inventory" {
         civora_environment = var.cell.environment
       }
       children = {
-        k8s_servers = { hosts = { for n in local.servers : n.name => { ansible_host = n.address, zone = n.zone } } }
-        k8s_agents  = { hosts = { for n in local.agents : n.name => { ansible_host = n.address, zone = n.zone } } }
-        db_nodes    = { hosts = { for n in local.db : n.name => { ansible_host = n.address, zone = n.zone } } }
-        backup      = { hosts = { for n in local.backup : n.name => { ansible_host = n.address, zone = n.zone } } }
-        backup_dr   = { hosts = { for n in local.backup_dr : n.name => { ansible_host = n.address, zone = n.zone, site = n.site } } }
+        k8s_servers      = { hosts = { for n in local.servers : n.name => { ansible_host = n.address, zone = n.zone } } }
+        k8s_agents       = { hosts = { for n in local.agents : n.name => { ansible_host = n.address, zone = n.zone } } }
+        db_nodes         = { hosts = { for n in local.db : n.name => { ansible_host = n.address, zone = n.zone } } }
+        backup           = { hosts = { for n in local.backup : n.name => { ansible_host = n.address, zone = n.zone } } }
+        backup_dr        = { hosts = { for n in local.backup_dr : n.name => { ansible_host = n.address, zone = n.zone, site = n.site } } }
+        standby_db_nodes = { hosts = { for n in local.db_standby : n.name => { ansible_host = n.address, zone = n.zone, site = n.site } } }
       }
     }
   })
@@ -89,11 +99,12 @@ output "ansible_inventory" {
 
 output "summary" {
   value = {
-    cell      = var.cell.id
-    servers   = length(local.servers)
-    agents    = length(local.agents)
-    db_nodes  = length(local.db)
-    backup    = length(local.backup)
-    backup_dr = length(local.backup_dr)
+    cell       = var.cell.id
+    servers    = length(local.servers)
+    agents     = length(local.agents)
+    db_nodes   = length(local.db)
+    backup     = length(local.backup)
+    backup_dr  = length(local.backup_dr)
+    db_standby = length(local.db_standby)
   }
 }

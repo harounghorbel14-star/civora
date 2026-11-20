@@ -9,6 +9,9 @@ spec:
   selector: {{- include "pg-router.selector" . | nindent 4 }}
   ports:
     - { name: postgres, port: {{ .Values.postgresPort }}, targetPort: postgres }
+    {{- if .Values.metrics.enabled }}
+    - { name: metrics, port: 8404, targetPort: 8404 }
+    {{- end }}
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
@@ -43,6 +46,12 @@ spec:
         {{- end }}
       ports:
         - { port: {{ .Values.postgresPort }}, protocol: TCP }
+    {{- if .Values.metrics.enabled }}
+    - from:
+        - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: {{ .Values.metrics.namespace }} } }
+      ports:
+        - { port: 8404, protocol: TCP }
+    {{- end }}
   egress:
     {{- if .Values.networkPolicy.databaseCidrs }}
     - to:

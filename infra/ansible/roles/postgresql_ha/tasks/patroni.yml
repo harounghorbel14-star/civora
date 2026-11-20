@@ -4,14 +4,14 @@
   ansible.builtin.command:
     cmd: "pg_dropcluster --stop {{ postgresql_ha_version }} main"
     removes: "/etc/postgresql/{{ postgresql_ha_version }}/main"
-  when: inventory_hostname in groups['db_nodes']
+  when: inventory_hostname in postgresql_ha_all_db_nodes
 
 - name: Package's PostgreSQL units stay disabled
   ansible.builtin.systemd_service:
     name: postgresql
     state: stopped
     enabled: false
-  when: inventory_hostname in groups['db_nodes']
+  when: inventory_hostname in postgresql_ha_all_db_nodes
 
 - name: Patroni configuration directory
   ansible.builtin.file:
@@ -20,7 +20,7 @@
     owner: root
     group: postgres
     mode: "0750"
-  when: inventory_hostname in groups['db_nodes']
+  when: inventory_hostname in postgresql_ha_all_db_nodes
 
 - name: Disaster-recovery bootstrap script (only when building a new cluster from a backup repository)
   ansible.builtin.template:
@@ -30,7 +30,7 @@
     group: root
     mode: "0755"
   when:
-    - inventory_hostname in groups['db_nodes']
+    - inventory_hostname in postgresql_ha_all_db_nodes
     - postgresql_ha_bootstrap_from_repo | int > 0
 
 - name: Patroni configuration
@@ -41,7 +41,7 @@
     group: postgres
     mode: "0640"
   register: postgresql_ha_patroni_config
-  when: inventory_hostname in groups['db_nodes']
+  when: inventory_hostname in postgresql_ha_all_db_nodes
   notify: Reload patroni
 
 - name: Patroni enabled and running
@@ -49,7 +49,7 @@
     name: patroni
     state: started
     enabled: true
-  when: inventory_hostname in groups['db_nodes']
+  when: inventory_hostname in postgresql_ha_all_db_nodes
 
 - name: Apply configuration changes before checking the cluster
   ansible.builtin.meta: flush_handlers
@@ -60,12 +60,13 @@
   register: postgresql_ha_cluster
   until: >-
     postgresql_ha_cluster.rc == 0 and
-    (postgresql_ha_cluster.stdout | from_json | selectattr('Role', 'equalto', 'Leader') | list | length) == 1 and
-    (postgresql_ha_cluster.stdout | from_json | rejectattr('Role', 'equalto', 'Leader') | rejectattr('State', 'equalto', 'streaming') | list | length) == 0 and
-    (postgresql_ha_cluster.stdout | from_json | length) == (groups['db_nodes'] | length)
+    (postgresql_ha_cluster.stdout | from_json | selectattr('Role', 'in', postgresql_ha_leader_roles) | list | length) == 1 and
+    (postgresql_ha_cluster.stdout | from_json | rejectattr('Role', 'in', postgresql_ha_leader_roles)
+     | rejectattr('State', 'equalto', 'streaming') | list | length) == 0 and
+    (postgresql_ha_cluster.stdout | from_json | length) == (postgresql_ha_cluster_nodes | length)
   retries: 60
   delay: 3
   changed_when: false
   become: true
   become_user: postgres
-  when: inventory_hostname == groups['db_nodes'][0]
+  when: inventory_hostname == groups['db_nodes'][0] or inventory_hostname == (postgresql_ha_standby_nodes + [''])[0]

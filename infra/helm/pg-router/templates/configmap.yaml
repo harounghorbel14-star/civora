@@ -28,6 +28,10 @@ data:
       monitor-uri /healthz
       acl no_primary nbsrv(postgresql_primary) lt 1
       monitor fail if no_primary
+      {{- if .Values.metrics.enabled }}
+      # Prometheus metrics (HAProxy's built-in exporter): alert "no primary behind the router" (doc 15 §15.2).
+      http-request use-service prometheus-exporter if { path /metrics }
+      {{- end }}
 
     listen postgresql_primary
       bind :{{ .Values.postgresPort }}

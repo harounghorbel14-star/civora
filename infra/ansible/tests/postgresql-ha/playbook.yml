@@ -1,6 +1,6 @@
 ---
 - name: Database and backup nodes (role under test)
-  hosts: db_nodes:backup:backup_dr
+  hosts: db_nodes:backup:backup_dr:standby_db_nodes
   become: true
   roles:
     - role: postgresql_ha

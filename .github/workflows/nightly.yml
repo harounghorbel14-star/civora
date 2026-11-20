@@ -117,6 +117,24 @@ jobs:
           ANSIBLE_PLAYBOOK: ${{ runner.temp }}/ansible/bin/ansible-playbook
         run: infra/ansible/tests/postgresql-ha/dr.sh | tee -a "$GITHUB_STEP_SUMMARY"
 
+  disaster-recovery-standby-site:
+    name: Disaster recovery with a live second site — lose site A, promote the standby cluster at site B, timed
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: azure/setup-helm@2f5e7bc67f1f9972ab16657bb795f36d8f04de0e # v5.1.0
+        with: { version: v3.22.1 }
+      - name: Ansible with the docker connection plugin (test harness only)
+        run: |
+          python3 -m venv "$RUNNER_TEMP/ansible"
+          "$RUNNER_TEMP/ansible/bin/pip" install --quiet "ansible==11.13.0"
+      - name: DR rehearsal (standby cluster)
+        env:
+          ANSIBLE_PLAYBOOK: ${{ runner.temp }}/ansible/bin/ansible-playbook
+        run: infra/ansible/tests/postgresql-ha/dr-standby.sh | tee -a "$GITHUB_STEP_SUMMARY"
+
   identity-and-cache-ha:
     name: Keycloak cluster (session survives node loss) and Valkey Sentinel failover
     runs-on: ubuntu-24.04
@@ -141,22 +159,17 @@ jobs:
       - name: Chart failover on Kubernetes
         run: infra/tests/valkey-ha/k8s.sh | tee -a "$GITHUB_STEP_SUMMARY"
 
-  # Diagnostic, does not gate (R38): reproduces the earlier Docker-DNS setup three times and prints lookup
-  # times and Sentinel logs. Removed once the cause of the GitHub-only stall is established.
-  valkey-dns-diagnostic:
-    name: Diagnostic (non-gating) — Valkey Sentinel with Docker DNS names, 3 attempts
+  # R38: with Docker's DNS, Sentinel stalls on GitHub runners (slow lookups -> TILT mode). The chart bounds lookups
+  # (resolver timeout 1 s, 1 attempt); this job checks that the same bound restores the failover in that setting.
+  valkey-dns-bounded:
+    name: Valkey Sentinel failover with Docker DNS and the chart's resolver bounds (R38 mitigation)
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { persist-credentials: false }
-      - name: Docker-DNS attempts (outcome recorded, never fails the job)
-        run: |
-          docker version --format 'Docker {{.Server.Version}}'; cat /etc/resolv.conf
-          for n in 1 2 3; do
-            echo "=== attempt $n"
-            if NAMES=docker-dns infra/tests/valkey-ha/run.sh; then echo "RESULT attempt $n: pass"; else echo "RESULT attempt $n: FAIL"; fi
-          done 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Failover with bounded lookups
+        run: NAMES=docker-dns DNS_BOUND=1 infra/tests/valkey-ha/run.sh | tee -a "$GITHUB_STEP_SUMMARY"
 
   image-signature-enforcement:
     name: Image signatures enforced at admission (policy-controller, signed vs unsigned, private TLS registry)

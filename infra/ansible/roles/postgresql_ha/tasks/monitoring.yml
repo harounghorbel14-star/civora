@@ -52,7 +52,7 @@
     owner: root
     group: root
     mode: "0755"
-  loop: "{{ ['civora-db-metrics'] if inventory_hostname in groups['db_nodes'] else ['civora-backup-metrics'] }}"
+  loop: "{{ [postgresql_ha_metrics_collector] }}"
 
 - name: Text-file collector units (every minute; first run 10 s after start)
   ansible.builtin.copy:
@@ -61,14 +61,14 @@
     group: root
     mode: "0644"
     content: "{{ postgresql_ha_metrics_units[item.1] | replace('@NAME@', item.0) }}"
-  loop: "{{ (['civora-db-metrics'] if inventory_hostname in groups['db_nodes'] else ['civora-backup-metrics']) | product(['service', 'timer']) | list }}"
+  loop: "{{ [postgresql_ha_metrics_collector] | product(['service', 'timer']) | list }}"
   loop_control:
     label: "{{ item.0 }}.{{ item.1 }}"
   register: postgresql_ha_metrics_unit_files
 
 - name: Text-file collector timers enabled
   ansible.builtin.systemd_service:
-    name: "{{ 'civora-db-metrics' if inventory_hostname in groups['db_nodes'] else 'civora-backup-metrics' }}.timer"
+    name: "{{ postgresql_ha_metrics_collector }}.timer"
     state: started
     enabled: true
     daemon_reload: "{{ postgresql_ha_metrics_unit_files is changed }}"

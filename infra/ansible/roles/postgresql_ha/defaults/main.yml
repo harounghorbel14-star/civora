@@ -3,6 +3,9 @@
 #   db_nodes : PostgreSQL + Patroni (automatic failover) + etcd member + pgBackRest TLS server
 #   backup   : pgBackRest repository 1 (TLS server) + scheduled backups + restore drills; etcd voter at 2-server sites
 #   backup_dr: (optional) pgBackRest repository 2 at the second in-country site, same duties, own encryption key
+#   standby_db_nodes: (optional) database servers at the second site: a Patroni STANDBY CLUSTER that streams from
+#              the main site (RPO of seconds or less on site loss instead of the last archived WAL); its own etcd
+#              (these nodes + the backup_dr node). Promotion is one command (runbook §8.1).
 # All packages come from the Ubuntu 24.04 archive, so an air-gapped site can install from a local mirror.
 
 postgresql_ha_version: 16
@@ -27,10 +30,26 @@ postgresql_ha_repos: >-
   {{ ([{'index': 1, 'host': groups['backup'][0]}] if groups.get('backup', []) else [])
      + ([{'index': 2, 'host': groups['backup_dr'][0]}] if groups.get('backup_dr', []) else []) }}
 postgresql_ha_local_repo: "{{ 1 if inventory_hostname in groups.get('backup', []) else 2 }}"
-# etcd quorum (odd): the database nodes, plus the first repository node when the database nodes are even.
+# Second-site standby cluster (optional). Hosts of the second site (standby_db_nodes and, when they exist, the
+# backup_dr node) form their own Patroni/etcd cluster; everything else belongs to the main cluster.
+postgresql_ha_standby_nodes: "{{ groups.get('standby_db_nodes', []) }}"
+postgresql_ha_all_db_nodes: "{{ groups['db_nodes'] + postgresql_ha_standby_nodes }}"
+postgresql_ha_standby_site: >-
+  {{ (postgresql_ha_standby_nodes | length > 0)
+     and (inventory_hostname in postgresql_ha_standby_nodes or inventory_hostname in groups.get('backup_dr', [])) }}
+postgresql_ha_cluster_nodes: "{{ postgresql_ha_standby_nodes if postgresql_ha_standby_site | bool else groups['db_nodes'] }}"
+postgresql_ha_standby_slot: civora_standby_site     # permanent slot on the main cluster: WAL kept for the second site
+postgresql_ha_max_slot_wal_keep_size: 50GB          # ...but never more than this (disk protection; alert before)
+# Replication connections (also the second site's) use TLS checked against the cell CA. verify-ca, not verify-full:
+# Patroni also connects to 127.0.0.1, a name no certificate carries.
+postgresql_ha_replication_sslmode: verify-ca
+postgresql_ha_leader_roles: [Leader, Standby Leader]   # patronictl roles of a cluster's leader (main / standby site)
+# etcd quorum (odd), per cluster: its database nodes, plus one repository node when they are even
+# (main site: the first repository node; second site: the backup_dr node).
 postgresql_ha_etcd_members: >-
-  {{ groups['db_nodes'] if (groups['db_nodes'] | length) is odd
-     else groups['db_nodes'] + postgresql_ha_repo_nodes[:1] }}
+  {{ postgresql_ha_cluster_nodes if (postgresql_ha_cluster_nodes | length) is odd
+     else postgresql_ha_cluster_nodes + (groups.get('backup_dr', [])[:1] if postgresql_ha_standby_site | bool
+                                        else postgresql_ha_repo_nodes[:1]) }}
 
 # Network rules (pg_hba). Application access only from these CIDRs (Kubernetes nodes); everything else is rejected.
 postgresql_ha_app_cidrs: []
@@ -78,6 +97,7 @@ postgresql_ha_bootstrap_target_time: ""
 
 # Monitoring (doc 15 §15.2): node exporter text-file collectors, refreshed every minute.
 postgresql_ha_textfile_dir: /var/lib/prometheus/node-exporter
+postgresql_ha_metrics_collector: "{{ 'civora-db-metrics' if inventory_hostname in postgresql_ha_all_db_nodes else 'civora-backup-metrics' }}"
 postgresql_ha_metrics_units:
   service: |
     # Managed by Ansible (CIVORA, role postgresql_ha)

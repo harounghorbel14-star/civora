@@ -14,7 +14,7 @@ tls-server-key-file={{ postgresql_ha_tls_dir }}/node.key
 {% set n = postgresql_ha_local_repo | int %}
 # Repository node (repo{{ n }}): accepts archive-push/get from the database nodes only (one tls-server-auth line per
 # client certificate name; commas in the value separate stanzas, not clients).
-{% for h in groups['db_nodes'] %}
+{% for h in postgresql_ha_all_db_nodes %}
 tls-server-auth={{ h }}={{ postgresql_ha_stanza }}
 {% endfor %}
 repo{{ n }}-path={{ postgresql_ha_repo_path }}
@@ -35,10 +35,12 @@ pg{{ loop.index }}-path={{ postgresql_ha_data_dir }}
 {% endfor %}
 {% else %}
 # Database node: accepts backup/restore commands from the repository nodes only; archives WAL to every repository.
-{% for r in postgresql_ha_repos %}
+# Second-site database nodes use repository 2 only (after a site loss, repository 1 is gone with the main site).
+{% set my_repos = postgresql_ha_repos | selectattr('index', 'equalto', 2) | list if postgresql_ha_standby_site | bool else postgresql_ha_repos %}
+{% for r in my_repos %}
 tls-server-auth={{ r.host }}={{ postgresql_ha_stanza }}
 {% endfor %}
-{% for r in postgresql_ha_repos %}
+{% for r in my_repos %}
 repo{{ r.index }}-host={{ r.host }}
 repo{{ r.index }}-host-type=tls
 repo{{ r.index }}-host-ca-file={{ postgresql_ha_tls_dir }}/ca.crt

@@ -16,7 +16,7 @@ Contents:
 5. A standby that does not rejoin
 6. Backups
 7. Restore drills (monthly)
-8. Disaster recovery: rebuild the cluster from a repository
+8. Disaster recovery: rebuild the cluster from a repository (8.1 live second site: promote the standby cluster)
 9. Keys and secrets
 10. What the application sees during a failover
 11. Evidence to keep
@@ -192,6 +192,57 @@ Measured: 2 s on the test data set. Real drills take as long as the data needs; 
 - pgBackRest allows **one backup per stanza at a time** (it takes a lock on the database host).
 - Repository 1 is backed up at 01:00 and repository 2 at 03:30. A unit that meets a lock retries after 10 minutes.
 - If the link to the second site is down, WAL accumulates on the database servers until it returns. Watch the archive alert (§15.2 of the observability document).
+
+## 8.1 Live second site: promote the standby cluster (tested 20 Nov 2026)
+
+**Topology.** Inventory group `standby_db_nodes` (OpenTofu role `db_standby`):
+- two or more database servers at the second site run a Patroni **standby cluster**;
+- its leader streams WAL from the main site continuously, over TLS checked against the cell CA, through the permanent slot `civora_standby_site`;
+- repository 2 provides any WAL the stream missed;
+- it has its own etcd: the second site's servers plus the repository-2 node;
+- it refuses writes until promoted.
+
+The main site keeps at most `max_slot_wal_keep_size` (50 GB) of WAL for it. Alerts fire before that limit (§15.2).
+
+**Check it is healthy** (§2 from a second-site server):
+- one `standby_leader` and its replicas, all `streaming`;
+- on the main primary, slot `civora_standby_site` is active;
+- alerts `CivoraStandbySiteDisconnected` and `CivoraStandbySiteLagging` are quiet.
+
+**When the main site is lost:**
+
+1. **Decide and record.** The on-call engineer and the incident lead declare the main site lost. Write down the time.
+2. **Fence the main site.** It must not come back as a second primary.
+   - Power off or isolate its database servers through the provider.
+   - If reachable, run `systemctl stop patroni` on each.
+   - Never promote while the old primary might still accept writes.
+3. **Promote**, on any second-site database server:
+
+   ```sh
+   patronictl -c /etc/patroni/config.yml edit-config --force -s standby_cluster=null
+   ```
+
+   Within seconds the standby leader becomes `leader`, and a replica becomes `sync_standby` (check with §2).
+4. **Point `pg-router`** at the second-site servers (Helm values `servers`, through Argo CD). Applications reconnect by themselves.
+5. **Check archiving:** `pgbackrest --stanza=civora check` on the new leader. Repository 2 receives the new timeline.
+6. **Re-run the role for the new topology:**
+   - `db_nodes` = the second-site servers;
+   - `backup_dr` = the repository-2 node;
+   - no `standby_db_nodes` group.
+
+   Repository 2's backups then follow the new primary. Take a full backup.
+7. **Later, rebuild the lost site as the new standby site.** Use new or wiped servers: the old data diverged and must not be reused. Set the inventory group `standby_db_nodes` to those servers, and swap the roles of the two repository nodes in the inventory.
+
+**Measured** ([`dr-standby.sh`](../../../infra/ansible/tests/postgresql-ha/dr-standby.sh), both sites on containers; nightly on GitHub):
+
+| | Result |
+|---|---|
+| Acknowledged writes lost when the main site vanished | **0 of 176** (client writing every 200 ms) |
+| Promotion after the command | 4 s |
+| Writes accepted through `pg-router` after the loss | 10 s (the test runs the steps immediately; real time adds steps 1–2) |
+| After the role re-run | Full backup of the new primary to repository 2 succeeds; no data changed |
+
+**Not yet rehearsed:** a *planned* switch between sites while both are up (for maintenance). It needs the main site turned into a standby of the second site; the procedure will be written and rehearsed before the pilot.
 
 ## 9. Keys and secrets
 
