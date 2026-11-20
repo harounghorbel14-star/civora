@@ -23,7 +23,8 @@ spec:
       automountServiceAccountToken: false
       # Sentinel resolves names synchronously; a lookup slower than 2 s puts it in TILT mode, where it suspends
       # failover for 30 s (seen on GitHub runners: 10 s lookups, no failover for minutes; R38). Pod names are
-      # cluster.local FQDNs that cluster DNS answers at once; these options bound the worst case if it does not.
+      # cluster.local FQDNs that cluster DNS answers at once (tested, R40); these options shorten each lookup if it does
+      # not, which reduces but does not remove the risk (R38): failover depends on a healthy cluster DNS.
       dnsConfig:
         options:
           - { name: timeout, value: "1" }

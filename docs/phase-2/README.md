@@ -2,15 +2,17 @@
 
 | | |
 |---|---|
-| Status | **In progress (week 1 complete). Not ready for acceptance**: see the [readiness report](phase-2-readiness-report.md) |
+| Status | **NOT READY — EXTERNAL BLOCKERS REMAIN** (20 Nov 2026): everything that needs no provider, adviser or approval is done and tested; see the [completion report](phase-2-completion-report.md) |
 | Started | 19 November 2026, by founder decision **P2-D0** under P1-D4 (overlapping execution) |
 | Phase 1 | **Not approved** (P1-D12 pending). Phase 2 cannot be accepted before Phase 1 |
 | All ADRs | **Proposed — awaiting founder approval** |
 
 ## Read in this order
 
-1. [Readiness report](phase-2-readiness-report.md): what is done, what is open, what the founder needs to do.
-   - **For decision P2-D1:** [plain-language review of all 29 ADRs](founder-review/P2-D1-adr-review-package.md) and the [decision form](founder-review/P2-D1-decision-form.csv).
+1. [**Completion report**](phase-2-completion-report.md) (20 Nov 2026): acceptance checklist, documentation index, evidence, founder decisions, external blockers. The [readiness report](phase-2-readiness-report.md) keeps the detailed history.
+   - **ADR decisions:** [final review register](founder-review/P2-adr-final-review-register.md) (evidence, risks, recommendation for all 30) and the [decision form](founder-review/P2-D1-decision-form.csv).
+   - **Security:** [security review package](founder-review/P2-security-review-package.md) for the external adviser.
+   - **For decision P2-D1:** [plain-language review of the ADRs](founder-review/P2-D1-adr-review-package.md) and the [decision form](founder-review/P2-D1-decision-form.csv).
    - **Decision-ready summary (20 Nov 2026):** [final technical decision package](founder-review/P2-final-technical-decision-package.md) — six decisions (ADR-003, ADR-030, ADR-006, ADR-016, ADR-019, ADR-020) and P2-D2 to P2-D5.
 2. [00 Specification and constraint audit](00-specification-and-constraint-audit.md): the original Phase 2 scope, word for word, and every inherited constraint.
 3. [01 Architecture overview](01-architecture-overview.md): context, containers, principles, document map.
@@ -39,6 +41,9 @@
 | 16 | [Infrastructure plan](16-infrastructure-plan.md) |
 | 17 | [Technical validation strategy](17-technical-validation-strategy.md) |
 | 18 | [Coding standards](18-coding-standards.md) |
+| 19 | [Traceability matrix](19-traceability-matrix.md) (§19.0 final acceptance view) |
+| 20 | [Hosting provider assessment](20-hosting-provider-assessment.md) |
+| Runbooks | [Database operations](runbooks/database-operations.md) · [Release key ceremony](runbooks/release-key-ceremony.md) |
 
 ## Code and infrastructure (repository root)
 

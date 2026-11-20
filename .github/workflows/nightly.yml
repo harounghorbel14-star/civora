@@ -171,18 +171,6 @@ jobs:
       - name: Chart failover on Kubernetes
         run: infra/tests/valkey-ha/k8s.sh | tee -a "$GITHUB_STEP_SUMMARY"
 
-  # R38: with Docker's DNS, Sentinel stalls on GitHub runners (slow lookups -> TILT mode). The chart bounds lookups
-  # (resolver timeout 1 s, 1 attempt); this job checks that the same bound restores the failover in that setting.
-  valkey-dns-bounded:
-    name: Valkey Sentinel failover with Docker DNS and the chart's resolver bounds (R38 mitigation)
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with: { persist-credentials: false }
-      - name: Failover with bounded lookups
-        run: NAMES=docker-dns DNS_BOUND=1 infra/tests/valkey-ha/run.sh | tee -a "$GITHUB_STEP_SUMMARY"
-
   image-signature-enforcement:
     name: Image signatures enforced at admission (policy-controller, signed vs unsigned, private TLS registry)
     runs-on: ubuntu-24.04

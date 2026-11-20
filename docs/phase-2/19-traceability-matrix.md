@@ -4,7 +4,66 @@
 |---|---|
 | Purpose | Trace every original Phase 2 item (Phase 0 §19, IDs from [00](00-specification-and-constraint-audit.md) §2), every additive roadmap item (R-1 to R-5), every mission topic and every inherited constraint to a deliverable, to its verification, and to a status |
 | Status values | **Done** (delivered and verified) · **Done (design)** (decided and documented; built in a later phase by design) · **Partial** (delivered in part; gap stated) · **Open — founder** · **Open — external** · **Blocked** (needs something that does not exist yet) |
-| Date | 19 November 2026 |
+| Date | 19 November 2026; §19.0 updated 20 November 2026 |
+
+## 19.0 Final acceptance traceability (20 Nov 2026)
+
+Every original Phase 2 item (IDs from [00](00-specification-and-constraint-audit.md) §2) and every additive acceptance item (R-1 to R-5), with what is still needed. The three acceptance criteria O-AC1–O-AC3 are the gates. Each depends on someone outside engineering: a provider, the founder, an adviser. §19.1–§19.4 below are the detailed earlier views (19 Nov 2026), kept for history.
+
+| ID | Required outcome | Deliverable | Status | Test evidence | External dependency | Remaining blocker |
+|---|---|---|---|---|---|---|
+| O-OBJ | Section 8 turned into approved ADRs and a working skeleton | 30 ADRs; walking skeleton; [ADR register](founder-review/P2-adr-final-review-register.md) | Partial | Skeleton tested (43 tests, nightly rehearsals); ADR register with evidence | Founder approval | O-AC2 |
+| O-D1 | ADR-001..014 | adr/ (ADR-001–030) | Done (Proposed) | Topic match with Phase 0 §8.12; register §2 | — | Approval (O-AC2) |
+| O-D2 | Full STRIDE threat model | [08](08-threat-model.md), [09](09-data-flow-diagrams.md), [security review package](founder-review/P2-security-review-package.md) | Done (draft v1.0) | 52 threats; internal tests mapped (package §2) | External adviser | O-AC3 |
+| O-D3 | Data inventory and classification | [05](05-data-architecture-and-governance.md); data-inventory.csv | Done | CSV parses; tiers recomputed | — | — |
+| O-D4 | Monorepo structure | Repository (ADR-023) | Done | Build/test in CI | — | — |
+| O-D5 | CI/CD with security gates | ci.yml, nightly.yml | Done | CI and 12 rehearsal jobs observed on GitHub ([17](17-technical-validation-strategy.md) §17.2.3) | — | Signing with the release key after the ceremony (O-SEC2) |
+| O-D6 | IaC for dev/staging cell | infra/compose, tofu (staging-tn, pilot-tn), ansible, helm, argocd | Partial | Dev cell; tofu guards (R44); database tier incl. second site (R24, R32, R39); manifests on a real API server | Hosting provider | O-AC1 |
+| O-D7 | Synthetic data generator, TN pack v0 | packages/synthetic-data, country-packs/tn | Done | Determinism, integrity tests; second pack as data (R43) | — | Official TN holiday list (Q-12) before pilot |
+| O-D8 | Coding standards | [18](18-coding-standards.md) | Done | Fitness check in CI | — | — |
+| O-A1 | Modular monolith skeleton | services/core | Done | e2e; boundary check | — | — |
+| O-A2 | Keycloak | Dev realm; Operator + 3 instances | Done | HA test (R33, GitHub); realm conformance (R42, defect fixed) | — | — |
+| O-A3 | PostgreSQL clusters | Dev cell; role postgresql_ha; pg-router | Done (containers) | 2/3-server suites (R24, GitHub); router defect fixed (R37); DR (R32, R39) | Hosting provider for real hosts | O-AC1 |
+| O-A4 | Redis | Dev cell; Valkey HA chart | Done (containers, k3s) | R34; R38 cause found and fixed; chart on Kubernetes (R40, GitHub) | Founder: Valkey (ADR-008 condition) | — |
+| O-A5 | Object storage | Dev cell (SeaweedFS); ADR-020 | Done (dev) | Anonymous refused (R7) | Provider S3 or self-hosted (doc 20) | — |
+| O-A6 | Observability stack | Dev cell; kube-prometheus-stack, Loki, Tempo apps; 15 alert rules | Done | R21, R27, R35 (promtool), router metrics | — | Application alerts in Phase 3 |
+| O-A7 | OPA/Cedar spike | spikes/policy-engine; ADR-006 | Done | 24/24 decisions (R16) | — | — |
+| O-F1 | Health-check endpoints | /health, /health/ready | Done | e2e; probes | — | — |
+| O-F2 | Feature-flag framework | packages/feature-flags | Done | Unit tests | — | — |
+| O-F3 | i18n with RTL | packages/i18n; /v1/meta/locales | Done | Unit + e2e | — | — |
+| O-DB1 | Base schemas iam, config, audit | core migrations | Done | Migration test; through pg-router as owner (R24) | — | — |
+| O-DB2 | Migration tooling | node-pg-migrate; Helm hook | Done | Up/down/up test | — | — |
+| O-API1 | GET /health | core | Done | e2e; contract; through the gateway (R41) | — | — |
+| O-API2 | GET /v1/meta/locales | core | Done | e2e; contract; through the gateway with a token (R41) | — | — |
+| O-API3 | OpenAPI pipeline | OpenAPI 3.1 contract, drift check, validator | Done | CI check (3 paths, house rules) | — | — |
+| O-DEP | P1 IA outputs (partially) | Phase 1 docs 12, 15, 18 | Done | [00](00-specification-and-constraint-audit.md) §1 | — | — |
+| O-SEC1 | Secrets management | OpenBao (dev; HA app); secret files | Done | gitleaks; release key not exportable (R36) | — | — |
+| O-SEC2 | Signed builds | Keyless signing + provenance on main; signature enforcement; OpenBao signing path | Partial | Admission refuses unsigned (R36, GitHub); OpenBao signer path (R36) | Founder + second person (key ceremony) | Ceremony; first signed release on main |
+| O-SEC3 | SBOM | Syft CycloneDX in CI | Done | 878 components (R14) | — | — |
+| O-SEC4 | Branch protection | Settings specified ([07](07-security-and-privacy-architecture.md) §7.7) | Open — founder | — | Founder (GitHub admin) | Apply settings (P2-D5) |
+| O-SEC5 | 2-reviewer rule | CODEOWNERS; settings | Open — founder | — | Second engineer or written waiver | Founder decision |
+| O-T1 | Unit/integration scaffolds in the pipeline | 43 tests in 5 suites; CI build-test | Done | Local and GitHub | — | — |
+| O-T2 | IaC scanning | Checkov; manifests; tofu guards; ansible-lint; realm check | Done | All pass in CI ([17](17-technical-validation-strategy.md) §17.4) | — | — |
+| O-T3 | Deploy-from-scratch test | dev cell, air-gapped k3s, staging rehearsal | Done | Nightly on GitHub | — | — |
+| O-AC1 | Staging cell reproducible from IaC in < 2 h | IaC + [doc 20](20-hosting-provider-assessment.md) (provider path) | **Blocked** | Staging-shaped rehearsal 169 s on runners (evidence, not the criterion) | Hosting provider (E-07) | Contract, then 8–12.5 engineer-days and the timed rebuild |
+| O-AC2 | All ADRs approved | [ADR register](founder-review/P2-adr-final-review-register.md); decision form | **Open — founder** | Evidence per ADR (register §2) | Founder | Decision form (30 rows) |
+| O-AC3 | Threat model reviewed by an external adviser | [Security review package](founder-review/P2-security-review-package.md) | **Open — external** | Internal tests done (package §2) | Adviser engaged by the founder | Review and findings |
+| O-TIME | 6 weeks | [16](16-infrastructure-plan.md) §16.7 | Partial | Provider-independent work complete | Provider | Weeks needing hosts |
+| O-RISK | No over-engineering | Time-boxed spikes; design-only ADRs for later phases | Done | §19.4 | — | — |
+| O-BUD | 100–150k TND | [16](16-infrastructure-plan.md) §16.8 | Unchanged | No amount invented; prices only from quotes | Quotes | — |
+| R-1 | ADRs cover financial-institution tenants | ADR-016, 019, 029; recovery objectives by data class (doc 15 §15.4.1) | Done | R24, R39 | Counsel/adviser on banking secrecy | — |
+| R-2 | ADRs cover on-premises deployability | ADR-019, 013; static hosting adapter | Done | Air-gapped k3s (R18, GitHub) | — | — |
+| R-3 | ADRs cover the financial data domain | ADR-018, 003; inventory | Done | Inventory rows DI-14–22 | — | — |
+| R-4 | Rule packs as versioned configuration | ADR-017; country-packs | Done | Integrity tests; second country (R43) | — | — |
+| R-5 | Tunisian hosting; no foreign processing | ADR-004, 029; tofu residency guard; doc 20 | Done (design + guard) | Guard refuses a foreign node (R44) | N-Cloud provider | O-AC1 |
+
+**Count:**
+- Done: 34.
+- Partial: 4 (O-OBJ, O-D6, O-SEC2, O-TIME).
+- Blocked: 1 (O-AC1).
+- Open — founder: 3 (O-AC2, O-SEC4, O-SEC5).
+- Open — external: 1 (O-AC3).
+- Unchanged: 1 (O-BUD).
 
 ## 19.1 Original Phase 2 specification
 

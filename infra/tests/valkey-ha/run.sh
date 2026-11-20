@@ -13,8 +13,9 @@
 # DNS instead, the failover stalled for minutes on GitHub runners (nightly runs 6, 7, 10). Cause (run 10, 3 of 3
 # attempts): looking up the stopped primary's name through the C library takes 10 s there (the runner's search domain
 # is tried upstream); Sentinel resolves synchronously, so it keeps entering TILT mode (no failover for 30 s each time).
-# NAMES=docker-dns reproduces it (prints lookup times and Sentinel logs). DNS_BOUND=1 adds the chart's mitigation
-# (resolver timeout 1 s, 1 attempt), which must restore the failover.
+# NAMES=docker-dns reproduces it (prints lookup times and Sentinel logs). DNS_BOUND=1 adds the chart's resolver bound
+# (timeout 1 s, 1 attempt): on GitHub (nightly run 12) lookups fell to 1 s but TILT still recurred, so the bound reduces
+# the risk without removing it. The chart relies on cluster DNS answering at once; tested on Kubernetes (k8s.sh, R40).
 # Needs docker, python3. Synthetic data; password generated per run.
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"

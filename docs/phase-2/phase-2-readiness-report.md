@@ -1,5 +1,7 @@
 # Phase 2 Readiness Report — Technical Architecture
 
+> **20 Nov 2026:** the final status, acceptance checklist and outstanding decisions are in the [completion report](phase-2-completion-report.md). This report keeps the detailed history of the phase.
+
 | | |
 |---|---|
 | Date | 19 November 2026 (Phase 2 week 1; updated the same day after the P2-D1 review package and further independent work) |
