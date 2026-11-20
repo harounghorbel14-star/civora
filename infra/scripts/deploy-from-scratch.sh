@@ -68,7 +68,8 @@ probe() { # namespace path
   kc -n "$1" run "probe-$RANDOM" --rm -i --restart=Never --image=postgres:16-alpine --image-pull-policy=IfNotPresent \
     --overrides='{"spec":{"securityContext":{"runAsNonRoot":true,"runAsUser":70,"seccompProfile":{"type":"RuntimeDefault"}},"containers":[{"name":"p","image":"postgres:16-alpine","imagePullPolicy":"IfNotPresent","command":["wget","-qO-","-T","5","http://civora-core.'"$ns"'.svc'"$2"'"],"securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}}}]}}' 2>/dev/null
 }
-check() { if eval "$2" >/dev/null 2>&1; then echo "  ok   $1"; else echo "  FAIL $1"; fail=1; fi; }
+check() { if ( eval "$2" ) >/dev/null 2>&1; then   # subshell: an "exit" inside a check must not end the script
+  echo "  ok   $1"; else echo "  FAIL $1"; fail=1; fi; }
 echo "Smoke tests:"
 check "health: database up (from allowed namespace)" "probe civora-smoke /health | grep -q '\"database\":\"up\"'"
 check "locales: ar-TN is rtl"                        "probe civora-smoke /v1/meta/locales | grep -q '\"dir\":\"rtl\"'"

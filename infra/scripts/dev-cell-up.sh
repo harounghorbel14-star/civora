@@ -53,7 +53,8 @@ done
 
 # 3. Smoke tests.
 fail=0
-check() { if eval "$2" >/dev/null 2>&1; then echo "  ok   $1"; else echo "  FAIL $1"; fail=1; fi; }
+check() { if ( eval "$2" ) >/dev/null 2>&1; then   # subshell: an "exit" inside a check must not end the script
+  echo "  ok   $1"; else echo "  FAIL $1"; fail=1; fi; }
 echo "Smoke tests:"
 check "core /health database up"            "curl -fsS localhost:3000/health | grep -q '\"database\":\"up\"'"
 check "core /v1/meta/locales Arabic RTL"     "curl -fsS -H 'accept-language: ar' localhost:3000/v1/meta/locales | grep -q '\"dir\":\"rtl\"'"
