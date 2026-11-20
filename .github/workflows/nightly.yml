@@ -5,6 +5,22 @@ on:
   schedule:
     - cron: "17 1 * * *"   # 02:17 Africa/Tunis (UTC+1)
   workflow_dispatch:
+  # Scheduled runs only start from the default branch. Until this workflow is merged there, rehearsals also run
+  # on pushes to working branches that change what they exercise (about 40 runner-minutes per push).
+  push:
+    branches: ["claude/**"]
+    paths:
+      - "infra/ansible/roles/postgresql_ha/**"
+      - "infra/ansible/tests/**"
+      - "infra/helm/**"
+      - "infra/scripts/**"
+      - "infra/compose/**"
+      - "services/core/**"
+      - ".github/workflows/nightly.yml"
+
+concurrency:
+  group: rehearsals-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -61,3 +77,23 @@ jobs:
           ANSIBLE_PLAYBOOK: ${{ runner.temp }}/ansible/bin/ansible-playbook
           DB_NODES: ${{ matrix.db_nodes }}
         run: infra/ansible/tests/postgresql-ha/run.sh | tee -a "$GITHUB_STEP_SUMMARY"
+
+  staging-rehearsal:
+    name: Staging-shaped rehearsal (HA database tier + k3s with pg-router and civora-core), timed
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: azure/setup-helm@2f5e7bc67f1f9972ab16657bb795f36d8f04de0e # v5.1.0
+        with: { version: v3.22.1 }
+      - name: Build application image
+        run: docker build -f services/core/Dockerfile -t civora-core:dev .
+      - name: Ansible with the docker connection plugin (test harness only)
+        run: |
+          python3 -m venv "$RUNNER_TEMP/ansible"
+          "$RUNNER_TEMP/ansible/bin/pip" install --quiet "ansible==11.13.0"
+      - name: Rehearsal
+        env:
+          ANSIBLE_PLAYBOOK: ${{ runner.temp }}/ansible/bin/ansible-playbook
+        run: infra/scripts/staging-rehearsal.sh | tee -a "$GITHUB_STEP_SUMMARY"

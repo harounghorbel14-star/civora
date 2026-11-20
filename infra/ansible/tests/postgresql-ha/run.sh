@@ -5,6 +5,8 @@
 #   APP_PATH=1 (default): also test the application path: pg-router (HAProxy, rendered from infra/helm/pg-router)
 #                         → civora-core migrations and /health over verify-full TLS, and write availability during
 #                         a leader crash (needs the civora-core:dev image and helm).
+#   SETUP_ONLY=1 KEEP=1 EXPORT_DIR=<dir>: build and check the cluster, write ca.crt and an env file (account passwords,
+#                         DB_SERVERS="name=ip ...") to <dir>, keep the containers and stop (used by staging-rehearsal.sh).
 # Checks: cluster formation, synchronous TLS replication, least-privilege accounts, encrypted backups, WAL archiving,
 # point-in-time recovery, planned and unplanned failover, rejoin (pg_rewind), restore drill, idempotence.
 #
@@ -151,6 +153,16 @@ check "repository unreadable without the cipher passphrase (control with it: rea
 check "WAL archiving end to end (pgbackrest check)" "docker exec -u pgbackrest tn-t-bk1 pgbackrest --stanza=civora check"
 check "backup timers scheduled" "docker exec tn-t-bk1 systemctl is-enabled pgbackrest-backup-full.timer pgbackrest-backup-diff.timer"
 check "pg_hba rejects everything outside the allowed CIDRs" "docker exec $L grep -q 'host all all 0.0.0.0/0 reject' /var/lib/postgresql/16/patroni/pg_hba.conf"
+
+if [[ "${SETUP_ONLY:-0}" == 1 ]]; then
+  [[ "${KEEP:-0}" == 1 && -n "${EXPORT_DIR:-}" ]] || { echo "SETUP_ONLY needs KEEP=1 and EXPORT_DIR"; exit 2; }
+  mkdir -p "$EXPORT_DIR"; cp "$work/ca.crt" "$EXPORT_DIR/ca.crt"
+  servers=""; for d in $dbs; do servers="$servers $d=${ip[$d]}"; done
+  printf "MIGRATOR_PW='%s'\nAPP_PW='%s'\nDB_SERVERS='%s'\n" "$migrator_pw" "$app_pw" "${servers# }" > "$EXPORT_DIR/env"
+  chmod 600 "$EXPORT_DIR/env"
+  stamp "setup only: cluster kept, CA and account passwords exported (fail=$fail)"
+  exit $fail
+fi
 
 # Point-in-time recovery: rows A before T, rows B after T; restoring to T must contain A and not B.
 psql_on "$L" "insert into drill_marker select g, 'pitr-a' from generate_series(2001,2100) g; select pg_switch_wal()" >/dev/null
