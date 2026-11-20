@@ -147,6 +147,18 @@ jobs:
       - name: Valkey HA
         run: infra/tests/valkey-ha/run.sh | tee -a "$GITHUB_STEP_SUMMARY"
 
+  api-gateway:
+    name: Edge API gateway (APISIX 3.19, ADR-030) — Keycloak tokens, rate limit, body limit, routes, headers
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - name: Build application image
+        run: docker build -f services/core/Dockerfile -t civora-core:dev .
+      - name: Gateway test
+        run: infra/tests/api-gateway/run.sh | tee -a "$GITHUB_STEP_SUMMARY"
+
   valkey-chart-on-kubernetes:
     name: Valkey chart on Kubernetes (k3s) — primary pod deleted, primary process crashed, NetworkPolicy
     runs-on: ubuntu-24.04

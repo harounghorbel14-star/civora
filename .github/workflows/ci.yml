@@ -105,6 +105,8 @@ jobs:
         run: |
           tofu fmt -recursive -check infra/tofu
           infra/scripts/tofu-guards.sh
+      - name: Identity realm conformance (doc 06) with negative controls
+        run: python3 infra/scripts/check-realm-security.py infra/compose/keycloak/civora-dev-realm.json --self-test
       - name: Ansible syntax + lint (production profile)
         run: |
           # Ubuntu 24.04 marks the system Python as externally managed: use a virtual environment.

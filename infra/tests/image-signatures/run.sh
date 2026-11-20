@@ -4,6 +4,8 @@
 #   (cosign, key-based, no public transparency log: works offline), the other is not. The Sigstore policy-controller
 #   (chart 0.10.8 rendered from its pinned upstream tag with CIVORA values) and CIVORA's ClusterImagePolicy
 #   (infra/k8s/policies/image-signatures.yaml, registry glob adapted to the test registry) are installed.
+#   The release key is held by OpenBao (transit engine, not exportable), as in production (runbook
+#   release-key-ceremony.md): CI signs through a token whose policy allows signing only; the cluster gets the public key.
 #   Expected in an enforced namespace:
 #   - signed image admitted, including when referenced by tag (resolved to its digest);
 #   - unsigned image refused;
@@ -16,7 +18,7 @@ k3s_image=rancher/k3s:v1.33.4-k3s1
 net=civora-sig-test; reg_ip=172.31.243.10; k3s_ip=172.31.243.20; reg="$reg_ip:5000"; port=16445
 work="$(mktemp -d)"; start=$(date +%s)
 stamp() { echo "[$(( $(date +%s) - start ))s] $*"; }
-cleanup() { docker rm -f civora-sig-registry civora-sig-k3s >/dev/null 2>&1 || true; docker network rm "$net" >/dev/null 2>&1 || true; sudo rm -rf "/etc/docker/certs.d/$reg"; rm -rf "$work"; }
+cleanup() { docker rm -f civora-sig-registry civora-sig-k3s civora-sig-bao >/dev/null 2>&1 || true; docker network rm "$net" >/dev/null 2>&1 || true; sudo rm -rf "/etc/docker/certs.d/$reg"; rm -rf "$work"; }
 trap cleanup EXIT
 fail=0
 check() { if out=$( (eval "$2") 2>&1); then echo "  ok   $1"; else echo "  FAIL $1"; echo "$out" | tail -8 | sed 's/^/       /'; fail=1; fi; }
@@ -39,11 +41,25 @@ digest_of() { docker inspect --format '{{index .RepoDigests 0}}' "$reg/civora/$1
 signed_ref="$reg/civora/signed@$(digest_of signed)"; unsigned_ref="$reg/civora/unsigned@$(digest_of unsigned)"
 stamp "registry up, two images pushed"
 
-# 2. Test release key; sign one image (no transparency-log upload: offline-verifiable key signature).
+# 2. Release key in OpenBao transit (generated inside OpenBao, never exportable). OpenBao runs in dev mode here only.
+bao_image="docker.io/openbao/openbao@sha256:597f62847dd382382056a1d6704d50465908c2040038c4611832a23269a67112" # 2.4.1
+root_token=$(head -c 24 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 24)
+docker run -d --name civora-sig-bao --network "$net" -p 127.0.0.1:8200:8200 --cap-add IPC_LOCK \
+  -e BAO_DEV_ROOT_TOKEN_ID="$root_token" -e BAO_DEV_LISTEN_ADDRESS=0.0.0.0:8200 "$bao_image" server -dev >/dev/null
+bao() { docker exec -e BAO_ADDR=http://127.0.0.1:8200 -e BAO_TOKEN="${BAO_AS:-$root_token}" civora-sig-bao bao "$@"; }
+until bao status >/dev/null 2>&1; do sleep 1; done
+bao secrets enable transit >/dev/null
+bao write -f transit/keys/civora-release type=ecdsa-p256 exportable=false >/dev/null
+printf 'path "transit/sign/civora-release" { capabilities = ["update"] }\npath "transit/sign/civora-release/*" { capabilities = ["update"] }\npath "transit/keys/civora-release" { capabilities = ["read"] }\n' \
+  | docker exec -i -e BAO_ADDR=http://127.0.0.1:8200 -e BAO_TOKEN="$root_token" civora-sig-bao bao policy write ci-signer - >/dev/null
+signer_token=$(bao token create -policy=ci-signer -ttl=15m -field=token)
 cat /etc/ssl/certs/ca-certificates.crt "$work/ca.crt" > "$work/trust.pem"
-export SSL_CERT_FILE="$work/trust.pem" COSIGN_PASSWORD=""
-(cd "$work" && cosign generate-key-pair >/dev/null 2>&1)
-cosign sign --yes --key "$work/cosign.key" --tlog-upload=false "$signed_ref" >/dev/null 2>&1
+export SSL_CERT_FILE="$work/trust.pem" VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN="$signer_token"
+cosign public-key --key hashivault://civora-release > "$work/cosign.pub"
+cosign sign --yes --key hashivault://civora-release --tlog-upload=false "$signed_ref" >/dev/null 2>&1
+check "release key: generated in OpenBao and not exportable (export refused)" "! bao read transit/export/signing-key/civora-release"
+check "CI signer token: may sign, may not export, rotate or reconfigure the key" \
+  "! BAO_AS=$signer_token bao read transit/export/signing-key/civora-release && ! BAO_AS=$signer_token bao write -f transit/keys/civora-release/rotate && ! BAO_AS=$signer_token bao write transit/keys/civora-release/config deletion_allowed=true"
 check "cosign: signed image verifies with the release public key" "cosign verify --key '$work/cosign.pub' --insecure-ignore-tlog=true '$signed_ref'"
 check "cosign: unsigned image does not verify" "! cosign verify --key '$work/cosign.pub' --insecure-ignore-tlog=true '$unsigned_ref'"
 
