@@ -9,6 +9,11 @@
 | Reading time | About 20 minutes for §1–§3 (the five priority decisions); about 60 minutes for everything |
 | Decision form | [P2-D1-decision-form.csv](P2-D1-decision-form.csv): one row per ADR, decision columns empty |
 
+
+> **Update, 20 Nov 2026.** ADR-030 (Apache APISIX as edge gateway) was added, so there are now 30 ADRs.
+> - The six decisions that matter most (ADR-003 with the 3-server condition, ADR-030, ADR-006, ADR-016, ADR-019, ADR-020) and recommendations for P2-D2 to P2-D5 are in decision-ready form in [P2-final-technical-decision-package.md](P2-final-technical-decision-package.md).
+> - Nothing has been approved.
+
 ## 1. How to use this package
 
 ### 1.1 What an ADR is

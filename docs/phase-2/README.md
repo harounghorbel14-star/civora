@@ -11,9 +11,10 @@
 
 1. [Readiness report](phase-2-readiness-report.md): what is done, what is open, what the founder needs to do.
    - **For decision P2-D1:** [plain-language review of all 29 ADRs](founder-review/P2-D1-adr-review-package.md) and the [decision form](founder-review/P2-D1-decision-form.csv).
+   - **Decision-ready summary (20 Nov 2026):** [final technical decision package](founder-review/P2-final-technical-decision-package.md) — six decisions (ADR-003, ADR-030, ADR-006, ADR-016, ADR-019, ADR-020) and P2-D2 to P2-D5.
 2. [00 Specification and constraint audit](00-specification-and-constraint-audit.md): the original Phase 2 scope, word for word, and every inherited constraint.
 3. [01 Architecture overview](01-architecture-overview.md): context, containers, principles, document map.
-4. [ADR index](adr/README.md): 29 decisions.
+4. [ADR index](adr/README.md): 30 decisions (ADR-030 added 20 Nov 2026).
 5. [19 Traceability matrix](19-traceability-matrix.md): every requirement → deliverable → verification → status.
 6. [Database operations runbook](runbooks/database-operations.md) (draft): failover, the manual decision for 2-server sites, backups, restore drills — every command tested on containers.
 

@@ -3,10 +3,10 @@
 | | |
 |---|---|
 | Status of all ADRs | **Proposed — awaiting founder approval.** Acceptance criterion O-AC2 ("all ADRs approved") is open |
-| Numbering | ADR-001 to ADR-014 keep the topics of the Phase 0 §8.12 backlog **unchanged** (original deliverable O-D1). ADR-015 to ADR-029 are new decisions needed by the Phase 2 mission and the roadmap's additive items R-1 to R-5 |
+| Numbering | ADR-001 to ADR-014 keep the topics of the Phase 0 §8.12 backlog **unchanged** (original deliverable O-D1). ADR-015 to ADR-030 are new decisions needed by the Phase 2 mission and the roadmap's additive items R-1 to R-5 |
 | How to approve | The founder records approval, rejection or change requests per ADR in the [readiness report](../phase-2-readiness-report.md) §4 (decision P2-D1). An approved ADR changes status to **Accepted** with the date; a rejected one to **Rejected** with the reason |
 | Template | Context, Decision, Consequences, Alternatives, Validation, Revisit when |
-| Plain-language explanation for the founder | [../founder-review/P2-D1-adr-review-package.md](../founder-review/P2-D1-adr-review-package.md) |
+| Plain-language explanation for the founder | [../founder-review/P2-D1-adr-review-package.md](../founder-review/P2-D1-adr-review-package.md) (ADR-001–029); decision-ready summary of the six main decisions incl. ADR-030: [../founder-review/P2-final-technical-decision-package.md](../founder-review/P2-final-technical-decision-package.md) |
 
 | ADR | Title | Origin | Covers |
 |---|---|---|---|
@@ -39,6 +39,7 @@
 | [ADR-027](ADR-027-software-supply-chain-security.md) | Software supply-chain security | New | O-SEC2, O-SEC3, O-T2 |
 | [ADR-028](ADR-028-integration-adapter-framework-and-classes.md) | Integration adapter framework and the six integration classes | New | P1-D6; Phase 0 §8.7; Phase 1 capability #14 |
 | [ADR-029](ADR-029-backup-disaster-recovery-and-residency.md) | Backup, disaster recovery and data residency | New | R-5; PRD §12.7 (RPO ≤ 15 min, RTO ≤ 4 h); Phase 0 §9.9, §10.11 |
+| [ADR-030](ADR-030-api-gateway-apache-apisix.md) | Edge API gateway and Kubernetes ingress: Apache APISIX (replaces the retired community ingress-nginx; amends Phase 0 §8 only if approved) | New (20 Nov 2026) | O-D6, O-AC1, R-2; Phase 0 §8 gateway row |
 
 **Design-only ADRs (nothing built before their phase):** ADR-007 (Phase 7), ADR-009 (Phase 4), ADR-010 and ADR-026 (Phase 10).
 

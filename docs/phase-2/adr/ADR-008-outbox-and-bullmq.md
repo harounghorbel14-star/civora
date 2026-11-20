@@ -43,6 +43,15 @@
 
 - Redis 7 with authentication runs in the dev cell (smoke test). Outbox code arrives in Phase 3.
 
+## Open question found on 20 Nov 2026 (not decided here)
+
+- **Redis licence:**
+  - The dev cell image `redis:7-alpine` is Redis 7.4.12. Redis ≥ 7.4 is licensed RSALv2/SSPLv1, which is not open source; Redis 8 adds an AGPLv3 option ([redis.io licences](https://redis.io/legal/licenses/)).
+  - **Valkey** (Linux Foundation, BSD-3-Clause) is the fork of the last BSD Redis. It speaks the same protocol, and BullMQ works with it.
+  - Customer-hosted cells (ADR-019) redistribute the images, so the licence matters to banks.
+  - **Recommendation:** Valkey 9.1 ([final technical decision package](../founder-review/P2-final-technical-decision-package.md) §8).
+  - The HA cache built in Phase 2 uses Valkey 9.1.3 pending the founder's answer. Only the image changes if Redis 8 (AGPLv3) is preferred.
+
 ## Revisit when
 
 Measured throughput need (§8.11 trigger 1).

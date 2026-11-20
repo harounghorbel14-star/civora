@@ -53,6 +53,7 @@
   - (b) a maintained NGINX-based controller (F5 NGINX Ingress Controller, a different project);
   - (c) a Gateway API implementation (for example Envoy Gateway or Traefik) until APISIX/Kong at pilot.
 - **Engineering recommendation: (a).** It avoids one migration, and the public edge then gets the rate limiting and API keys Phase 0 asked for at pilot.
+- **Drafted as [ADR-030](ADR-030-api-gateway-apache-apisix.md) (Proposed, 20 Nov 2026)** so it can be approved or rejected like any other decision.
 - **Nothing is changed until the founder decides.** Exposing an unpatched controller to the internet would breach Phase 0 §10, so before staging goes public either:
   - this decision is made; or
   - `rke2-ingress-nginx` is disabled and access stays private.
