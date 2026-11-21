@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| Status | **NOT READY — EXTERNAL BLOCKERS REMAIN** (20 Nov 2026): everything that needs no provider, adviser or approval is done and tested; see the [completion report](phase-2-completion-report.md) |
+| Status | **APPROVED by the founder on 21 Nov 2026** ([decision record](founder-review/P2-founder-decision-record.md)). All 30 ADRs accepted (6 with conditions). Two original acceptance criteria were **not met** at approval — O-AC1 (staging < 2 h, no provider) and O-AC3 (external review) — and are carried forward as named items CF-1/CF-2. Details: [completion report](phase-2-completion-report.md) |
 | Started | 19 November 2026, by founder decision **P2-D0** under P1-D4 (overlapping execution) |
-| Phase 1 | **Not approved** (P1-D12 pending). Phase 2 cannot be accepted before Phase 1 |
-| All ADRs | **Proposed — awaiting founder approval** |
+| Phase 1 | **Approved** 21 Nov 2026 (P1-D12) |
+| All ADRs | **Accepted** 21 Nov 2026 (P2-D1); 6 with conditions |
 
 ## Read in this order
 

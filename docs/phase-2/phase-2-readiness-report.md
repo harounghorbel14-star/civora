@@ -6,7 +6,7 @@
 |---|---|
 | Date | 19 November 2026 (Phase 2 week 1; updated the same day after the P2-D1 review package and further independent work) |
 | Verdict | **IN PROGRESS — NOT READY FOR ACCEPTANCE.** All Phase 2 work that could be done without a hosting provider, an external adviser or founder approvals is complete and verified. Three acceptance criteria remain open (§3) |
-| Phase 1 | **Not approved** (P1-D12 pending). Phase 2 cannot be accepted before Phase 1 (acceptance in order, P1-D4). Phase 1 evidence is unchanged and tracked in [../phase-1/validation-evidence-register.md](../phase-1/validation-evidence-register.md) |
+| Phase 1 | **Not approved** (P1-D12 pending). Phase 2 cannot be accepted before Phase 1 (acceptance in order, P1-D4). Phase 1 evidence is unchanged and tracked in [../phase-1/validation-evidence-register.md](../phase-1/validation-evidence-register.md) *(21 Nov 2026: Phase 1 approved by the founder, P1-D12 — [doc 23](../phase-1/23-founder-approval-decisions.md) §23.6)* |
 | Roadmap | Unchanged: 16 phases (0–15), original names and order. Phase 2 scope kept word for word ([00](00-specification-and-constraint-audit.md) §2) |
 
 ## 1. Completed deliverables

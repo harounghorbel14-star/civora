@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | **Proposed — awaiting founder approval (acceptance criterion O-AC2)** |
+| Status | **Accepted** — approved by the founder on 21 Nov 2026 (decision P2-D1; [decision record](../founder-review/P2-founder-decision-record.md)) |
 | Date | 19 November 2026 |
 | Origin | New in Phase 2 |
 | Covers | R-2 |

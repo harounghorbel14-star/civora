@@ -3,19 +3,19 @@
 | | |
 |---|---|
 | Date | 20 November 2026 |
-| **Status** | **NOT READY — EXTERNAL BLOCKERS REMAIN** |
+| **Status** | **APPROVED BY THE FOUNDER on 21 Nov 2026** ([decision record](founder-review/P2-founder-decision-record.md)). *Engineering readiness assessment at approval: NOT READY — EXTERNAL BLOCKERS REMAIN (O-AC1, O-AC3), carried forward as CF-1 and CF-2* |
 | Why | The three original acceptance criteria each need someone outside engineering: **O-AC1** a hosting provider (staging from IaC in < 2 h), **O-AC2** the founder's approval of the ADRs, **O-AC3** an external security adviser. Everything that could be done without them is done and tested |
-| Approvals | **None recorded.** All 30 ADRs are "Proposed — awaiting founder approval". Phase 2 is not approved; Phase 3 has not started |
+| Approvals | **21 Nov 2026:** Phase 1 approved (P1-D12); all 30 ADRs accepted, 6 with conditions (P2-D1); Phase 2 approved (P2-ACC); Phase 3 started (P3-D0). *20 Nov 2026 text: none recorded* |
 | Roadmap | Original 15 phases unchanged; all original Phase 2 objectives, deliverables and acceptance criteria preserved ([00](00-specification-and-constraint-audit.md) §2); overlapping execution model kept (P1-D4) |
-| Phase 1 | Tracked separately; **not approved** (P1-D12 pending). Phase 2 cannot be accepted before Phase 1 |
+| Phase 1 | **Approved** 21 Nov 2026 (P1-D12); open validation evidence stays tracked separately |
 
 ## 1. Phase 2 acceptance checklist
 
 | # | Criterion (original text) | Status | What closes it |
 |---|---|---|---|
-| O-AC1 | Staging cell reproducible from IaC in < 2 h | **Blocked — provider** | Choose a provider ([20](20-hosting-provider-assessment.md)); then 8–12.5 engineer-days and a timed rebuild. Evidence so far: a staging-shaped cell from nothing to passing smoke tests in 169 s on runners (R30) |
-| O-AC2 | All ADRs approved | **Open — founder** | Fill the [decision form](founder-review/P2-D1-decision-form.csv) using the [ADR register](founder-review/P2-adr-final-review-register.md) (24 approve, 6 approve with conditions) |
-| O-AC3 | Threat model reviewed by an external security adviser | **Open — external** | Engage an adviser; send the [security review package](founder-review/P2-security-review-package.md) |
+| O-AC1 | Staging cell reproducible from IaC in < 2 h | **Not met — carried forward (CF-1)** | Choose a provider ([20](20-hosting-provider-assessment.md)); then 8–12.5 engineer-days and a timed rebuild. Evidence so far: a staging-shaped cell from nothing to passing smoke tests in 169 s on runners (R30) |
+| O-AC2 | All ADRs approved | **Met** (P2-D1, 21 Nov 2026) | Fill the [decision form](founder-review/P2-D1-decision-form.csv) using the [ADR register](founder-review/P2-adr-final-review-register.md) (24 approve, 6 approve with conditions) |
+| O-AC3 | Threat model reviewed by an external security adviser | **Not met — carried forward (CF-2)** | Engage an adviser; send the [security review package](founder-review/P2-security-review-package.md) |
 | R-1 – R-5 | Additive roadmap acceptance items | **Done** (R-5 with guard; real hosting with the provider) | — |
 | Other original items | Objectives, deliverables, architecture, features, database, API, security, testing | 34 done, 4 partial, 3 open (founder), 1 unchanged (budget) | [19](19-traceability-matrix.md) §19.0 |
 

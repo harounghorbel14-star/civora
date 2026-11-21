@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Date | 20 Nov 2026 |
-| Status of every ADR | **Proposed — awaiting founder approval.** Nothing in this register approves anything |
+| Status of every ADR | **Accepted by the founder on 21 Nov 2026 as recommended in this register** (P2-D1; [decision record](P2-founder-decision-record.md)). *20 Nov 2026 text: "Proposed — awaiting founder approval"* |
 | How to decide | Fill the [decision form](P2-D1-decision-form.csv) (one row per ADR: approve / approve-with-conditions / reject / defer). Plain-language explanations of each ADR are in the [review package](P2-D1-adr-review-package.md); the six priority decisions in depth are in the [final technical decision package](P2-final-technical-decision-package.md) |
 | Evidence references | R-numbers are rows of [17 — technical validation](../17-technical-validation-strategy.md) §17.2; "GitHub" means observed on GitHub runners, not only locally |
 

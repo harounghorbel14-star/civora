@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | **Proposed — awaiting founder approval (acceptance criterion O-AC2)** |
+| Status | **Accepted with conditions** — approved by the founder on 21 Nov 2026 (decision P2-D1; [decision record](../founder-review/P2-founder-decision-record.md)). Condition: APISIX 3.19.0 pinned; Ingress Controller + etcd and WAF proven on staging before pilot (register §3.6) |
 | Date | 20 November 2026 |
 | Origin | New in Phase 2. Amends Phase 0 §8 (technology table, "API gateway" row) **only if approved**; follows the open question recorded in ADR-013 |
 | Covers | O-D6, O-AC1, R-2; Phase 0 §8 gateway requirements (rate limiting, mTLS, API keys for B2B, WAF integration) |

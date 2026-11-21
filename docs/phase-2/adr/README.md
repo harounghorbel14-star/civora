@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status of all ADRs | **Proposed — awaiting founder approval.** Acceptance criterion O-AC2 ("all ADRs approved") is open |
+| Status of all ADRs | **Accepted by the founder on 21 Nov 2026** (decision P2-D1): 24 accepted, 6 accepted with conditions (ADR-003, 008, 012, 027, 029, 030). Acceptance criterion O-AC2 is met. [Decision record](../founder-review/P2-founder-decision-record.md) |
 | Numbering | ADR-001 to ADR-014 keep the topics of the Phase 0 §8.12 backlog **unchanged** (original deliverable O-D1). ADR-015 to ADR-030 are new decisions needed by the Phase 2 mission and the roadmap's additive items R-1 to R-5 |
 | How to approve | The founder records approval, rejection or change requests per ADR in the [readiness report](../phase-2-readiness-report.md) §4 (decision P2-D1). An approved ADR changes status to **Accepted** with the date; a rejected one to **Rejected** with the reason |
 | Template | Context, Decision, Consequences, Alternatives, Validation, Revisit when |

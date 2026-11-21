@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | **Proposed — awaiting founder approval (acceptance criterion O-AC2)** |
+| Status | **Accepted with conditions** — approved by the founder on 21 Nov 2026 (decision P2-D1; [decision record](../founder-review/P2-founder-decision-record.md)). Condition: the proposed revision: release key in OpenBao, verified at admission; key ceremony with two people (register §3.4) |
 | Date | 19 November 2026 |
 | Origin | New in Phase 2 |
 | Covers | O-SEC2, O-SEC3, O-T2 |

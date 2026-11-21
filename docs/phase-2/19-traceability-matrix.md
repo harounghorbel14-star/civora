@@ -12,8 +12,8 @@ Every original Phase 2 item (IDs from [00](00-specification-and-constraint-audit
 
 | ID | Required outcome | Deliverable | Status | Test evidence | External dependency | Remaining blocker |
 |---|---|---|---|---|---|---|
-| O-OBJ | Section 8 turned into approved ADRs and a working skeleton | 30 ADRs; walking skeleton; [ADR register](founder-review/P2-adr-final-review-register.md) | Partial | Skeleton tested (43 tests, nightly rehearsals); ADR register with evidence | Founder approval | O-AC2 |
-| O-D1 | ADR-001..014 | adr/ (ADR-001–030) | Done (Proposed) | Topic match with Phase 0 §8.12; register §2 | — | Approval (O-AC2) |
+| O-OBJ | Section 8 turned into approved ADRs and a working skeleton | 30 ADRs; walking skeleton; [ADR register](founder-review/P2-adr-final-review-register.md) | Done | Skeleton tested (43 tests, nightly rehearsals); ADRs accepted 21 Nov 2026 | — | — |
+| O-D1 | ADR-001..014 | adr/ (ADR-001–030) | Done (Accepted) | Topic match with Phase 0 §8.12; register §2 | — | — |
 | O-D2 | Full STRIDE threat model | [08](08-threat-model.md), [09](09-data-flow-diagrams.md), [security review package](founder-review/P2-security-review-package.md) | Done (draft v1.0) | 52 threats; internal tests mapped (package §2) | External adviser | O-AC3 |
 | O-D3 | Data inventory and classification | [05](05-data-architecture-and-governance.md); data-inventory.csv | Done | CSV parses; tiers recomputed | — | — |
 | O-D4 | Monorepo structure | Repository (ADR-023) | Done | Build/test in CI | — | — |
@@ -45,9 +45,9 @@ Every original Phase 2 item (IDs from [00](00-specification-and-constraint-audit
 | O-T1 | Unit/integration scaffolds in the pipeline | 43 tests in 5 suites; CI build-test | Done | Local and GitHub | — | — |
 | O-T2 | IaC scanning | Checkov; manifests; tofu guards; ansible-lint; realm check | Done | All pass in CI ([17](17-technical-validation-strategy.md) §17.4) | — | — |
 | O-T3 | Deploy-from-scratch test | dev cell, air-gapped k3s, staging rehearsal | Done | Nightly on GitHub | — | — |
-| O-AC1 | Staging cell reproducible from IaC in < 2 h | IaC + [doc 20](20-hosting-provider-assessment.md) (provider path) | **Blocked** | Staging-shaped rehearsal 169 s on runners (evidence, not the criterion) | Hosting provider (E-07) | Contract, then 8–12.5 engineer-days and the timed rebuild |
-| O-AC2 | All ADRs approved | [ADR register](founder-review/P2-adr-final-review-register.md); decision form | **Open — founder** | Evidence per ADR (register §2) | Founder | Decision form (30 rows) |
-| O-AC3 | Threat model reviewed by an external adviser | [Security review package](founder-review/P2-security-review-package.md) | **Open — external** | Internal tests done (package §2) | Adviser engaged by the founder | Review and findings |
+| O-AC1 | Staging cell reproducible from IaC in < 2 h | IaC + [doc 20](20-hosting-provider-assessment.md) (provider path) | **Not met — carried forward (CF-1)** | Staging-shaped rehearsal 169 s on runners (evidence, not the criterion) | Hosting provider (E-07) | Contract, then 8–12.5 engineer-days and the timed rebuild |
+| O-AC2 | All ADRs approved | [ADR register](founder-review/P2-adr-final-review-register.md); decision form | **Done** (21 Nov 2026, P2-D1) | Decision form filled; ADR status lines | — | — |
+| O-AC3 | Threat model reviewed by an external adviser | [Security review package](founder-review/P2-security-review-package.md) | **Not met — carried forward (CF-2)** | Internal tests done (package §2) | Adviser engaged by the founder | Review and findings |
 | O-TIME | 6 weeks | [16](16-infrastructure-plan.md) §16.7 | Partial | Provider-independent work complete | Provider | Weeks needing hosts |
 | O-RISK | No over-engineering | Time-boxed spikes; design-only ADRs for later phases | Done | §19.4 | — | — |
 | O-BUD | 100–150k TND | [16](16-infrastructure-plan.md) §16.8 | Unchanged | No amount invented; prices only from quotes | Quotes | — |
@@ -57,13 +57,14 @@ Every original Phase 2 item (IDs from [00](00-specification-and-constraint-audit
 | R-4 | Rule packs as versioned configuration | ADR-017; country-packs | Done | Integrity tests; second country (R43) | — | — |
 | R-5 | Tunisian hosting; no foreign processing | ADR-004, 029; tofu residency guard; doc 20 | Done (design + guard) | Guard refuses a foreign node (R44) | N-Cloud provider | O-AC1 |
 
-**Count:**
-- Done: 34.
-- Partial: 4 (O-OBJ, O-D6, O-SEC2, O-TIME).
-- Blocked: 1 (O-AC1).
-- Open — founder: 3 (O-AC2, O-SEC4, O-SEC5).
-- Open — external: 1 (O-AC3).
+**Count (21 Nov 2026, after the founder's approval):**
+- Done: 36.
+- Partial: 3 (O-D6, O-SEC2, O-TIME).
+- Not met, carried forward: 2 (O-AC1 → CF-1, O-AC3 → CF-2).
+- Open — founder: 2 (O-SEC4 → CF-3, O-SEC5 → CF-4).
 - Unchanged: 1 (O-BUD).
+
+Phase 2 was **approved by the founder on 21 Nov 2026** ([decision record](founder-review/P2-founder-decision-record.md)).
 
 ## 19.1 Original Phase 2 specification
 
@@ -143,7 +144,7 @@ Requested outputs: architecture documentation (01–18) · traceability matrix (
 | Constraint | How it is honoured | Evidence |
 |---|---|---|
 | Roadmap unchanged (P1-D4; mission rule 1) | No phase renamed, reordered, merged or removed; Phase 2 items kept word for word | [00](00-specification-and-constraint-audit.md) §2 |
-| Phase 1 not claimed approved (rule 5) | Every Phase 2 document states P1-D12 pending; P2-D0 recorded with "no effect on Phase 1 status" | [23 §23.6](../phase-1/23-founder-approval-decisions.md) |
+| Phase 1 not claimed approved (rule 5) | Every Phase 2 document states P1-D12 pending; P2-D0 recorded with "no effect on Phase 1 status" | [23 §23.6](../phase-1/23-founder-approval-decisions.md) Until 21 Nov 2026; on that date the founder approved Phase 1 (P1-D12) |
 | Phase 1 validation tracked separately (rule 4) | Evidence register unchanged except a note; Phase 2 adds no evidence claims | [register](../phase-1/validation-evidence-register.md) |
 | No assumed legal approvals or integrations (rule 6) | Integration register unchanged (0 live); adapters simulated only; production flag locked; synthetic pack refused in pilot/prod | [11](11-integration-architecture.md); tests |
 | No application code beyond the original deliverables (rule 7) | Only the skeleton, frameworks, tooling and IaC named in Phase 0 §19; no business endpoints; apps are placeholders | Repository |
