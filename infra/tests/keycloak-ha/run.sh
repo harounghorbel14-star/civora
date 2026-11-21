@@ -27,7 +27,8 @@ cleanup
 docker network create --subnet 172.31.242.0/24 "$net" >/dev/null
 docker run -d --name kc-db --network "$net" --ip "${ip[kc-db]}" -e POSTGRES_DB=keycloak -e POSTGRES_USER=keycloak \
   -e POSTGRES_PASSWORD="$db_pw" "$pg_image" >/dev/null
-for _ in $(seq 1 120); do docker exec kc-db pg_isready -U keycloak -d keycloak >/dev/null 2>&1 && break; sleep 1; done; docker exec kc-db pg_isready -U keycloak -d keycloak >/dev/null 2>&1  # bounded wait: fails instead of hanging
+waited=0; for _ in $(seq 1 120); do docker exec kc-db pg_isready -U keycloak -d keycloak >/dev/null 2>&1 && { waited=1; break; }; sleep 1; done
+[ "$waited" = 1 ] || { echo "  FAIL timed out after 120 s waiting for: docker exec kc-db pg_isready -U keycloak -d keycloak"; exit 1; }  # bounded wait
 kc_up() {
   docker run -d --name "$1" --hostname "$1" --network "$net" --ip "${ip[$1]}" \
     -e KC_DB=postgres -e KC_DB_URL="jdbc:postgresql://kc-db:5432/keycloak" -e KC_DB_USERNAME=keycloak -e KC_DB_PASSWORD="$db_pw" \

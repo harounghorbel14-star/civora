@@ -34,15 +34,18 @@ docker run -d --name "$name" --privileged --tmpfs /run --tmpfs /var/run \
   -p "127.0.0.1:$port:6443" -e K3S_KUBECONFIG_MODE=644 -v "$work/images.tar:/var/lib/rancher/k3s/agent/images/civora-images.tar:ro" \
   "$k3s_image" server --disable=traefik --disable=metrics-server --tls-san=127.0.0.1 >/dev/null
 kc() { docker exec -i "$name" kubectl "$@"; }
-for _ in $(seq 1 90); do kc get --raw /readyz >/dev/null 2>&1 && break; sleep 2; done; kc get --raw /readyz >/dev/null 2>&1  # bounded wait: fails instead of hanging
-for _ in $(seq 1 90); do kc get nodes -o name 2>/dev/null | grep -q node && break; sleep 2; done; kc get nodes -o name 2>/dev/null | grep -q node  # bounded wait: fails instead of hanging
+waited=0; for _ in $(seq 1 90); do kc get --raw /readyz >/dev/null 2>&1 && { waited=1; break; }; sleep 2; done
+[ "$waited" = 1 ] || { echo "  FAIL timed out after 180 s waiting for: kc get --raw /readyz"; exit 1; }  # bounded wait
+waited=0; for _ in $(seq 1 90); do kc get nodes -o name 2>/dev/null | grep -q node && { waited=1; break; }; sleep 2; done
+[ "$waited" = 1 ] || { echo "  FAIL timed out after 180 s waiting for: kc get nodes -o name 2>/dev/null | grep -q node"; exit 1; }  # bounded wait
 kc wait --for=condition=Ready node --all --timeout=180s >/dev/null
 docker exec "$name" cat /etc/rancher/k3s/k3s.yaml | sed "s#https://127.0.0.1:6443#https://127.0.0.1:$port#" > "$work/kubeconfig"
 export KUBECONFIG="$work/kubeconfig" NO_PROXY="${NO_PROXY:+$NO_PROXY,}127.0.0.1,localhost" no_proxy="${no_proxy:+$no_proxy,}127.0.0.1,localhost"
 stamp "cluster ready"
 
 # 2. Images: k3s imports every tarball in agent/images at start-up (air-gap mode).
-for _ in $(seq 1 90); do docker exec "$name" ctr -n k8s.io images ls -q 2>/dev/null | grep -q civora-core && break; sleep 2; done; docker exec "$name" ctr -n k8s.io images ls -q 2>/dev/null | grep -q civora-core  # bounded wait: fails instead of hanging
+waited=0; for _ in $(seq 1 90); do docker exec "$name" ctr -n k8s.io images ls -q 2>/dev/null | grep -q civora-core && { waited=1; break; }; sleep 2; done
+[ "$waited" = 1 ] || { echo "  FAIL timed out after 180 s waiting for: docker exec $name ctr -n k8s.io images ls -q 2>/dev/null | grep -q civora-core"; exit 1; }  # bounded wait
 stamp "images imported"
 
 # 3. Namespace, secrets (random, generated here, never written to the repository), database

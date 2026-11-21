@@ -54,7 +54,8 @@ for n in "${!ip[@]}"; do
     --privileged --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:rw "$image" >/dev/null
 done
 for n in "${!ip[@]}"; do
-  for _ in $(seq 1 120); do docker exec "$n" systemctl is-system-running 2>/dev/null | grep -qE 'running|degraded' && break; sleep 1; done; docker exec "$n" systemctl is-system-running 2>/dev/null | grep -qE 'running|degraded'  # bounded wait
+  waited=0; for _ in $(seq 1 120); do docker exec "$n" systemctl is-system-running 2>/dev/null | grep -qE 'running|degraded' && { waited=1; break; }; sleep 1; done
+  [ "$waited" = 1 ] || { echo "  FAIL timed out after 120 s waiting for: docker exec $n systemctl is-system-running 2>/dev/null | grep -qE 'running|degra"; exit 1; }  # bounded wait
 done
 stamp "${#ip[@]} nodes up ($db_nodes database + 1 backup)"
 
