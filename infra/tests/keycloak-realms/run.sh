@@ -55,7 +55,7 @@ kc="http://localhost:$kc_port"
 mail="http://127.0.0.1:$(docker port kr-mail 8025/tcp | head -1 | sed 's/.*://')"
 
 db_port=$(docker port kr-db 5432/tcp | head -1 | sed 's/.*://')
-until docker exec kr-db pg_isready -U civora_core >/dev/null 2>&1; do sleep 1; done
+for _ in $(seq 1 120); do docker exec kr-db pg_isready -U civora_core >/dev/null 2>&1 && break; sleep 1; done; docker exec kr-db pg_isready -U civora_core >/dev/null 2>&1  # bounded wait: fails instead of hanging
 sleep 2
 admin_url="postgres://civora_core:$db_pw@127.0.0.1:$db_port/civora_core"
 (cd "$repo/services/core" && DATABASE_URL="$admin_url" node_modules/.bin/node-pg-migrate up --migrations-dir migrations \

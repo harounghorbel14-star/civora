@@ -35,7 +35,7 @@ docker run -d --name gw-core --network "$net" -e CIVORA_ENV=dev -e DATABASE_URL=
 # Identity provider (development mode is enough to issue real signed tokens).
 docker run -d --name gw-keycloak --network "$net" -e KC_BOOTSTRAP_ADMIN_USERNAME=admin -e KC_BOOTSTRAP_ADMIN_PASSWORD="$kc_pw" \
   -e KC_HOSTNAME=http://gw-keycloak:8080 "$keycloak_image" start-dev >/dev/null
-until docker exec gw-keycloak bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080' 2>/dev/null; do sleep 2; done
+for _ in $(seq 1 90); do docker exec gw-keycloak bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080' 2>/dev/null && break; sleep 2; done; docker exec gw-keycloak bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080' 2>/dev/null  # bounded wait: fails instead of hanging
 kcadm() { docker exec gw-keycloak /opt/keycloak/bin/kcadm.sh "$@"; }
 for _ in $(seq 1 60); do kcadm config credentials --server http://127.0.0.1:8080 --realm master --user admin --password "$kc_pw" >/dev/null 2>&1 && break; sleep 2; done
 kcadm create realms -s realm=civora-test -s enabled=true >/dev/null 2>&1
