@@ -9,3 +9,4 @@
 1. [00 — Start record and specification audit](00-phase-3-start-and-specification-audit.md): the original specification word for word, inherited constraints, open questions, 6-week plan.
 2. [01 — Progress](01-progress.md): what is built and tested, week by week.
 3. [02 — Identity data model, token verification and mandates](02-identity-model-and-mandates.md) (week 1).
+4. [03 — Identity realms and authentication](03-identity-realms-and-authentication.md) (week 2): citizens and staff realms, passkeys, TOTP, FIDO2 for officers, pairwise subjects, conformance, defects found, open findings.

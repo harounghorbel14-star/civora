@@ -37,6 +37,7 @@ services:
       POSTGRES_PASSWORD: ${PG_CORE_PASSWORD:?run infra/scripts/dev-cell-up.sh}
       POSTGRES_DB: civora_core
       KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?run infra/scripts/dev-cell-up.sh}
+      PG_CORE_APP_PASSWORD: ${PG_CORE_APP_PASSWORD:?run infra/scripts/dev-cell-up.sh}
     ports: ["127.0.0.1:5434:5432"]
     volumes:
       - pg-core:/var/lib/postgresql/data
@@ -82,7 +83,7 @@ services:
 
   # --- Identity (ADR-005) ---
   keycloak:
-    image: keycloak/keycloak:26.0
+    image: docker.io/keycloak/keycloak:26.8.1@sha256:3f3c5f8e03c614774b4bd9173b88391fefa4153bfc010d8012d59ad825377332
     restart: unless-stopped
     command: ["start-dev", "--import-realm", "--http-port=8080", "--health-enabled=true", "--metrics-enabled=true"]
     environment:
@@ -93,7 +94,12 @@ services:
       KC_BOOTSTRAP_ADMIN_USERNAME: dev-admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?run infra/scripts/dev-cell-up.sh}
     ports: ["127.0.0.1:8080:8080"]
-    volumes: ["./keycloak/civora-dev-realm.json:/opt/keycloak/data/import/civora-dev-realm.json:ro"]
+    # Realms imported on first start; infra/scripts/dev-cell-up.sh then applies the post-import policy and checks
+    # the live realms (infra/keycloak/apply-realm-policy.py, infra/scripts/check-realm-security.py --live).
+    volumes:
+      - ./keycloak/civora-dev-realm.json:/opt/keycloak/data/import/civora-dev-realm.json:ro
+      - ../keycloak/realms/civora-citizens.json:/opt/keycloak/data/import/civora-citizens.json:ro
+      - ../keycloak/realms/civora-staff.json:/opt/keycloak/data/import/civora-staff.json:ro
     depends_on:
       pg-core: { condition: service_healthy }
     healthcheck:
@@ -144,7 +150,12 @@ services:
       CIVORA_ENV: dev
       COUNTRY_PACK: tn
       APP_VERSION: dev-cell
-      DATABASE_URL: postgres://civora_core:${PG_CORE_PASSWORD}@pg-core:5432/civora_core
+      DATABASE_URL: postgres://civora_core_app:${PG_CORE_APP_PASSWORD}@pg-core:5432/civora_core
+      # Tokens name the issuer as the browser sees it (localhost:8080); the core fetches the keys inside the cell.
+      OIDC_ISSUER_CITIZENS: http://localhost:8080/realms/civora-citizens
+      OIDC_JWKS_URL_CITIZENS: http://keycloak:8080/realms/civora-citizens/protocol/openid-connect/certs
+      OIDC_ISSUER_STAFF: http://localhost:8080/realms/civora-staff
+      OIDC_JWKS_URL_STAFF: http://keycloak:8080/realms/civora-staff/protocol/openid-connect/certs
       OTEL_EXPORTER_OTLP_ENDPOINT: http://observability:4318
       OTEL_BSP_SCHEDULE_DELAY: "1000"   # dev only: export spans within a second
     ports: ["127.0.0.1:3000:3000"]

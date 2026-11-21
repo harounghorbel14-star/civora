@@ -26,6 +26,10 @@ if [[ ! -f .env ]]; then
   } > .env
   chmod 600 .env
 fi
+# Keys added after a developer's .env was created are appended, never overwritten.
+for key in PG_CORE_APP_PASSWORD; do
+  grep -q "^$key=" .env || echo "$key=$(head -c 24 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 24)" >> .env
+done
 set -a; . ./.env; set +a
 
 if [[ "${1:-}" == "--fresh" ]]; then
@@ -51,6 +55,17 @@ for u in handler.synthetic admin.synthetic; do
   kc "/opt/keycloak/bin/kcadm.sh set-password --config /tmp/kcadm.config -r civora-dev --username $u --new-password \"\$UPW\" --temporary"
 done
 
+# Realm policy the import cannot express (default roles, PKCE on built-in clients, pairwise salts), then the live
+# realms are checked against their profiles (Phase 3 doc 03).
+KC_ADMIN_TOKEN=$(curl -fsS localhost:8080/realms/master/protocol/openid-connect/token -d grant_type=password -d client_id=admin-cli \
+  -d username=dev-admin --data-urlencode "password=$KEYCLOAK_ADMIN_PASSWORD" | python3 -c 'import json,sys;print(json.load(sys.stdin)["access_token"])')
+export KC_ADMIN_TOKEN
+for spec in "civora-citizens citizens" "civora-staff staff" "civora-dev dev"; do
+  set -- $spec
+  python3 "$here/keycloak/apply-realm-policy.py" --server http://localhost:8080 --realm "$1" --profile "$2" --export ".generated/$1.live.json" >/dev/null
+done
+unset KC_ADMIN_TOKEN
+
 # 3. Smoke tests.
 fail=0
 check() { if ( eval "$2" ) >/dev/null 2>&1; then   # subshell: an "exit" inside a check must not end the script
@@ -60,6 +75,10 @@ check "core /health database up"            "curl -fsS localhost:3000/health | g
 check "core /v1/meta/locales Arabic RTL"     "curl -fsS -H 'accept-language: ar' localhost:3000/v1/meta/locales | grep -q '\"dir\":\"rtl\"'"
 check "base schemas iam/config/audit"        "docker compose exec -T pg-core psql -U civora_core -d civora_core -Atc \"select count(*) from pg_namespace where nspname in ('iam','config','audit')\" | grep -qx 3"
 check "keycloak realm civora-dev"            "curl -fsS localhost:8080/realms/civora-dev/.well-known/openid-configuration | grep -q issuer"
+check "live realm civora-citizens conforms"  "python3 '$here/scripts/check-realm-security.py' .generated/civora-citizens.live.json --profile citizens --live"
+check "live realm civora-staff conforms"     "python3 '$here/scripts/check-realm-security.py' .generated/civora-staff.live.json --profile staff --live"
+check "live realm civora-dev conforms"       "python3 '$here/scripts/check-realm-security.py' .generated/civora-dev.live.json --profile dev --live"
+check "core identity configured (/v1/me without a token: 401, not 503)" "test \"\$(curl -s -o /dev/null -w '%{http_code}' localhost:3000/v1/me)\" = 401"
 check "redis auth required"                  "docker compose exec -T redis redis-cli ping | grep -q NOAUTH"
 check "object store rejects anonymous"       "! curl -fsS localhost:8333/"
 check "openbao unsealed"                     "curl -fsS localhost:8200/v1/sys/health | grep -q '\"sealed\":false'"

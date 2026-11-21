@@ -66,6 +66,11 @@ describe('access-token verification (doc 06; P3-SEC1, P3-T3 token replay/forgery
     assert.throws(() => loadOidcConfig({ CIVORA_ENV: 'prod', OIDC_LOCAL_JWKS_FILE: '/tmp/x' }), /only in dev and test/);
     assert.throws(() => loadOidcConfig({ CIVORA_ENV: 'staging', OIDC_ISSUER_CITIZENS: 'http://kc/realms/c' }), /https/);
     assert.equal(loadOidcConfig({ CIVORA_ENV: 'prod', OIDC_ISSUER_CITIZENS: 'https://kc/realms/c' }).audience, 'civora-core');
+    // Key URL apart from the issuer (inside the cell): same https rule, and never without its issuer.
+    assert.throws(() => loadOidcConfig({ CIVORA_ENV: 'prod', OIDC_ISSUER_CITIZENS: 'https://kc/realms/c', OIDC_JWKS_URL_CITIZENS: 'http://keycloak:8080/c/certs' }), /https/);
+    assert.throws(() => loadOidcConfig({ CIVORA_ENV: 'dev', OIDC_JWKS_URL_STAFF: 'http://keycloak:8080/s/certs' }), /without its issuer/);
+    assert.equal(loadOidcConfig({ CIVORA_ENV: 'dev', OIDC_ISSUER_STAFF: 'http://localhost:8080/realms/s', OIDC_JWKS_URL_STAFF: 'http://keycloak:8080/s/certs' }).jwksUrls?.staff,
+      'http://keycloak:8080/s/certs');
   });
 });
 

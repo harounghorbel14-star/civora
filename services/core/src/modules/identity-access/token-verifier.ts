@@ -14,6 +14,9 @@ export interface VerifiedToken {
 
 export interface OidcConfig {
   issuers: Partial<Record<Realm, string>>;
+  /** Where to fetch each realm's keys when it differs from the issuer (the issuer is the public URL in tokens;
+   *  inside the cell the core may reach Keycloak by its service name). Default: <issuer>/protocol/openid-connect/certs. */
+  jwksUrls?: Partial<Record<Realm, string>>;
   audience: string;
   /** Development and tests only: a fixed key set instead of the issuer's JWKS endpoint. */
   localJwks?: JSONWebKeySet;
@@ -31,16 +34,22 @@ export function loadOidcConfig(env: NodeJS.ProcessEnv = process.env): OidcConfig
   const issuers: Partial<Record<Realm, string>> = {};
   if (env.OIDC_ISSUER_CITIZENS) issuers.citizens = env.OIDC_ISSUER_CITIZENS;
   if (env.OIDC_ISSUER_STAFF) issuers.staff = env.OIDC_ISSUER_STAFF;
-  for (const iss of Object.values(issuers)) {
-    const u = new URL(iss as string);
-    if (u.protocol !== 'https:' && !['dev', 'test'].includes(environment)) throw new Error('OIDC issuers must use https outside dev and test');
+  const jwksUrls: Partial<Record<Realm, string>> = {};
+  if (env.OIDC_JWKS_URL_CITIZENS) jwksUrls.citizens = env.OIDC_JWKS_URL_CITIZENS;
+  if (env.OIDC_JWKS_URL_STAFF) jwksUrls.staff = env.OIDC_JWKS_URL_STAFF;
+  for (const realm of Object.keys(jwksUrls) as Realm[]) {
+    if (!issuers[realm]) throw new Error(`OIDC_JWKS_URL_${realm.toUpperCase()} is set without its issuer`);
+  }
+  for (const url of [...Object.values(issuers), ...Object.values(jwksUrls)]) {
+    const u = new URL(url as string);
+    if (u.protocol !== 'https:' && !['dev', 'test'].includes(environment)) throw new Error('OIDC issuers and key URLs must use https outside dev and test');
   }
   let localJwks: JSONWebKeySet | undefined;
   if (env.OIDC_LOCAL_JWKS_FILE) {
     if (!['dev', 'test'].includes(environment)) throw new Error('OIDC_LOCAL_JWKS_FILE is allowed only in dev and test');
     localJwks = JSON.parse(readFileSync(env.OIDC_LOCAL_JWKS_FILE, 'utf8')) as JSONWebKeySet;
   }
-  return { issuers, audience: env.OIDC_AUDIENCE ?? 'civora-core', localJwks };
+  return { issuers, jwksUrls, audience: env.OIDC_AUDIENCE ?? 'civora-core', localJwks };
 }
 
 /**
@@ -54,7 +63,7 @@ export class TokenVerifier {
     for (const [realm, issuer] of Object.entries(cfg.issuers) as [Realm, string][]) {
       const getKey = cfg.localJwks
         ? createLocalJWKSet(cfg.localJwks)
-        : createRemoteJWKSet(new URL(`${issuer}/protocol/openid-connect/certs`), { timeoutDuration: 3000, cooldownDuration: 30_000 });
+        : createRemoteJWKSet(new URL(cfg.jwksUrls?.[realm] ?? `${issuer}/protocol/openid-connect/certs`), { timeoutDuration: 3000, cooldownDuration: 30_000 });
       this.keys.set(issuer, { realm, getKey });
     }
   }
