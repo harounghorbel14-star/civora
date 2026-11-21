@@ -1,6 +1,6 @@
 {
   "realm": "civora-staff",
-  "displayName": "CIVORA — institution staff and officers",
+  "displayName": "CIVORA",
   "enabled": true,
   "sslRequired": "external",
   "loginWithEmailAllowed": true,
@@ -35,7 +35,7 @@
   "registrationAllowed": false,
   "attributes": {
     "civora.profile": "staff",
-    "civora.purpose": "Staff of the institutions (tenants) of one cell, and officers (P3-A1). Every account needs a FIDO2 security key (P3-SEC5); institution SSO brokering added in week 3 (P3-R1)."
+    "civora.purpose": "Staff of the institutions (tenants) of one cell, and officers (P3-A1). Every account needs a FIDO2 security key (P3-SEC5), enrolled from an e-mailed invitation before the password; institution SSO brokering in week 3 (P3-R1)."
   },
   "webAuthnPolicyRpEntityName": "CIVORA Workspace",
   "webAuthnPolicySignatureAlgorithms": [
@@ -44,12 +44,12 @@
   ],
   "webAuthnPolicyUserVerificationRequirement": "required",
   "webAuthnPolicyAuthenticatorAttachment": "cross-platform",
-  "webAuthnPolicyAttestationConveyancePreference": "none",
+  "webAuthnPolicyAttestationConveyancePreference": "direct",
   "browserFlow": "staff-browser",
   "authenticationFlows": [
     {
       "alias": "staff-browser",
-      "description": "Password + FIDO2 security key, always",
+      "description": "Password + FIDO2 security key, always; an account without a key is refused",
       "providerId": "basic-flow",
       "topLevel": true,
       "builtIn": false,
@@ -58,15 +58,15 @@
           "authenticator": "auth-cookie",
           "requirement": "ALTERNATIVE",
           "authenticatorFlow": false,
-          "priority": 10,
-          "userSetupAllowed": false
+          "userSetupAllowed": false,
+          "priority": 10
         },
         {
           "flowAlias": "staff-forms",
           "requirement": "ALTERNATIVE",
           "authenticatorFlow": true,
-          "priority": 20,
-          "userSetupAllowed": false
+          "userSetupAllowed": false,
+          "priority": 20
         }
       ]
     },
@@ -81,15 +81,70 @@
           "authenticator": "auth-username-password-form",
           "requirement": "REQUIRED",
           "authenticatorFlow": false,
-          "priority": 10,
-          "userSetupAllowed": false
+          "userSetupAllowed": false,
+          "priority": 10
+        },
+        {
+          "flowAlias": "staff-key",
+          "requirement": "CONDITIONAL",
+          "authenticatorFlow": true,
+          "userSetupAllowed": false,
+          "priority": 20
+        },
+        {
+          "flowAlias": "staff-no-second-factor",
+          "requirement": "CONDITIONAL",
+          "authenticatorFlow": true,
+          "userSetupAllowed": false,
+          "priority": 30
+        }
+      ]
+    },
+    {
+      "alias": "staff-key",
+      "description": "Runs only when the account has this second factor",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "conditional-user-configured",
+          "requirement": "REQUIRED",
+          "authenticatorFlow": false,
+          "userSetupAllowed": false,
+          "priority": 10
         },
         {
           "authenticator": "webauthn-authenticator",
           "requirement": "REQUIRED",
           "authenticatorFlow": false,
-          "priority": 20,
-          "userSetupAllowed": false
+          "userSetupAllowed": false,
+          "priority": 20
+        }
+      ]
+    },
+    {
+      "alias": "staff-no-second-factor",
+      "description": "An account without its second factor cannot sign in; first credentials come only from the activation link",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "conditional-sub-flow-executed",
+          "requirement": "REQUIRED",
+          "authenticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticatorConfig": "staff-second-factor-not-run",
+          "priority": 10
+        },
+        {
+          "authenticator": "deny-access-authenticator",
+          "requirement": "REQUIRED",
+          "authenticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticatorConfig": "staff-deny-no-second-factor",
+          "priority": 20
         }
       ]
     },
@@ -112,9 +167,9 @@
   ],
   "requiredActions": [
     {
-      "alias": "CONFIGURE_TOTP",
-      "name": "Configure OTP",
-      "providerId": "CONFIGURE_TOTP",
+      "alias": "webauthn-register",
+      "name": "Webauthn Register",
+      "providerId": "webauthn-register",
       "enabled": true,
       "defaultAction": false,
       "priority": 10,
@@ -130,29 +185,29 @@
       "config": {}
     },
     {
-      "alias": "UPDATE_PROFILE",
-      "name": "Update Profile",
-      "providerId": "UPDATE_PROFILE",
+      "alias": "VERIFY_EMAIL",
+      "name": "Verify Email",
+      "providerId": "VERIFY_EMAIL",
       "enabled": true,
       "defaultAction": false,
       "priority": 30,
       "config": {}
     },
     {
-      "alias": "VERIFY_EMAIL",
-      "name": "Verify Email",
-      "providerId": "VERIFY_EMAIL",
+      "alias": "UPDATE_PROFILE",
+      "name": "Update Profile",
+      "providerId": "UPDATE_PROFILE",
       "enabled": true,
       "defaultAction": false,
       "priority": 40,
       "config": {}
     },
     {
-      "alias": "webauthn-register",
-      "name": "Webauthn Register",
-      "providerId": "webauthn-register",
+      "alias": "CONFIGURE_TOTP",
+      "name": "Configure OTP",
+      "providerId": "CONFIGURE_TOTP",
       "enabled": true,
-      "defaultAction": true,
+      "defaultAction": false,
       "priority": 50,
       "config": {}
     },
@@ -290,5 +345,36 @@
     "composite": true
   },
   "webAuthnPolicyResidentKey": "discouraged",
-  "directGrantFlow": "deny-direct-grant"
+  "directGrantFlow": "deny-direct-grant",
+  "authenticatorConfig": [
+    {
+      "alias": "staff-second-factor-not-run",
+      "config": {
+        "flow_to_check": "staff-key",
+        "check_result": "not-executed"
+      }
+    },
+    {
+      "alias": "staff-deny-no-second-factor",
+      "config": {
+        "denyErrorMessage": "civoraNoSecurityKey"
+      }
+    }
+  ],
+  "displayNameHtml": "${civoraRealmName}",
+  "localizationTexts": {
+    "ar": {
+      "civoraRealmName": "CIVORA — فضاء الأعوان",
+      "civoraNoSecurityKey": "لا يمكن الدخول دون مفتاح أمان مسجَّل. استعمل رابط الدعوة أو اتصل بمسؤول مؤسستك."
+    },
+    "fr": {
+      "civoraRealmName": "CIVORA — Espace agents",
+      "civoraNoSecurityKey": "Connexion impossible sans clé de sécurité enregistrée. Utilisez le lien d'invitation ou contactez l'administrateur de votre institution."
+    },
+    "en": {
+      "civoraRealmName": "CIVORA — Staff and officers",
+      "civoraNoSecurityKey": "You cannot sign in without an enrolled security key. Use your invitation link or contact your institution's administrator."
+    }
+  },
+  "webAuthnPolicyAcceptableAaguids": []
 }

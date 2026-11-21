@@ -40,6 +40,10 @@ cat > .generated/s3.json <<JSON
 {"identities":[{"name":"civora-core","credentials":[{"accessKey":"${S3_ACCESS_KEY}","secretKey":"${S3_SECRET_KEY}"}],"actions":["Read","Write","List","Tagging"]}]}
 JSON
 chmod 600 .generated/s3.json
+# Written after Keycloak is up (below); must exist before start so that Docker mounts a file, not a directory.
+[ -f .generated/provisioner.secret ] || install -m 600 /dev/null .generated/provisioner.secret
+# The core runs as UID 10001 and must read it; the dev cell is local only.
+chmod 644 .generated/provisioner.secret
 
 # 2. Build the application image and start everything; wait for health checks.
 #    PROXY_CA=/path/ca.crt passes a TLS-inspecting proxy's CA as a build secret (never stored in the image).
@@ -62,9 +66,15 @@ KC_ADMIN_TOKEN=$(curl -fsS localhost:8080/realms/master/protocol/openid-connect/
 export KC_ADMIN_TOKEN
 for spec in "civora-citizens citizens" "civora-staff staff" "civora-dev dev"; do
   set -- $spec
-  python3 "$here/keycloak/apply-realm-policy.py" --server http://localhost:8080 --realm "$1" --profile "$2" --export ".generated/$1.live.json" >/dev/null
+  extra=(--smtp-host mail --smtp-port 1025)
+  [ "$2" = citizens ] && extra+=(--provisioner-secret-out .generated/provisioner.secret)
+  python3 "$here/keycloak/apply-realm-policy.py" --server http://localhost:8080 --realm "$1" --profile "$2" --export ".generated/$1.live.json" "${extra[@]}" >/dev/null
 done
 unset KC_ADMIN_TOKEN
+# Staff security keys: no approved models and no vendor roots in the dev cell, so key enrolment fails closed here
+# (the realms test supplies a test root and list: infra/tests/keycloak-realms/run.sh).
+chmod 644 .generated/provisioner.secret
+docker compose restart core >/dev/null && docker compose up -d --wait --wait-timeout 120 core >/dev/null
 
 # 3. Smoke tests.
 fail=0
@@ -78,6 +88,17 @@ check "keycloak realm civora-dev"            "curl -fsS localhost:8080/realms/ci
 check "live realm civora-citizens conforms"  "python3 '$here/scripts/check-realm-security.py' .generated/civora-citizens.live.json --profile citizens --live"
 check "live realm civora-staff conforms"     "python3 '$here/scripts/check-realm-security.py' .generated/civora-staff.live.json --profile staff --live"
 check "live realm civora-dev conforms"       "python3 '$here/scripts/check-realm-security.py' .generated/civora-dev.live.json --profile dev --live"
+registration_ok() {
+  local email="dev.smoke.$(date +%s).$RANDOM@example.invalid"
+  [ "$(curl -s -o /dev/null -w '%{http_code}' -H 'content-type: application/json' \
+      -d "{\"email\":\"$email\",\"locale\":\"ar-TN\"}" localhost:3000/v1/registrations)" = 202 ] || return 1
+  for _ in $(seq 1 30); do
+    curl -fsS "localhost:8025/api/v1/search?query=to:$email" | grep -q '"total":[1-9]' && return 0
+    sleep 1
+  done
+  return 1
+}
+check "registration answers 202 and the activation e-mail arrives (dev mail catcher)" "registration_ok"
 check "core identity configured (/v1/me without a token: 401, not 503)" "test \"\$(curl -s -o /dev/null -w '%{http_code}' localhost:3000/v1/me)\" = 401"
 check "redis auth required"                  "docker compose exec -T redis redis-cli ping | grep -q NOAUTH"
 check "object store rejects anonymous"       "! curl -fsS localhost:8333/"

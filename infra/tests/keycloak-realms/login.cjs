@@ -1,10 +1,11 @@
 'use strict';
 /**
- * Phase 3 week 2: real logins in a real browser against the CIVORA citizens and staff realms (Keycloak 26.8.1),
- * with WebAuthn virtual authenticators (Chromium DevTools protocol), and the core verifying the tokens Keycloak
- * issues. Synthetic users only, created through the admin API with random passwords; nothing is stored.
+ * Real logins in a real browser against the CIVORA citizens and staff realms (Keycloak 26.8.1), with WebAuthn
+ * virtual authenticators, e-mail through a local mail catcher, and the core verifying the tokens Keycloak issues.
+ * Journeys run in every locale of the cell (Arabic, French, English); the security checks run once.
+ * Synthetic users only, random passwords per run; nothing is stored.
  *
- * Environment: KC_URL, CORE_URL, KC_ADMIN_PASSWORD, ARTIFACT_DIR (screenshots on failure). Needs Playwright.
+ * Environment: KC_URL, CORE_URL, MAIL_URL, KC_ADMIN_PASSWORD, ARTIFACT_DIR, LOCALES (default "ar,fr,en").
  */
 const { chromium } = require('playwright');
 const crypto = require('node:crypto');
@@ -14,25 +15,40 @@ const { spawnSync } = require('node:child_process');
 
 const KC = process.env.KC_URL;
 const CORE = process.env.CORE_URL;
+const MAIL = process.env.MAIL_URL;
 const ARTIFACTS = process.env.ARTIFACT_DIR || '.';
+const LOCALES = (process.env.LOCALES || 'ar,fr,en').split(',');
 const WEB_CB = 'https://app.civora-cell.invalid/callback';
 const WS_CB = 'https://workspace.civora-cell.invalid/callback';
 const RP1_CB = 'https://services.agency.invalid/callback';
 const RP2_CB = 'https://other.agency.invalid/callback';
 const TENANT = '6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b';
+const TEST_AAGUID = '01020304-0506-0708-0102-030405060708'; // Chromium virtual authenticator (test approved list)
+const POLICY = path.join(__dirname, '..', '..', 'keycloak', 'apply-realm-policy.py');
 const start = Date.now();
+
+// What each locale must look like (Keycloak's own translations; realm names from the realm files).
+const LANG = {
+  ar: { pack: 'ar-TN', dir: 'rtl', citizens: 'CIVORA — فضاء المواطنين', staff: 'CIVORA — فضاء الأعوان', script: /[؀-ۿ]/ },
+  fr: { pack: 'fr-TN', dir: 'ltr', citizens: 'CIVORA — Espace citoyens', staff: 'CIVORA — Espace agents', script: /[a-zà-ÿ]/i },
+  en: { pack: 'en', dir: 'ltr', citizens: 'CIVORA — Citizens', staff: 'CIVORA — Staff and officers', script: /[a-z]/i },
+};
 
 let failed = 0;
 function check(name, ok, detail) {
-  console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${name}${ok || detail === undefined ? '' : `\n       ${String(detail).slice(0, 400)}`}`);
+  console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${name}${ok || detail === undefined ? '' : `\n       ${String(detail).slice(0, 500)}`}`);
   if (!ok) failed++;
   return ok;
 }
+const info = (msg) => console.log(`  info ${msg}`);
 const stamp = (msg) => console.log(`[${Math.round((Date.now() - start) / 1000)}s] ${msg}`);
 const b64url = (buf) => Buffer.from(buf).toString('base64url');
 const rnd = (n = 18) => b64url(crypto.randomBytes(n));
+const tag = () => crypto.randomBytes(4).toString('hex');
 const claims = (jwt) => JSON.parse(Buffer.from(jwt.split('.')[1], 'base64url').toString());
-const pw = () => `Synthetic-${rnd(15)}`; // >= 12 characters, random per run
+const pw = () => `Synthetic-${rnd(15)}`;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const median = (xs) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)];
 
 async function form(url, body) {
   const r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(body) });
@@ -42,8 +58,7 @@ async function form(url, body) {
 let adminToken;
 let adminTokenAt = 0;
 async function refreshAdmin() {
-  // Master-realm admin tokens live 60 s: take a new one when it is older than 40 s.
-  if (Date.now() - adminTokenAt < 40000) return;
+  if (Date.now() - adminTokenAt < 40000) return; // master-realm admin tokens live 60 s
   adminToken = (await form(`${KC}/realms/master/protocol/openid-connect/token`, {
     grant_type: 'password', client_id: 'admin-cli', username: 'admin', password: process.env.KC_ADMIN_PASSWORD,
   })).body.access_token;
@@ -52,260 +67,413 @@ async function refreshAdmin() {
 }
 async function admin(method, p, body) {
   await refreshAdmin();
-  const r = await fetch(`${KC}/admin/realms/${p}`, {
-    method, headers: { authorization: `Bearer ${adminToken}`, 'content-type': 'application/json' }, body: body && JSON.stringify(body),
-  });
+  const r = await fetch(`${KC}/admin/realms/${p}`, { method, headers: { authorization: `Bearer ${adminToken}`, 'content-type': 'application/json' }, body: body && JSON.stringify(body) });
   if (r.status >= 300) throw new Error(`admin ${method} ${p}: ${r.status} ${await r.text()}`);
   const loc = r.headers.get('location');
   const text = await r.text();
   return loc ? loc.split('/').pop() : text ? JSON.parse(text) : null;
 }
+const credentialTypes = async (realm, id) => (await admin('GET', `${realm}/users/${id}/credentials`)).map((c) => c.type).sort();
+const userByEmail = async (realm, email) => (await admin('GET', `${realm}/users?exact=true&email=${encodeURIComponent(email)}`))[0];
 
-async function createUser(realm, username, password, extra = {}) {
-  return admin('POST', `${realm}/users`, {
-    username, email: username.includes('@') ? username : `${username}@example.invalid`, emailVerified: true, enabled: true, firstName: 'Synthetic', lastName: 'Person',
-    credentials: [{ type: 'password', value: password, temporary: false }], ...extra,
-  });
-}
-
-/** TOTP (RFC 6238): HMAC-SHA1, 6 digits, 30 s; the realm's policy. */
-function totp(secretBase32, offset = 0) {
+/** TOTP (RFC 6238, HMAC-SHA1, 6 digits, 30 s), never twice in one time step per secret (the realm refuses replays). */
+const lastStep = new Map();
+async function freshTotp(secret) {
+  while (Math.floor(Date.now() / 30000) <= (lastStep.get(secret) ?? -1)) await sleep(500);
+  const step = Math.floor(Date.now() / 30000);
+  lastStep.set(secret, step);
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
   let bits = '';
-  for (const ch of secretBase32.replace(/[\s=]/g, '').toUpperCase()) bits += alphabet.indexOf(ch).toString(2).padStart(5, '0');
+  for (const ch of secret.replace(/[\s=]/g, '').toUpperCase()) bits += alphabet.indexOf(ch).toString(2).padStart(5, '0');
   const key = Buffer.from(bits.match(/.{8}/g).map((b) => parseInt(b, 2)));
   const counter = Buffer.alloc(8);
-  counter.writeBigUInt64BE(BigInt(Math.floor(Date.now() / 30000) + offset));
+  counter.writeBigUInt64BE(BigInt(step));
   const h = crypto.createHmac('sha1', key).update(counter).digest();
   const o = h[h.length - 1] & 0xf;
   return String((h.readUInt32BE(o) & 0x7fffffff) % 1_000_000).padStart(6, '0');
 }
 
-/** A TOTP code from a time step not used before: the realm refuses a code used once (replay protection). */
-let lastStep = -1;
-async function freshTotp(secret) {
-  while (Math.floor(Date.now() / 30000) <= lastStep) await new Promise((r) => setTimeout(r, 500));
-  lastStep = Math.floor(Date.now() / 30000);
-  return totp(secret);
+/** Messages the mail catcher received for an address (newest first). */
+async function mails(to) {
+  const r = await (await fetch(`${MAIL}/api/v1/search?query=${encodeURIComponent(`to:"${to}"`)}`)).json();
+  return r.messages ?? [];
+}
+async function activationMail(to, ms = 15000) {
+  const until = Date.now() + ms;
+  while (Date.now() < until) {
+    const m = (await mails(to))[0];
+    if (m) {
+      const full = await (await fetch(`${MAIL}/api/v1/message/${m.ID}`)).json();
+      return { subject: m.Subject, link: (full.Text.match(/https?:\/\/\S+action-token\S+/) ?? [])[0], count: (await mails(to)).length };
+    }
+    await sleep(300);
+  }
+  return null;
 }
 
-/** A browser context whose app callbacks are captured instead of loaded (the apps do not exist in this test). */
-async function newContext(browser) {
-  const context = await browser.newContext({ locale: 'en-US' });
+/** A browser context; app callbacks are captured from request events (redirected requests escape route handlers). */
+async function newContext(browser, locale = 'en') {
+  const context = await browser.newContext({ locale: locale === 'ar' ? 'ar-TN' : locale === 'fr' ? 'fr-TN' : 'en-US' });
   const captured = [];
-  // Keycloak reaches the callback with a 302, and route handlers do not see redirected requests: the request event
-  // does. The .invalid hosts never resolve, so nothing leaves the machine; route() also answers direct navigations.
   const isCallback = (u) => /^https:\/\/[a-z.-]+\.(civora-cell|agency)\.invalid\//.test(u);
   context.on('request', (r) => { if (isCallback(r.url())) captured.push(r.url()); });
-  for (const host of ['https://*.civora-cell.invalid/**', 'https://*.agency.invalid/**']) {
-    await context.route(host, (route) => route.fulfill({ status: 200, body: 'callback captured' }));
-  }
+  for (const host of ['https://*.civora-cell.invalid/**', 'https://*.agency.invalid/**']) await context.route(host, (route) => route.fulfill({ status: 200, body: 'callback' }));
   const page = await context.newPage();
-  page.on('dialog', (d) => d.accept('Synthetic authenticator').catch(() => undefined)); // label prompt after enrolment
+  page.on('dialog', (d) => d.accept('Synthetic authenticator').catch(() => undefined));
   return { context, page, captured };
 }
-
-/** Adds a WebAuthn virtual authenticator to the page: "internal" is a platform passkey, "usb" a FIDO2 security key. */
 async function addAuthenticator(page, transport) {
   const cdp = await page.context().newCDPSession(page);
   await cdp.send('WebAuthn.enable', { enableUI: false });
-  const { authenticatorId } = await cdp.send('WebAuthn.addVirtualAuthenticator', {
+  await cdp.send('WebAuthn.addVirtualAuthenticator', {
     options: { protocol: 'ctap2', transport, hasResidentKey: transport === 'internal', hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true },
   });
-  return { cdp, authenticatorId };
 }
-
 function authorize(page, realm, client, redirect, extra = {}) {
   const verifier = rnd(32);
   const q = new URLSearchParams({
     client_id: client, redirect_uri: redirect, response_type: 'code', scope: 'openid', state: rnd(), nonce: rnd(),
-    code_challenge: b64url(crypto.createHash('sha256').update(verifier).digest()), code_challenge_method: 'S256', ui_locales: 'en', ...extra,
+    code_challenge: b64url(crypto.createHash('sha256').update(verifier).digest()), code_challenge_method: 'S256', ...extra,
   });
-  // With single sign-on Keycloak answers at once with a redirect to the app callback, an .invalid host that never
-  // resolves: that navigation error is expected (the request event has captured the code); anything else is raised.
+  // With single sign-on Keycloak redirects at once to the callback, an .invalid host: that navigation error is expected.
   const go = () => page.goto(`${KC}/realms/${realm}/protocol/openid-connect/auth?${q}`).catch((e) => {
     if (!/net::ERR_(NAME_NOT_RESOLVED|TUNNEL_CONNECTION_FAILED|PROXY_CONNECTION_FAILED|ABORTED)/.test(e.message)) throw e;
   });
   return { verifier, go };
 }
-
 async function waitFor(fn, ms = 15000) {
   const until = Date.now() + ms;
   while (Date.now() < until) {
     const v = await fn();
     if (v) return v;
-    await new Promise((r) => setTimeout(r, 200));
+    await sleep(200);
   }
   return null;
 }
-
-async function codeFrom(captured, before, ms) {
+async function codeFrom(captured, before, ms = 15000) {
   const url = await waitFor(() => captured.slice(before).find((u) => new URL(u).searchParams.get('code')), ms);
   return url ? new URL(url).searchParams.get('code') : null;
 }
-
 async function exchange(realm, client, code, verifier, redirect, secret) {
   return form(`${KC}/realms/${realm}/protocol/openid-connect/token`, {
     grant_type: 'authorization_code', client_id: client, code, code_verifier: verifier, redirect_uri: redirect, ...(secret ? { client_secret: secret } : {}),
   });
 }
-
-async function core(token, p = '/v1/me') {
-  const r = await fetch(`${CORE}${p}`, { headers: token ? { authorization: `Bearer ${token}` } : {} });
-  return { status: r.status, body: await r.json().catch(() => ({})) };
+async function core(token, p = '/v1/me', init = {}) {
+  const t0 = Date.now();
+  const r = await fetch(`${CORE}${p}`, { ...init, headers: { ...(token ? { authorization: `Bearer ${token}` } : {}), ...(init.headers || {}) } });
+  const text = await r.text();
+  let body;
+  try { body = JSON.parse(text); } catch { body = text; }
+  return { status: r.status, body, raw: text, ms: Date.now() - t0, type: r.headers.get('content-type') };
 }
-
 const visible = (page, sel) => page.locator(sel).first().isVisible().catch(() => false);
-async function submit(page) {
-  await Promise.all([page.waitForLoadState('domcontentloaded').catch(() => undefined), page.locator('#kc-login, input[type=submit], button[type=submit]').first().click()]);
+async function submit(page, sel = '#kc-login, input[type=submit], button[type=submit]') {
+  await Promise.all([page.waitForNavigation({ timeout: 15000 }).catch(() => undefined), page.locator(sel).first().click()]);
 }
-
-/** On the citizens' credential step, choose password + TOTP when a passkey is offered first. */
-async function choosePassword(page) {
-  if (await waitFor(() => visible(page, '#password'), 2500)) return;
-  if (await visible(page, '#try-another-way')) {
-    await page.locator('#try-another-way').click();
-    await page.waitForLoadState('domcontentloaded');
-    const option = page.locator('[name=authenticationExecution]').filter({ hasText: /password/i }).first();
-    if (await option.count()) await option.click();
-    else await page.getByText(/password/i).first().click();
-  }
-  await page.locator('#password').waitFor({ timeout: 10000 });
-}
-
-/** On the citizens' credential step, choose the passkey; Keycloak offers the oldest credential first. */
-async function choosePasskey(page) {
-  const first = await waitFor(async () => (await visible(page, '#authenticateWebAuthnButton')) ? 'passkey' : (await visible(page, '#try-another-way')) ? 'other' : null, 10000);
-  if (first === 'other') {
-    await page.locator('#try-another-way').click();
-    await page.waitForLoadState('domcontentloaded');
-    await page.getByText(/passkey/i).first().click();
-  }
-  await page.locator('#authenticateWebAuthnButton').waitFor({ timeout: 10000 });
-  return first;
-}
-
 async function shot(page, name) {
   await page.screenshot({ path: path.join(ARTIFACTS, `${name}.png`), fullPage: true }).catch(() => undefined);
 }
+const pageLanguage = (page) => page.evaluate(() => ({ lang: document.documentElement.lang, dir: document.documentElement.dir || 'ltr',
+  header: (document.querySelector('#kc-header-wrapper')?.textContent || '').trim(), button: (document.querySelector('#kc-login')?.textContent || '').trim(),
+  title: document.title }));
 
-async function citizens(browser) {
-  stamp('citizens realm (civora-citizens): passkeys first, password + TOTP as the alternative');
-  // Citizens sign in with their e-mail address: the realm uses it as the username (registrationEmailAsUsername).
-  const user = `citizen.synthetic.${rnd(4).toLowerCase().replace(/[^a-z0-9]/g, 'x')}@example.invalid`;
+let passkeyExecution;
+/** Citizens' login page offers e-mail + password; the passkey is chosen from "Try another way" (no username asked first). */
+async function choosePasskey(page) {
+  if (!(await waitFor(() => visible(page, '#try-another-way'), 8000))) return false;
+  await Promise.all([page.waitForNavigation(), page.locator('#try-another-way').click()]);
+  await Promise.all([page.waitForNavigation(), page.locator(`form:has(input[name=authenticationExecution][value="${passkeyExecution}"])`).evaluate((f) => f.submit())]);
+  return !!(await waitFor(() => visible(page, '#authenticateWebAuthnButton'), 8000));
+}
+
+/** Follows an activation or invitation link and completes its steps; returns the order in which they were asked. */
+async function activate(page, link) {
+  await page.goto(link);
+  await Promise.all([page.waitForNavigation(), page.locator('a[href*="login-actions"]').first().click()]);
+  const seen = [];
+  let secret = null;
   const password = pw();
-  const userId = await createUser('civora-citizens', user, password);
-  const { page, context, captured } = await newContext(browser);
-  const passkey = await addAuthenticator(page, 'internal');
+  for (let i = 0; i < 5; i++) {
+    const step = (await visible(page, '#totp')) ? 'TOTP' : (await visible(page, '#registerWebAuthn')) ? 'SECURITY-KEY' : (await visible(page, '#password-new')) ? 'PASSWORD' : null;
+    if (!step) break;
+    seen.push(step);
+    if (step === 'TOTP') {
+      if (await visible(page, '#mode-manual')) await page.locator('#mode-manual').click();
+      secret = (await page.locator('#kc-totp-secret-key').innerText()).trim();
+      await page.locator('#totp').fill(await freshTotp(secret));
+      await submit(page, '#saveTOTPBtn, input[type=submit], button[type=submit]');
+    } else if (step === 'SECURITY-KEY') {
+      await Promise.all([page.waitForNavigation({ timeout: 15000 }).catch(() => undefined), page.locator('#registerWebAuthn').click()]);
+    } else {
+      await page.locator('#password-new').fill(password);
+      await page.locator('#password-confirm').fill(password);
+      await submit(page);
+    }
+    await sleep(300);
+  }
+  return { seen, secret, password };
+}
 
-  // C1. First login: password, then the realm makes the citizen enrol TOTP before any code is issued.
-  let a = authorize(page, 'civora-citizens', 'civora-web', WEB_CB);
+async function citizenJourney(browser, lang) {
+  const L = LANG[lang];
+  stamp(`citizen journey in ${lang}: registration through the core, activation link, password + TOTP, passkey`);
+  const email = `citizen.${lang}.${tag()}@example.invalid`;
+  const reg = await core(undefined, '/v1/registrations', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, locale: L.pack }) });
+  check(`[${lang}] registration answered 202 {"status":"accepted"}`, reg.status === 202 && reg.body?.status === 'accepted', `${reg.status} ${reg.raw}`);
+  const mail = await activationMail(email);
+  check(`[${lang}] activation e-mail received, subject in ${lang}`, !!mail?.link && L.script.test(mail.subject), JSON.stringify(mail));
+  const user = await userByEmail('civora-citizens', email);
+  check(`[${lang}] account created by the core WITHOUT any credential before activation`, !!user && (await credentialTypes('civora-citizens', user.id)).length === 0);
+  const { page, context, captured } = await newContext(browser, lang);
+  await addAuthenticator(page, 'internal');
+  const act = mail?.link ? await activate(page, mail.link) : { seen: [] };
+  const lp = await pageLanguage(page);
+  check(`[${lang}] activation pages in ${lang} (lang=${lp.lang}, dir=${lp.dir})`, lp.lang === lang && lp.dir === L.dir, JSON.stringify(lp));
+  check(`[${lang}] activation asks the second factor BEFORE the password (TOTP > PASSWORD)`, act.seen.join('>') === 'TOTP>PASSWORD', act.seen.join('>'));
+  const u2 = await admin('GET', `civora-citizens/users/${user.id}`);
+  check(`[${lang}] after activation: password + otp, e-mail verified by the link`, (await credentialTypes('civora-citizens', user.id)).join() === 'otp,password' && u2.emailVerified === true);
+
+  // Login page in the citizen's language; e-mail and password on one page, then the TOTP code.
+  let a = authorize(page, 'civora-citizens', 'civora-web', WEB_CB, { ui_locales: lang });
   let n = captured.length;
+  await context.clearCookies();
   await a.go();
-  await page.locator('#username').fill(user);
+  const login = await pageLanguage(page);
+  check(`[${lang}] login page: lang=${lang}, dir=${L.dir}, realm name and button translated`,
+    login.lang === lang && login.dir === L.dir && login.header === L.citizens && L.script.test(login.button) && (lang === 'en' || login.button !== 'Sign In') && !login.title.includes('${'),
+    JSON.stringify(login));
+  await page.locator('#username').fill(email);
+  await page.locator('#password').fill(act.password);
   await submit(page);
-  await choosePassword(page);
-  await page.locator('#password').fill(password);
-  await submit(page);
-  const enrolTotp = await waitFor(() => visible(page, '#totp'), 10000);
-  check('C1 first login with a password alone is held at TOTP enrolment (no code before a second factor)', enrolTotp && !(await codeFrom(captured, n, 500)));
-  let secret = '';
-  if (enrolTotp) {
-    if (await visible(page, '#mode-manual')) await page.locator('#mode-manual').click();
-    secret = (await page.locator('#kc-totp-secret-key').innerText().catch(() => '')).trim();
-    await page.locator('#totp').fill(await freshTotp(secret));
-    if (await visible(page, '#userLabel')) await page.locator('#userLabel').fill('Synthetic phone');
+  if (await waitFor(() => visible(page, '#otp'), 8000)) {
+    await page.locator('#otp').fill(await freshTotp(act.secret));
     await submit(page);
   }
   let code = await codeFrom(captured, n);
   let tok = code ? await exchange('civora-citizens', 'civora-web', code, a.verifier, WEB_CB) : { body: {} };
-  const at1 = tok.body.access_token;
-  if (!check('C1 TOTP enrolled, authorization code exchanged with PKCE for tokens', !!at1, JSON.stringify(tok.body))) await shot(page, 'c1');
-  if (at1) {
-    const c = claims(at1);
-    check('C1 access token: typ Bearer, audience civora-core, azp civora-web, no tenant_id, 5-minute lifetime',
-      c.typ === 'Bearer' && [].concat(c.aud).includes('civora-core') && c.azp === 'civora-web' && c.tenant_id === undefined && c.exp - c.iat === 300, JSON.stringify(c));
-    check('C1 no offline token granted by default (scope has no offline_access)', !String(c.scope).includes('offline_access'), c.scope);
-  }
-  // C2. The core accepts the real Keycloak token (signature from the realm's JWKS, issuer, audience, type).
-  const me1 = at1 ? await core(at1) : { status: 0 };
-  check('C2 core: GET /v1/me with the citizen token returns 200, account realm citizens',
-    me1.status === 200 && me1.body.accounts?.[0]?.realm === 'citizens', `${me1.status} ${JSON.stringify(me1.body)}`);
+  if (!check(`[${lang}] login with password + TOTP: tokens issued`, !!tok.body.access_token, JSON.stringify(tok.body))) await shot(page, `citizen-${lang}-login`);
+  const me = tok.body.access_token ? await core(tok.body.access_token) : { status: 0, body: {} };
+  check(`[${lang}] core accepts the token; preferred locale stored as the pack locale ${L.pack}`, me.status === 200 && me.body.preferredLocale === L.pack, `${me.status} ${me.raw}`);
 
-  // C3. The citizen adds a passkey from the app (application-initiated action), user verification required.
-  a = authorize(page, 'civora-citizens', 'civora-web', WEB_CB, { kc_action: 'webauthn-register-passwordless' });
+  // Passkey added from the app, then used alone in a new session.
+  a = authorize(page, 'civora-citizens', 'civora-web', WEB_CB, { kc_action: 'webauthn-register-passwordless', ui_locales: lang });
   n = captured.length;
   await a.go();
   if (await waitFor(() => visible(page, '#registerWebAuthn'), 10000)) await page.locator('#registerWebAuthn').click();
-  code = await codeFrom(captured, n);
-  const creds = await admin('GET', `civora-citizens/users/${userId}/credentials`);
-  const hasPasskey = creds.some((x) => x.type === 'webauthn-passwordless');
-  if (!check('C3 passkey registered (credential type webauthn-passwordless stored for the citizen)', hasPasskey && !!code, JSON.stringify(creds.map((x) => x.type)))) await shot(page, 'c3');
-
-  // C4. A new session: the passkey alone signs the citizen in.
+  await codeFrom(captured, n);
+  check(`[${lang}] passkey added from the app`, (await credentialTypes('civora-citizens', user.id)).includes('webauthn-passwordless'));
   await context.clearCookies();
-  a = authorize(page, 'civora-citizens', 'civora-web', WEB_CB);
+  a = authorize(page, 'civora-citizens', 'civora-web', WEB_CB, { ui_locales: lang });
   n = captured.length;
   await a.go();
-  await page.locator('#username').fill(user);
-  await submit(page);
-  const offered = await choosePasskey(page);
-  console.log(`  info C4 credential offered first after passkey enrolment: ${offered === 'passkey' ? 'passkey' : 'password ("Try Another Way" leads to the passkey)'}`);
-  await page.locator('#authenticateWebAuthnButton').click();
+  if (await choosePasskey(page)) await page.locator('#authenticateWebAuthnButton').click();
   code = await codeFrom(captured, n);
   tok = code ? await exchange('civora-citizens', 'civora-web', code, a.verifier, WEB_CB) : { body: {} };
-  const at2 = tok.body.access_token;
-  if (!check('C4 passkey login in a new session: code issued without password or TOTP', !!at2, JSON.stringify(tok.body))) await shot(page, 'c4');
-  const me2 = at2 ? await core(at2) : { status: 0 };
-  check('C4 core: same person as the first login (stable subject)', me2.status === 200 && me2.body?.id === me1.body?.id, `${me2.status} ${me2.body?.id} vs ${me1.body?.id}`);
+  const me2 = tok.body.access_token ? await core(tok.body.access_token) : { body: {} };
+  if (!check(`[${lang}] passkey alone signs in (no username typed first); same person`, me2.body?.id === me.body?.id && !!me.body?.id, `${me2.status}`)) await shot(page, `citizen-${lang}-passkey`);
+  return { email, password: act.password, secret: act.secret, userId: user.id, page, context, captured };
+}
 
-  // C5. Someone with the password but not the second factor gets no code; the right TOTP code then works (C6).
-  const other = await newContext(browser);
-  a = authorize(other.page, 'civora-citizens', 'civora-web', WEB_CB);
-  n = other.captured.length;
+async function staffJourney(browser, lang) {
+  const L = LANG[lang];
+  stamp(`officer journey in ${lang}: invitation link, security key BEFORE password, login with password + key`);
+  const email = `officer.${lang}.${tag()}@example.invalid`;
+  // What the tenant administrator's "invite" does (week 3 API): an account with no credential, and the invitation link.
+  const id = await admin('POST', 'civora-staff/users', { username: email, email, enabled: true, firstName: 'Synthetic', lastName: 'Officer', attributes: { tenant_id: [TENANT], locale: [lang] } });
+  await admin('PUT', `civora-staff/users/${id}/execute-actions-email?lifespan=43200&client_id=civora-workspace&redirect_uri=${encodeURIComponent(WS_CB)}`,
+    ['VERIFY_EMAIL', 'webauthn-register', 'UPDATE_PASSWORD']);
+  const mail = await activationMail(email);
+  check(`[${lang}] invitation e-mail received, subject in ${lang}`, !!mail?.link && L.script.test(mail.subject), JSON.stringify(mail));
+  const { page, context, captured } = await newContext(browser, lang);
+  await addAuthenticator(page, 'usb');
+  const act = mail?.link ? await activate(page, mail.link) : { seen: [] };
+  check(`[${lang}] invitation asks the security key BEFORE the password (SECURITY-KEY > PASSWORD); approved model accepted`,
+    act.seen.join('>') === 'SECURITY-KEY>PASSWORD' && (await credentialTypes('civora-staff', id)).join() === 'password,webauthn', `${act.seen.join('>')} ${await credentialTypes('civora-staff', id)}`);
+  const a = authorize(page, 'civora-staff', 'civora-workspace', WS_CB, { ui_locales: lang });
+  const n = captured.length;
+  await context.clearCookies();
   await a.go();
-  await other.page.locator('#username').fill(user);
-  await submit(other.page);
-  await choosePassword(other.page);
-  await other.page.locator('#password').fill(password);
-  await submit(other.page);
-  const otpAsked = await waitFor(() => visible(other.page, '#otp'), 10000);
-  if (otpAsked) {
-    const wrong = String((Number(totp(secret)) + 500000) % 1000000).padStart(6, '0');
-    await other.page.locator('#otp').fill(wrong);
-    await submit(other.page);
-  }
-  // The refusal is the error page with the code field again (waiting for the error avoids typing into the old page).
-  const refused = otpAsked && !!(await waitFor(() => visible(other.page, '#otp[aria-invalid=true]'), 8000));
-  if (!check('C5 password + wrong TOTP code: login refused, no authorization code', refused && !(await codeFrom(other.captured, n, 1000)))) await shot(other.page, 'c5');
-  if (refused && (await visible(other.page, '#otp'))) {
-    await other.page.locator('#otp').fill(await freshTotp(secret)); // waits for a new time step if needed
-    await submit(other.page);
-  }
-  code = await codeFrom(other.captured, n);
-  tok = code ? await exchange('civora-citizens', 'civora-web', code, a.verifier, WEB_CB) : { body: {} };
-  if (!check('C6 password + current TOTP code: login completes (the alternative to passkeys)', !!tok.body.access_token, JSON.stringify(tok.body))) await shot(other.page, 'c6');
-  await other.context.close();
+  const login = await pageLanguage(page);
+  check(`[${lang}] staff login page: lang=${lang}, dir=${L.dir}, realm name translated`, login.lang === lang && login.dir === L.dir && login.header === L.staff, JSON.stringify(login));
+  await page.locator('#username').fill(email);
+  await page.locator('#password').fill(act.password);
+  await submit(page);
+  if (await waitFor(() => visible(page, '#authenticateWebAuthnButton'), 10000)) await page.locator('#authenticateWebAuthnButton').click();
+  const code = await codeFrom(captured, n);
+  const tok = code ? await exchange('civora-staff', 'civora-workspace', code, a.verifier, WS_CB) : { body: {} };
+  const me = tok.body.access_token ? await core(tok.body.access_token) : { status: 0, body: {} };
+  if (!check(`[${lang}] password + key: token with tenant_id; core 200, realm staff, locale ${L.pack}`,
+    !!tok.body.access_token && claims(tok.body.access_token).tenant_id === TENANT && me.status === 200 && me.body.accounts?.[0]?.realm === 'staff' && me.body.preferredLocale === L.pack,
+    `${me.status} ${me.raw}`)) await shot(page, `officer-${lang}`);
+  await context.close();
+  return { email, password: act.password, id };
+}
 
-  // R-P3-1 (known, recorded in doc 03): the username-first step answers differently for an unknown address, so it
-  // reveals whether an address has an account. Reported here so that a change in either direction is noticed.
-  {
-    const probe = await newContext(browser);
-    await authorize(probe.page, 'civora-citizens', 'civora-web', WEB_CB).go();
-    await probe.page.locator('#username').fill(`nobody.${rnd(6).toLowerCase().replace(/[^a-z0-9]/g, 'x')}@example.invalid`);
-    await submit(probe.page);
-    const told = await waitFor(() => visible(probe.page, '#input-error-username, #input-error'), 4000);
-    console.log(`  info R-P3-1 username-first step ${told ? 'DOES' : 'does not'} reveal that an address has no account (account enumeration)`);
-    await probe.context.close();
-  }
+/** One login submission (e-mail + password on one page); returns the message shown and the time the answer took. */
+async function loginAttempt(browser, realm, client, cb, email, password) {
+  const { page, context } = await newContext(browser);
+  await authorize(page, realm, client, cb, { ui_locales: 'en' }).go();
+  await page.locator('#username').fill(email);
+  await page.locator('#password').fill(password);
+  const t0 = Date.now();
+  const [resp] = await Promise.all([page.waitForResponse((r) => r.request().method() === 'POST' && r.url().includes('/login-actions/')), page.locator('#kc-login').click()]);
+  const ms = Date.now() - t0;
+  await page.waitForLoadState('domcontentloaded');
+  const message = (await page.locator('[id^=input-error], .pf-v5-c-alert__title, #kc-error-message').allInnerTexts().catch(() => [])).map((s) => s.trim()).filter(Boolean).sort().join(' | ');
+  const out = { status: resp.status(), message, ms, otp: await visible(page, '#otp'), enrol: (await visible(page, '#totp')) || (await visible(page, '#registerWebAuthn')) };
+  await context.close();
+  return out;
+}
 
-  // C7. No password grant, whichever client is used.
-  for (const client of ['civora-web', 'admin-cli']) {
-    const r = await form(`${KC}/realms/civora-citizens/protocol/openid-connect/token`, { grant_type: 'password', client_id: client, username: user, password });
-    check(`C7 password grant refused for client ${client}`, !r.body.access_token, JSON.stringify(r.body));
+async function securityChecks(browser, citizen, officer) {
+  stamp('account enumeration (R-P3-1): the answers must not depend on whether an address has an account');
+  // E1. Registration: same answer for a new, a pending and an activated address.
+  const pending = `pending.${tag()}@example.invalid`;
+  const answers = [];
+  for (const [what, email] of [['new', `new.${tag()}@example.invalid`], ['pending', pending], ['pending again', pending], ['activated', citizen.email]]) {
+    const r = await core(undefined, '/v1/registrations', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, locale: 'en' }) });
+    answers.push({ what, status: r.status, body: r.raw, type: r.type, ms: r.ms });
   }
+  const same = answers.every((x) => x.status === answers[0].status && x.body === answers[0].body && x.type === answers[0].type);
+  check('E1 registration: identical answer (status, body, type) for new, pending and activated addresses', same, JSON.stringify(answers));
+  info(`E1 registration answer times (ms): ${answers.map((x) => `${x.what} ${x.ms}`).join(', ')} (work is done after the answer)`);
+  await sleep(4000);
+  check('E1 activated address: no e-mail sent; pending address asked twice: one e-mail (per-address bound)',
+    (await mails(citizen.email)).length === 1 && (await mails(pending)).length === 1, `${(await mails(citizen.email)).length} / ${(await mails(pending)).length}`);
+  const resp = await core(undefined, '/v1/registrations', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: 'not-an-address' }) });
+  check('E1 malformed address: 400 (format only, says nothing about accounts)', resp.status === 400, resp.status);
 
-  // C8. Pairwise subjects (P3-A3): two relying parties see different, stable identifiers; neither sees the internal id.
+  // E2. Login: unknown address vs existing account with a wrong password (different accounts: no lockout involved).
+  const known = [];
+  for (let i = 0; i < 4; i++) {
+    const e = `known.${tag()}@example.invalid`;
+    await admin('POST', 'civora-citizens/users', { username: e, email: e, enabled: true, emailVerified: true, credentials: [{ type: 'password', value: pw(), temporary: false }] });
+    known.push(e);
+  }
+  const unknownTries = [];
+  const knownTries = [];
+  for (let i = 0; i < 4; i++) {
+    unknownTries.push(await loginAttempt(browser, 'civora-citizens', 'civora-web', WEB_CB, `nobody.${tag()}@example.invalid`, pw()));
+    knownTries.push(await loginAttempt(browser, 'civora-citizens', 'civora-web', WEB_CB, known[i], pw()));
+  }
+  const msgs = new Set([...unknownTries, ...knownTries].map((t) => `${t.status}:${t.message}`));
+  check('E2 login: unknown address and existing account + wrong password get the same status and message', msgs.size === 1, [...msgs].join(' / '));
+  const mu = median(unknownTries.map((t) => t.ms));
+  const mk = median(knownTries.map((t) => t.ms));
+  info(`E2 login answer times, median of 4 (ms): unknown ${mu}, existing ${mk}`);
+  check('E2 login: no usable timing difference (medians within 250 ms; Keycloak hashes a dummy password for unknown users)', Math.abs(mu - mk) <= 250, `${mu} vs ${mk}`);
+
+  // E3. A locked account answers like an unknown one.
+  const victim = known[0];
+  for (let i = 0; i < 5; i++) { await loginAttempt(browser, 'civora-citizens', 'civora-web', WEB_CB, victim, pw()); await sleep(1100); }
+  const vid = (await userByEmail('civora-citizens', victim)).id;
+  const locked = (await admin('GET', `civora-citizens/attack-detection/brute-force/users/${vid}`)).disabled === true;
+  const lockedTry = await loginAttempt(browser, 'civora-citizens', 'civora-web', WEB_CB, victim, pw());
+  const unknownTry = await loginAttempt(browser, 'civora-citizens', 'civora-web', WEB_CB, `nobody.${tag()}@example.invalid`, pw());
+  check('E3 brute force: account locked after 5 wrong passwords (C9)', locked);
+  check('E3 locked account answers exactly like an unknown address', `${lockedTry.status}:${lockedTry.message}` === `${unknownTry.status}:${unknownTry.message}`,
+    `${lockedTry.message} vs ${unknownTry.message}`);
+
+  stamp('first enrolment (R-P3-3): only the activation link gives first credentials; login never enrols a factor');
+  // F1/F2. An account that has a password but no second factor (e.g. set by an administrator by mistake) is refused.
+  const bare = `bare.${tag()}@example.invalid`;
+  const barePw = pw();
+  await admin('POST', 'civora-citizens/users', { username: bare, email: bare, enabled: true, emailVerified: true, credentials: [{ type: 'password', value: barePw, temporary: false }] });
+  const f1 = await loginAttempt(browser, 'civora-citizens', 'civora-web', WEB_CB, bare, barePw);
+  check('F1 citizen with a password but no second factor: refused, no TOTP enrolment offered, no code', !f1.enrol && !f1.otp && /activat|تفعيل|activ/i.test(f1.message), JSON.stringify(f1));
+  const bareStaff = `bare.officer.${tag()}@example.invalid`;
+  const bareStaffPw = pw();
+  await admin('POST', 'civora-staff/users', { username: bareStaff, email: bareStaff, enabled: true, emailVerified: true, attributes: { tenant_id: [TENANT] }, credentials: [{ type: 'password', value: bareStaffPw, temporary: false }] });
+  const f2 = await loginAttempt(browser, 'civora-staff', 'civora-workspace', WS_CB, bareStaff, bareStaffPw);
+  check('F2 officer with a password but no security key: refused, no key enrolment offered, no code', !f2.enrol && /key|clé|مفتاح/i.test(f2.message), JSON.stringify(f2));
+  // F3. An activation link works once.
+  const once = `once.${tag()}@example.invalid`;
+  await core(undefined, '/v1/registrations', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: once, locale: 'en' }) });
+  const onceMail = await activationMail(once);
+  const x = await newContext(browser);
+  await activate(x.page, onceMail.link);
+  await x.page.goto(onceMail.link);
+  const reused = (await visible(x.page, 'a[href*="login-actions"]')) || (await visible(x.page, '#totp')) || (await visible(x.page, '#password-new'));
+  check('F3 an activation link cannot be used twice', !reused);
+  await x.context.close();
+
+  stamp('approved security keys (attestation verified against a trusted root, AAGUID on the approved list)');
+  const realm = await admin('GET', 'civora-staff');
+  check('A1 staff realm: attestation direct, approved list = test model only', realm.webAuthnPolicyAttestationConveyancePreference === 'direct'
+    && JSON.stringify(realm.webAuthnPolicyAcceptableAaguids) === JSON.stringify([TEST_AAGUID]), JSON.stringify(realm.webAuthnPolicyAcceptableAaguids));
+  await admin('PUT', 'civora-staff', { ...realm, webAuthnPolicyAcceptableAaguids: ['cb69481e-8ff7-4039-93ec-0a2729a154a8'] });
+  const off = `unapproved.${tag()}@example.invalid`;
+  const offId = await admin('POST', 'civora-staff/users', { username: off, email: off, enabled: true, attributes: { tenant_id: [TENANT] } });
+  await admin('PUT', `civora-staff/users/${offId}/execute-actions-email?lifespan=3600`, ['VERIFY_EMAIL', 'webauthn-register', 'UPDATE_PASSWORD']);
+  const offMail = await activationMail(off);
+  const y = await newContext(browser);
+  await addAuthenticator(y.page, 'usb');
+  const offAct = await activate(y.page, offMail.link);
+  check('A2 a key whose model is not on the approved list is refused at enrolment (and the password step is never reached)',
+    !(await credentialTypes('civora-staff', offId)).includes('webauthn') && !offAct.seen.includes('PASSWORD'), `${offAct.seen.join('>')} ${await credentialTypes('civora-staff', offId)}`);
+  await y.context.close();
+  await admin('PUT', 'civora-staff', { ...(await admin('GET', 'civora-staff')), webAuthnPolicyAcceptableAaguids: [TEST_AAGUID] });
+
+  stamp('other protections');
+  // C5/C6 wrong and right TOTP for the activated citizen.
+  const w = await newContext(browser);
+  const a = authorize(w.page, 'civora-citizens', 'civora-web', WEB_CB);
+  let n = w.captured.length;
+  await a.go();
+  await w.page.locator('#username').fill(citizen.email);
+  await w.page.locator('#password').fill(citizen.password);
+  await submit(w.page);
+  const asked = await waitFor(() => visible(w.page, '#otp'), 8000);
+  if (asked) {
+    await w.page.locator('#otp').fill(String((Number(await freshTotp(citizen.secret)) + 500000) % 1000000).padStart(6, '0'));
+    await submit(w.page);
+  }
+  const refused = asked && !!(await waitFor(() => visible(w.page, '#otp[aria-invalid=true]'), 8000));
+  check('C5 password + wrong TOTP code: refused, no code', refused && !(await codeFrom(w.captured, n, 1000)));
+  if (refused) { await w.page.locator('#otp').fill(await freshTotp(citizen.secret)); await submit(w.page); }
+  check('C6 password + current TOTP code: completes', !!(await codeFrom(w.captured, n)));
+  await w.context.close();
+
+  for (const [realm2, client, email, password] of [['civora-citizens', 'civora-web', citizen.email, citizen.password], ['civora-citizens', 'admin-cli', citizen.email, citizen.password],
+    ['civora-staff', 'civora-workspace', officer.email, officer.password], ['civora-staff', 'admin-cli', officer.email, officer.password]]) {
+    const r = await form(`${KC}/realms/${realm2}/protocol/openid-connect/token`, { grant_type: 'password', client_id: client, username: email, password });
+    check(`C7 password grant refused (${realm2}, client ${client})`, !r.body.access_token, JSON.stringify(r.body));
+  }
+  await admin('POST', 'civora-staff/clients', { clientId: `misconfigured-${tag()}`, publicClient: true, directAccessGrantsEnabled: true, standardFlowEnabled: false });
+  const mis = (await admin('GET', 'civora-staff/clients?search=true&clientId=misconfigured-')).at(-1).clientId;
+  const r = await form(`${KC}/realms/civora-staff/protocol/openid-connect/token`, { grant_type: 'password', client_id: mis, username: officer.email, password: officer.password });
+  check('S5 a client misconfigured to allow the password grant is still refused by the realm (deny flow)', !r.body.access_token, JSON.stringify(r.body));
+
+  // S4 officer password without the enrolled key; forged assertion posted to Keycloak.
+  const thief = await newContext(browser);
+  await addAuthenticator(thief.page, 'usb');
+  for (let i = 0; i < 2; i++) {
+    const t = authorize(thief.page, 'civora-staff', 'civora-workspace', WS_CB);
+    n = thief.captured.length;
+    await t.go();
+    await thief.page.locator('#username').fill(officer.email);
+    await thief.page.locator('#password').fill(officer.password);
+    await submit(thief.page);
+    await waitFor(() => visible(thief.page, '#authenticateWebAuthnButton'), 10000);
+    if (i === 0) {
+      await thief.page.locator('#authenticateWebAuthnButton').click();
+      check('S4 password without the enrolled key: no assertion possible, no code', !(await codeFrom(thief.captured, n, 6000)));
+    } else {
+      const forged = await thief.page.evaluate(() => {
+        const f = document.getElementById('webauth');
+        if (!f) return false;
+        const junk = btoa(crypto.getRandomValues(new Uint8Array(64)).join(',')).replace(/=+$/, '');
+        for (const name of ['clientDataJSON', 'authenticatorData', 'signature', 'credentialId', 'userHandle']) { const el = f.querySelector(`[name=${name}]`); if (el) el.value = junk; }
+        f.submit();
+        return true;
+      }).catch(() => false);
+      check('S4 a forged WebAuthn assertion posted to Keycloak is rejected', forged && !(await codeFrom(thief.captured, n, 5000)), `form found: ${forged}`);
+    }
+  }
+  await thief.context.close();
+
+  // C8 pairwise subjects, using the citizen's single sign-on session.
   const rp1 = (await admin('GET', 'civora-citizens/clients?clientId=rp-example-agency'))[0];
   const rp1Secret = rnd(24);
   await admin('PUT', `civora-citizens/clients/${rp1.id}`, { ...rp1, enabled: true, secret: rp1Secret });
@@ -316,159 +484,43 @@ async function citizens(browser) {
     protocolMappers: [{ name: 'pairwise subject', protocol: 'openid-connect', protocolMapper: 'oidc-sha256-pairwise-sub-mapper', config: {} }],
   });
   const rpLogin = async (client, cb, sec) => {
-    const x = authorize(page, 'civora-citizens', client, cb);
-    const m = captured.length;
-    await x.go(); // single sign-on: the passkey session from C4
-    const c = await codeFrom(captured, m);
-    const t = c ? await exchange('civora-citizens', client, c, x.verifier, cb, sec) : { body: { error: 'no code' } };
+    const x2 = authorize(citizen.page, 'civora-citizens', client, cb);
+    const m = citizen.captured.length;
+    await x2.go();
+    const c = await codeFrom(citizen.captured, m);
+    const t = c ? await exchange('civora-citizens', client, c, x2.verifier, cb, sec) : { body: { error: 'no code' } };
     return { sub: t.body.id_token ? claims(t.body.id_token).sub : null, body: t.body };
   };
   const subs = [(await rpLogin('rp-example-agency', RP1_CB, rp1Secret)).sub, (await rpLogin('rp-example-agency', RP1_CB, rp1Secret)).sub];
-  // B was added after the policy ran: Keycloak has no salt for it and refuses to issue its tokens (fails closed).
   const unsalted = await rpLogin('rp-other-agency', RP2_CB, rp2Secret);
-  check('C8 pairwise: a relying party added without a salt gets no token (fails closed, no predictable identifier)', !unsalted.sub, JSON.stringify(unsalted.body));
+  check('C8 a relying party added without a salt gets no token (fails closed)', !unsalted.sub, JSON.stringify(unsalted.body));
   await refreshAdmin();
-  const policy = spawnSync('python3', [path.join(__dirname, '..', '..', 'keycloak', 'apply-realm-policy.py'), '--server', KC, '--realm', 'civora-citizens',
-    '--profile', 'citizens', '--export', path.join(os.tmpdir(), `citizens-${process.pid}.json`)], { env: { ...process.env, KC_ADMIN_TOKEN: adminToken }, encoding: 'utf8' });
-  check('C8 policy re-run salts the new relying party', policy.status === 0 && /rp-other-agency: pairwise salt generated/.test(policy.stdout), policy.stdout + policy.stderr);
+  const pol = spawnSync('python3', [POLICY, '--server', KC, '--realm', 'civora-citizens', '--profile', 'citizens', '--export', path.join(os.tmpdir(), `citizens-${process.pid}.json`)],
+    { env: { ...process.env, KC_ADMIN_TOKEN: adminToken }, encoding: 'utf8' });
+  check('C8 policy re-run salts it', pol.status === 0 && /rp-other-agency: pairwise salt generated/.test(pol.stdout), pol.stdout + pol.stderr);
   subs.push((await rpLogin('rp-other-agency', RP2_CB, rp2Secret)).sub);
-  check('C8 pairwise: relying party A sees an identifier that is not the internal user id', subs[0] && subs[0] !== userId, `${subs[0]} vs ${userId}`);
-  check('C8 pairwise: the same relying party sees the same identifier on every login', subs[0] && subs[0] === subs[1], subs.join(' '));
-  check('C8 pairwise: relying party B sees a different identifier (the two cannot link the citizen)', subs[2] && subs[2] !== subs[0] && subs[2] !== userId, subs.join(' '));
+  check('C8 pairwise: A ≠ internal id, stable for A, different for B', subs[0] && subs[0] !== citizen.userId && subs[0] === subs[1] && subs[2] && subs[2] !== subs[0], subs.join(' '));
 
-  // C9. Brute-force protection (P3-SEC3, per account): after 5 wrong passwords the account is temporarily locked.
-  const victim = `citizen.synthetic.bf${rnd(3).toLowerCase().replace(/[^a-z0-9]/g, 'x')}@example.invalid`;
-  const victimPw = pw();
-  const victimId = await createUser('civora-citizens', victim, victimPw);
-  const bf = await newContext(browser);
-  let attempts = 0;
-  for (let i = 0; i < 5; i++) {
-    a = authorize(bf.page, 'civora-citizens', 'civora-web', WEB_CB);
-    await a.go();
-    await bf.page.locator('#username').fill(victim);
-    await submit(bf.page);
-    // Once the account is locked Keycloak no longer offers the password step (quick successive failures lock sooner).
-    if (!(await waitFor(() => visible(bf.page, '#password'), 4000))) break;
-    await bf.page.locator('#password').fill(`Wrong-${rnd(12)}`);
-    await submit(bf.page);
-    await waitFor(() => visible(bf.page, '[id^=input-error]'), 4000);
-    attempts++;
-  }
-  console.log(`  info C9 wrong passwords accepted for checking before the lock: ${attempts}`);
-  const status = await admin('GET', `civora-citizens/attack-detection/brute-force/users/${victimId}`);
-  check('C9 brute force: repeated wrong passwords lock the account temporarily (at most 5 tries)', status.disabled === true && attempts <= 5, JSON.stringify(status));
-  await bf.context.close();
-  await passkey.cdp.detach().catch(() => undefined);
-  await context.close();
-}
-
-async function staff(browser) {
-  stamp('staff realm (civora-staff): password + FIDO2 security key, always');
-  const user = `officer.synthetic.${rnd(4).toLowerCase().replace(/[^a-z0-9]/g, 'x')}`;
-  const password = pw();
-  await createUser('civora-staff', user, password, { attributes: { tenant_id: [TENANT] } });
-  const { page, context, captured } = await newContext(browser);
-  await addAuthenticator(page, 'usb');
-
-  // S1. First login: the password is not enough; the officer must enrol a security key before any code is issued.
-  let a = authorize(page, 'civora-staff', 'civora-workspace', WS_CB);
-  let n = captured.length;
-  await a.go();
-  await page.locator('#username').fill(user);
-  await page.locator('#password').fill(password);
-  await submit(page);
-  const enrol = await waitFor(() => visible(page, '#registerWebAuthn'), 10000);
-  check('S1 first login: password accepted, then security-key enrolment required (no code yet)', enrol && !(await codeFrom(captured, n, 500)));
-  if (enrol) await page.locator('#registerWebAuthn').click();
-  let code = await codeFrom(captured, n);
-  let tok = code ? await exchange('civora-staff', 'civora-workspace', code, a.verifier, WS_CB) : { body: {} };
-  const at1 = tok.body.access_token;
-  if (!check('S1 security key enrolled (user verification required), code exchanged for tokens', !!at1, JSON.stringify(tok.body))) await shot(page, 's1');
-  if (at1) {
-    const c = claims(at1);
-    check('S1 access token: audience civora-core, azp civora-workspace, tenant_id from the admin-only attribute',
-      [].concat(c.aud).includes('civora-core') && c.azp === 'civora-workspace' && c.tenant_id === TENANT, JSON.stringify(c));
-  }
-  const me = at1 ? await core(at1) : { status: 0 };
-  check('S2 core: GET /v1/me with the staff token returns 200, account realm staff', me.status === 200 && me.body.accounts?.[0]?.realm === 'staff', `${me.status} ${JSON.stringify(me.body)}`);
-
-  // S3. Every later login: password and the security key.
-  await context.clearCookies();
-  a = authorize(page, 'civora-staff', 'civora-workspace', WS_CB);
-  n = captured.length;
-  await a.go();
-  await page.locator('#username').fill(user);
-  await page.locator('#password').fill(password);
-  await submit(page);
-  const asked = await waitFor(() => visible(page, '#authenticateWebAuthnButton'), 10000);
-  if (asked) await page.locator('#authenticateWebAuthnButton').click();
-  code = await codeFrom(captured, n);
-  tok = code ? await exchange('civora-staff', 'civora-workspace', code, a.verifier, WS_CB) : { body: {} };
-  if (!check('S3 second login: password, then the security key is asked and accepted', asked && !!tok.body.access_token, JSON.stringify(tok.body))) await shot(page, 's3');
-
-  // S4. The password without the officer's key: another authenticator (holding no credential for them) gets nowhere.
-  const thief = await newContext(browser);
-  await addAuthenticator(thief.page, 'usb');
-  a = authorize(thief.page, 'civora-staff', 'civora-workspace', WS_CB);
-  n = thief.captured.length;
-  await a.go();
-  await thief.page.locator('#username').fill(user);
-  await thief.page.locator('#password').fill(password);
-  await submit(thief.page);
-  if (await waitFor(() => visible(thief.page, '#authenticateWebAuthnButton'), 10000)) await thief.page.locator('#authenticateWebAuthnButton').click();
-  check('S4 password without the enrolled security key: the browser cannot produce an assertion, no authorization code', !(await codeFrom(thief.captured, n, 8000)));
-  // Server side: a forged assertion posted straight to Keycloak's WebAuthn form is rejected. A fresh login, stopped
-  // on the security-key page without pressing the button (otherwise the page's own script races the forgery).
-  a = authorize(thief.page, 'civora-staff', 'civora-workspace', WS_CB);
-  n = thief.captured.length;
-  await a.go();
-  await thief.page.locator('#username').fill(user);
-  await thief.page.locator('#password').fill(password);
-  await submit(thief.page);
-  await waitFor(() => visible(thief.page, '#authenticateWebAuthnButton'), 10000);
-  const forged = await thief.page.evaluate(() => {
-    const f = document.getElementById('webauth');
-    if (!f) return false;
-    const junk = btoa(crypto.getRandomValues(new Uint8Array(64)).join(',')).replace(/=+$/, '');
-    for (const name of ['clientDataJSON', 'authenticatorData', 'signature', 'credentialId', 'userHandle']) {
-      const el = f.querySelector(`[name=${name}]`);
-      if (el) el.value = junk;
-    }
-    const err = f.querySelector('[name=error]');
-    if (err) err.value = '';
-    f.submit();
-    return true;
-  }).catch(() => false);
-  check('S4 a forged WebAuthn assertion posted to Keycloak is rejected (no authorization code)', forged && !(await codeFrom(thief.captured, n, 5000)), `form found: ${forged}`);
-  await thief.context.close();
-
-  // S5. No password grant: refused for every client, and refused by the realm even for a client misconfigured to allow it.
-  for (const client of ['civora-workspace', 'admin-cli']) {
-    const r = await form(`${KC}/realms/civora-staff/protocol/openid-connect/token`, { grant_type: 'password', client_id: client, username: user, password });
-    check(`S5 password grant refused for client ${client}`, !r.body.access_token, JSON.stringify(r.body));
-  }
-  await admin('POST', 'civora-staff/clients', { clientId: 'misconfigured-direct', publicClient: true, directAccessGrantsEnabled: true, standardFlowEnabled: false });
-  const r = await form(`${KC}/realms/civora-staff/protocol/openid-connect/token`, { grant_type: 'password', client_id: 'misconfigured-direct', username: user, password });
-  check('S5 a client misconfigured to allow the password grant is still refused by the realm (deny-direct-grant flow)', !r.body.access_token, JSON.stringify(r.body));
-  await context.close();
-}
-
-async function coreNegatives() {
-  stamp('core: tokens it must refuse');
   await refreshAdmin();
-  const r1 = await core(adminToken);
-  check('K1 core refuses a token from an untrusted realm (master): 401', r1.status === 401, r1.status);
-  const r2 = await core(undefined);
-  check('K2 core refuses a request without a token: 401', r2.status === 401, r2.status);
+  check('K1 core refuses a token from an untrusted realm (master): 401', (await core(adminToken)).status === 401);
+  check('K2 core refuses a request without a token: 401', (await core(undefined)).status === 401);
 }
 
 (async () => {
   await refreshAdmin();
+  passkeyExecution = (await admin('GET', 'civora-citizens/authentication/flows/citizens-forms/executions'))
+    .find((e) => e.providerId === 'webauthn-authenticator-passwordless').id;
   const browser = await chromium.launch({ args: ['--no-proxy-server'] }); // nothing leaves the machine
   try {
-    await citizens(browser);
-    await staff(browser);
-    await coreNegatives();
+    let citizen;
+    let officer;
+    for (const lang of LOCALES) {
+      const c = await citizenJourney(browser, lang);
+      const o = await staffJourney(browser, lang);
+      if (lang === 'en' || !citizen) { if (citizen) await citizen.context.close(); citizen = c; officer = o; } else await c.context.close();
+    }
+    await securityChecks(browser, citizen, officer);
+    await citizen.context.close();
   } finally {
     await browser.close();
   }

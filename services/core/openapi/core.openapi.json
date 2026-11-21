@@ -451,6 +451,39 @@
           "digest"
         ],
         "type": "object"
+      },
+      "RegistrationAccepted": {
+        "properties": {
+          "status": {
+            "enum": [
+              "accepted"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      },
+      "RegistrationRequest": {
+        "properties": {
+          "email": {
+            "example": "citizen.synthetic@example.invalid",
+            "format": "email",
+            "maxLength": 254,
+            "type": "string"
+          },
+          "locale": {
+            "description": "Language of the activation e-mail and pages; one of the country pack locales",
+            "example": "ar-TN",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "type": "object"
       }
     },
     "securitySchemes": {
@@ -825,6 +858,45 @@
         "summary": "Supported locales and text direction (O-API2)",
         "tags": [
           "meta"
+        ]
+      }
+    },
+    "/v1/registrations": {
+      "post": {
+        "description": "The answer is the same whether the address is new, pending or already registered. Rate limited per address and per client.",
+        "operationId": "register",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistrationAccepted"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "description": "Not a well-formed e-mail address, or an unsupported locale"
+          },
+          "503": {
+            "description": "Registration is not configured in this cell"
+          }
+        },
+        "summary": "Ask for a citizen account; an activation link is e-mailed if the address can be used",
+        "tags": [
+          "identity"
         ]
       }
     }

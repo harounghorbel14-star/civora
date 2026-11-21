@@ -1,6 +1,6 @@
 {
   "realm": "civora-citizens",
-  "displayName": "CIVORA — citizens (synthetic users only until pilot)",
+  "displayName": "CIVORA",
   "enabled": true,
   "sslRequired": "external",
   "loginWithEmailAllowed": true,
@@ -32,12 +32,11 @@
   "otpPolicyDigits": 6,
   "otpPolicyPeriod": 30,
   "otpPolicyLookAheadWindow": 1,
-  "registrationAllowed": true,
+  "registrationAllowed": false,
   "verifyEmail": true,
-  "registrationEmailAsUsername": true,
   "attributes": {
     "civora.profile": "citizens",
-    "civora.purpose": "Citizens of one country cell (P3-A1). Passkeys first; password + TOTP as an alternative; SMS only as a simulated fallback until a provider is chosen (Q3-1)."
+    "civora.purpose": "Citizens of one country cell (P3-A1). Passkeys first; password + TOTP as the alternative; SMS only as a simulated fallback until a provider is chosen (Q3-1). Accounts are created by the core and activated by an e-mailed link (no self-registration page, no enumeration)."
   },
   "webAuthnPolicyPasswordlessRpEntityName": "CIVORA",
   "webAuthnPolicyPasswordlessSignatureAlgorithms": [
@@ -51,7 +50,7 @@
   "authenticationFlows": [
     {
       "alias": "citizens-browser",
-      "description": "Passkey first, else password + TOTP",
+      "description": "Passkey (no username asked first), or e-mail + password + TOTP on one page: no step reveals whether an address has an account",
       "providerId": "basic-flow",
       "topLevel": true,
       "builtIn": false,
@@ -60,15 +59,15 @@
           "authenticator": "auth-cookie",
           "requirement": "ALTERNATIVE",
           "authenticatorFlow": false,
-          "priority": 10,
-          "userSetupAllowed": false
+          "userSetupAllowed": false,
+          "priority": 10
         },
         {
           "flowAlias": "citizens-forms",
           "requirement": "ALTERNATIVE",
           "authenticatorFlow": true,
-          "priority": 20,
-          "userSetupAllowed": false
+          "userSetupAllowed": false,
+          "priority": 20
         }
       ]
     },
@@ -80,64 +79,96 @@
       "builtIn": false,
       "authenticationExecutions": [
         {
-          "authenticator": "auth-username-form",
-          "requirement": "REQUIRED",
-          "authenticatorFlow": false,
-          "priority": 10,
-          "userSetupAllowed": false
-        },
-        {
-          "flowAlias": "citizens-credential",
-          "requirement": "REQUIRED",
-          "authenticatorFlow": true,
-          "priority": 20,
-          "userSetupAllowed": false
-        }
-      ]
-    },
-    {
-      "alias": "citizens-credential",
-      "description": "",
-      "providerId": "basic-flow",
-      "topLevel": false,
-      "builtIn": false,
-      "authenticationExecutions": [
-        {
           "authenticator": "webauthn-authenticator-passwordless",
           "requirement": "ALTERNATIVE",
           "authenticatorFlow": false,
-          "priority": 10,
-          "userSetupAllowed": false
+          "userSetupAllowed": false,
+          "priority": 10
         },
         {
-          "flowAlias": "citizens-password-otp",
+          "flowAlias": "citizens-password",
           "requirement": "ALTERNATIVE",
           "authenticatorFlow": true,
-          "priority": 20,
-          "userSetupAllowed": false
+          "userSetupAllowed": false,
+          "priority": 20
         }
       ]
     },
     {
-      "alias": "citizens-password-otp",
+      "alias": "citizens-password",
       "description": "",
       "providerId": "basic-flow",
       "topLevel": false,
       "builtIn": false,
       "authenticationExecutions": [
         {
-          "authenticator": "auth-password-form",
+          "authenticator": "auth-username-password-form",
           "requirement": "REQUIRED",
           "authenticatorFlow": false,
-          "priority": 10,
-          "userSetupAllowed": false
+          "userSetupAllowed": false,
+          "priority": 10
+        },
+        {
+          "flowAlias": "citizens-otp",
+          "requirement": "CONDITIONAL",
+          "authenticatorFlow": true,
+          "userSetupAllowed": false,
+          "priority": 20
+        },
+        {
+          "flowAlias": "citizens-no-second-factor",
+          "requirement": "CONDITIONAL",
+          "authenticatorFlow": true,
+          "userSetupAllowed": false,
+          "priority": 30
+        }
+      ]
+    },
+    {
+      "alias": "citizens-otp",
+      "description": "Runs only when the account has this second factor",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "conditional-user-configured",
+          "requirement": "REQUIRED",
+          "authenticatorFlow": false,
+          "userSetupAllowed": false,
+          "priority": 10
         },
         {
           "authenticator": "auth-otp-form",
           "requirement": "REQUIRED",
           "authenticatorFlow": false,
-          "priority": 20,
-          "userSetupAllowed": false
+          "userSetupAllowed": false,
+          "priority": 20
+        }
+      ]
+    },
+    {
+      "alias": "citizens-no-second-factor",
+      "description": "An account without its second factor cannot sign in; first credentials come only from the activation link",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "conditional-sub-flow-executed",
+          "requirement": "REQUIRED",
+          "authenticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticatorConfig": "citizens-second-factor-not-run",
+          "priority": 10
+        },
+        {
+          "authenticator": "deny-access-authenticator",
+          "requirement": "REQUIRED",
+          "authenticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticatorConfig": "citizens-deny-no-second-factor",
+          "priority": 20
         }
       ]
     },
@@ -169,18 +200,18 @@
       "config": {}
     },
     {
-      "alias": "UPDATE_PASSWORD",
-      "name": "Update Password",
-      "providerId": "UPDATE_PASSWORD",
+      "alias": "webauthn-register-passwordless",
+      "name": "Webauthn Register Passwordless",
+      "providerId": "webauthn-register-passwordless",
       "enabled": true,
       "defaultAction": false,
       "priority": 20,
       "config": {}
     },
     {
-      "alias": "UPDATE_PROFILE",
-      "name": "Update Profile",
-      "providerId": "UPDATE_PROFILE",
+      "alias": "UPDATE_PASSWORD",
+      "name": "Update Password",
+      "providerId": "UPDATE_PASSWORD",
       "enabled": true,
       "defaultAction": false,
       "priority": 30,
@@ -196,18 +227,18 @@
       "config": {}
     },
     {
-      "alias": "webauthn-register",
-      "name": "Webauthn Register",
-      "providerId": "webauthn-register",
+      "alias": "UPDATE_PROFILE",
+      "name": "Update Profile",
+      "providerId": "UPDATE_PROFILE",
       "enabled": true,
       "defaultAction": false,
       "priority": 50,
       "config": {}
     },
     {
-      "alias": "webauthn-register-passwordless",
-      "name": "Webauthn Register Passwordless",
-      "providerId": "webauthn-register-passwordless",
+      "alias": "webauthn-register",
+      "name": "Webauthn Register",
+      "providerId": "webauthn-register",
       "enabled": true,
       "defaultAction": false,
       "priority": 60,
@@ -356,6 +387,18 @@
       "directAccessGrantsEnabled": false,
       "implicitFlowEnabled": false,
       "serviceAccountsEnabled": false
+    },
+    {
+      "clientId": "civora-core-provisioner",
+      "name": "civora-core: creates citizen accounts and sends activation links",
+      "publicClient": false,
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "implicitFlowEnabled": false,
+      "attributes": {
+        "civora.client-kind": "service"
+      }
     }
   ],
   "components": {
@@ -376,5 +419,50 @@
     "composite": true
   },
   "webAuthnPolicyPasswordlessResidentKey": "required",
-  "directGrantFlow": "deny-direct-grant"
+  "directGrantFlow": "deny-direct-grant",
+  "authenticatorConfig": [
+    {
+      "alias": "citizens-second-factor-not-run",
+      "config": {
+        "flow_to_check": "citizens-otp",
+        "check_result": "not-executed"
+      }
+    },
+    {
+      "alias": "citizens-deny-no-second-factor",
+      "config": {
+        "denyErrorMessage": "civoraNoSecondFactor"
+      }
+    }
+  ],
+  "registrationEmailAsUsername": true,
+  "displayNameHtml": "${civoraRealmName}",
+  "localizationTexts": {
+    "ar": {
+      "civoraRealmName": "CIVORA — فضاء المواطنين",
+      "civoraNoSecondFactor": "لا يمكن الدخول: هذا الحساب لم يُفعَّل بعد. استعمل رابط التفعيل الذي وصلك بالبريد الإلكتروني."
+    },
+    "fr": {
+      "civoraRealmName": "CIVORA — Espace citoyens",
+      "civoraNoSecondFactor": "Connexion impossible : ce compte n'est pas encore activé. Utilisez le lien d'activation reçu par e-mail."
+    },
+    "en": {
+      "civoraRealmName": "CIVORA — Citizens",
+      "civoraNoSecondFactor": "You cannot sign in: this account is not activated yet. Use the activation link you received by e-mail."
+    }
+  },
+  "users": [
+    {
+      "username": "service-account-civora-core-provisioner",
+      "enabled": true,
+      "serviceAccountClientId": "civora-core-provisioner",
+      "clientRoles": {
+        "realm-management": [
+          "manage-users",
+          "view-users",
+          "query-users"
+        ]
+      }
+    }
+  ]
 }

@@ -2,7 +2,8 @@
 # (infra/argocd/platform/staging-tn/keycloak-operator.yaml). Instances form one Infinispan cluster through the
 # database (jdbc-ping) and keep user sessions in it, so losing a pod does not log users out (tested:
 # infra/tests/keycloak-ha/run.sh). Database: own database "keycloak" on the HA PostgreSQL tier through pg-router,
-# verify-full TLS. Secrets (keycloak-db, keycloak-tls, keycloak-db-ca) come from OpenBao via External Secrets.
+# verify-full TLS. Secrets (keycloak-db, keycloak-tls, keycloak-db-ca, keycloak-attestation-roots) come from OpenBao via
+# External Secrets.
 # Exposure: no Ingress from the operator; the edge gateway is pending founder decision ADR-030.
 apiVersion: k8s.keycloak.org/v2beta1
 kind: Keycloak
@@ -36,6 +37,12 @@ spec:
     headers: xforwarded
   ingress:
     enabled: false
+  # Attestation roots of the approved security-key vendors (staff realm, P3-SEC5; Phase 3 doc 03). Without them no key
+  # can be enrolled (fails closed); the approved models are set by infra/keycloak/apply-realm-policy.py --approved-keys.
+  truststores:
+    attestation-roots:
+      secret:
+        name: keycloak-attestation-roots
   scheduling:
     topologySpreadConstraints:
       - maxSkew: 1

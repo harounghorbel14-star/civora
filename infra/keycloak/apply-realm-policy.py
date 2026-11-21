@@ -9,12 +9,15 @@ user profile; no users, secrets masked) so that check-realm-security.py checks w
 not only the file.
 
 Usage: apply-realm-policy.py --server URL --realm NAME --profile citizens|staff|dev --export OUT.json
+                             [--smtp-host HOST [--smtp-port N] [--smtp-from ADDR]] [--approved-keys FILE]
+                             [--provisioner-secret-out FILE]
 The admin access token is read from the KC_ADMIN_TOKEN environment variable (never from the command line).
 Standard library only. Idempotent.
 """
 import argparse
 import json
 import os
+import re
 import sys
 import urllib.parse
 import urllib.request
@@ -45,6 +48,13 @@ def main():
     ap.add_argument("--realm", required=True)
     ap.add_argument("--profile", required=True, choices=sorted(ALLOWED_DEFAULTS))
     ap.add_argument("--export", required=True)
+    ap.add_argument("--smtp-host", help="mail relay for activation and invitation e-mails (deployment setting, not in Git)")
+    ap.add_argument("--smtp-port", default="25")
+    ap.add_argument("--smtp-from", default="no-reply@civora-cell.invalid")
+    ap.add_argument("--approved-keys", help="JSON file listing the approved security-key models ([{\"aaguid\": ..., \"model\": ...}]); "
+                    "their vendor attestation roots must be in Keycloak's truststore (conf/truststores)")
+    ap.add_argument("--provisioner-secret-out", help="regenerate the civora-core-provisioner secret and write it to this file "
+                    "(mode 0600) for the core's secret store; the secret never goes to Git")
     a = ap.parse_args()
     token = os.environ.get("KC_ADMIN_TOKEN")
     if not token:
@@ -84,6 +94,32 @@ def main():
             if m.get("protocolMapper") == "oidc-sha256-pairwise-sub-mapper" and not (m.get("config") or {}).get("pairwiseSubAlgorithmSalt"):
                 call(a.server, token, "PUT", f"/admin/realms/{realm}/clients/{c['id']}/protocol-mappers/models/{m['id']}", m)
                 print(f"  policy: client {c['clientId']}: pairwise salt generated")
+    if a.smtp_host:
+        rep = call(a.server, token, "GET", f"/admin/realms/{realm}")
+        # Authentication to the relay, when it needs one, comes from Keycloak's vault (${vault.smtp-password}), never from here.
+        rep["smtpServer"] = {**(rep.get("smtpServer") or {}), "host": a.smtp_host, "port": str(a.smtp_port), "from": a.smtp_from,
+                             "fromDisplayName": "CIVORA"}
+        call(a.server, token, "PUT", f"/admin/realms/{realm}", rep)
+        print(f"  policy: e-mail relay set ({a.smtp_host}:{a.smtp_port})")
+    if a.approved_keys:
+        keys = json.load(open(a.approved_keys))
+        aaguids = sorted({k["aaguid"].lower() for k in keys})
+        if not aaguids or any(not re.fullmatch(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", g) for g in aaguids):
+            sys.exit("approved keys: at least one valid AAGUID is required")
+        rep = call(a.server, token, "GET", f"/admin/realms/{realm}")
+        rep["webAuthnPolicyAttestationConveyancePreference"] = "direct"
+        rep["webAuthnPolicyAcceptableAaguids"] = aaguids
+        call(a.server, token, "PUT", f"/admin/realms/{realm}", rep)
+        print(f"  policy: {len(aaguids)} approved security-key model(s): " + ", ".join(k.get("model", k["aaguid"]) for k in keys))
+    if a.provisioner_secret_out:
+        prov = [c for c in call(a.server, token, "GET", f"/admin/realms/{realm}/clients?clientId=civora-core-provisioner")]
+        if not prov:
+            sys.exit("client civora-core-provisioner not found")
+        secret = call(a.server, token, "POST", f"/admin/realms/{realm}/clients/{prov[0]['id']}/client-secret")["value"]
+        fd = os.open(a.provisioner_secret_out, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w") as f:
+            f.write(secret)
+        print(f"  policy: provisioner secret regenerated, written to {a.provisioner_secret_out} (0600)")
     export = call(a.server, token, "POST", f"/admin/realms/{realm}/partial-export?exportClients=true&exportGroupsAndRoles=true")
     with open(a.export, "w") as f:
         json.dump(export, f, indent=2)

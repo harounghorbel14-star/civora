@@ -147,4 +147,28 @@ describe('identity and mandates, end to end (Phase 3 week 1)', { skip: !adminUrl
     await c.end();
     assert.equal(rows[0].n, 0);
   });
+
+  it('a Keycloak language (fr) is stored as the pack locale (fr-TN), so /v1/me returns a locale the API accepts', async () => {
+    const r = await call('/v1/me', await sign('dina', { locale: 'fr' }));
+    assert.equal(r.status, 200);
+    assert.equal(r.body.preferredLocale, 'fr-TN');
+  });
+
+  it('registration: 503 when the provisioner is not configured in the cell (no partial behaviour)', async () => {
+    const r = await call('/v1/registrations', undefined, { method: 'POST', body: { email: 'someone@example.invalid' } });
+    assert.equal(r.status, 503);
+  });
+
+  it('database: activation e-mails per address are bounded (registration_permit, as the application role)', async () => {
+    const c = new Client({ connectionString: appDbUrl });
+    await c.connect();
+    const digest = Buffer.alloc(32, 7);
+    const permit = async () => (await c.query('select iam.registration_permit($1, make_interval(mins => 15)) as ok', [digest])).rows[0].ok;
+    const first = await permit();
+    const second = await permit();
+    await assert.rejects(c.query('select count(*) from iam.registration_request'), /permission denied/);
+    await c.end();
+    assert.equal(first, true);
+    assert.equal(second, false);
+  });
 });

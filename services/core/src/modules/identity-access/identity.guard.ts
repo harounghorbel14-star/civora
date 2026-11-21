@@ -1,5 +1,8 @@
 import { type CanActivate, type ExecutionContext, HttpException, HttpStatus, Inject, Injectable, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import type { LoadedPack } from '@civora/country-packs';
+import { COUNTRY_PACK } from '../../country-config/country-config.module';
+import { packLocale } from './locale';
 import { IAM_REPOSITORY, TOKEN_VERIFIER } from './tokens';
 import type { IamRepository } from './iam.repository';
 import { TokenError, type TokenVerifier, type VerifiedToken } from './token-verifier';
@@ -18,6 +21,7 @@ export class IdentityGuard implements CanActivate {
   constructor(
     @Inject(TOKEN_VERIFIER) private readonly verifier: TokenVerifier,
     @Inject(IAM_REPOSITORY) private readonly repo: IamRepository | null,
+    @Inject(COUNTRY_PACK) private readonly pack: LoadedPack,
   ) {}
 
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
@@ -34,7 +38,10 @@ export class IdentityGuard implements CanActivate {
       if (e instanceof TokenError) return this.deny(res, 'invalid_token');
       throw new HttpException('Token verification unavailable', HttpStatus.SERVICE_UNAVAILABLE);
     }
-    req.identity = { ...token, personId: await this.repo.ensurePerson(token) };
+    // Keycloak sends a language (ar, fr, en); the person's preference is stored as a locale of the pack (ar-TN, ...).
+    const { supported, default: fallback } = this.pack.pack.locales;
+    const mapped: VerifiedToken = { ...token, locale: token.locale ? packLocale(token.locale, supported, fallback) : null };
+    req.identity = { ...mapped, personId: await this.repo.ensurePerson(mapped) };
     return true;
   }
 

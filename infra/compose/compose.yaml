@@ -109,6 +109,13 @@ services:
       start_period: 20s
     security_opt: ["no-new-privileges:true"]
 
+  # --- Mail catcher (dev only): activation and invitation e-mails land here, readable at http://localhost:8025 ---
+  mail:
+    image: docker.io/axllent/mailpit:v1.33.0@sha256:9b3a463be15354c0f0eba91697d80e3e0d8a5623ef0e627cacc836bc17fd5231
+    restart: unless-stopped
+    ports: ["127.0.0.1:8025:8025"]
+    security_opt: ["no-new-privileges:true"]
+
   # --- Secrets (ADR-012). Dev mode: in-memory, auto-unsealed. Never used beyond a developer machine ---
   openbao:
     image: openbao/openbao:2.4.1
@@ -156,9 +163,15 @@ services:
       OIDC_JWKS_URL_CITIZENS: http://keycloak:8080/realms/civora-citizens/protocol/openid-connect/certs
       OIDC_ISSUER_STAFF: http://localhost:8080/realms/civora-staff
       OIDC_JWKS_URL_STAFF: http://keycloak:8080/realms/civora-staff/protocol/openid-connect/certs
+      # Citizen registration (accounts created by the core, activation link by e-mail). The secret file is written by
+      # dev-cell-up.sh (apply-realm-policy.py --provisioner-secret-out); while it is empty, registration answers 503.
+      KEYCLOAK_INTERNAL_URL: http://keycloak:8080
+      KEYCLOAK_PROVISIONER_SECRET_FILE: /run/secrets/keycloak-provisioner
+      ACTIVATION_REDIRECT_URI: https://app.civora-cell.invalid/activated
       OTEL_EXPORTER_OTLP_ENDPOINT: http://observability:4318
       OTEL_BSP_SCHEDULE_DELAY: "1000"   # dev only: export spans within a second
     ports: ["127.0.0.1:3000:3000"]
+    volumes: ["./.generated/provisioner.secret:/run/secrets/keycloak-provisioner:ro"]
     read_only: true
     tmpfs: ["/tmp"]
     cap_drop: ["ALL"]

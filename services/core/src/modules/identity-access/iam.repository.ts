@@ -119,6 +119,12 @@ export class IamRepository {
     });
   }
 
+  /** Records an activation e-mail for this address digest and says whether it may be sent now (no person context). */
+  async registrationPermit(digest: Buffer, minIntervalMinutes: number): Promise<boolean> {
+    const r = await this.pool.query<{ ok: boolean }>("select iam.registration_permit($1, make_interval(mins => $2)) as ok", [digest, minIntervalMinutes]);
+    return r.rows[0]!.ok;
+  }
+
   close(): Promise<void> {
     return this.pool.end();
   }
