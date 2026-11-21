@@ -1,0 +1,54 @@
+{{- if .Values.cleanup.enabled }}
+{{- $_ := required "cleanup.enabled needs identity.provisionerSecret" .Values.identity.provisionerSecret }}
+# Hourly removal of accounts never activated (Phase 3 R-P3-8): unverified e-mail, no credential, older than the limit.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "civora-core.name" . }}-cleanup-unactivated
+  namespace: {{ .Release.Namespace }}
+  labels: {{- include "civora-core.labels" . | nindent 4 }}
+    app.kubernetes.io/component: cleanup
+  annotations: {{- include "civora-core.checkovSkips" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.cleanup.schedule | quote }}
+  concurrencyPolicy: Forbid        # one run at a time
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      ttlSecondsAfterFinished: 3600
+      template:
+        metadata:
+          labels: {{- include "civora-core.selector" . | nindent 12 }}
+            app.kubernetes.io/component: cleanup
+          annotations: {{- include "civora-core.checkovSkips" . | nindent 12 }}
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          securityContext: {{- include "civora-core.podSecurity" . | nindent 12 }}
+          containers:
+            - name: cleanup
+              image: {{ include "civora-core.image" . }}
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              securityContext: {{- include "civora-core.containerSecurity" . | nindent 16 }}
+              command: ["node", "dist/src/tools/cleanup-unactivated.js"]
+              env:
+                - name: CIVORA_ENV
+                  value: {{ .Values.environment | quote }}
+                - name: CLEANUP_CITIZENS_MINUTES
+                  value: {{ .Values.cleanup.citizensMinutes | quote }}
+                - name: CLEANUP_STAFF_MINUTES
+                  value: {{ .Values.cleanup.staffMinutes | quote }}
+                {{- include "civora-core.identityEnv" . | nindent 16 }}
+              resources:
+                requests: { cpu: 20m, memory: 96Mi }
+                limits: { memory: 192Mi }
+              volumeMounts:
+                - { name: tmp, mountPath: /tmp }
+                {{- include "civora-core.identityMount" . | nindent 16 }}
+          volumes:
+            - name: tmp
+              emptyDir: { sizeLimit: 16Mi }
+            {{- include "civora-core.identityVolume" . | nindent 12 }}
+{{- end }}

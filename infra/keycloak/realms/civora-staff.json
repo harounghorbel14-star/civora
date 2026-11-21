@@ -325,6 +325,18 @@
       "directAccessGrantsEnabled": false,
       "implicitFlowEnabled": false,
       "serviceAccountsEnabled": false
+    },
+    {
+      "clientId": "civora-core-provisioner",
+      "name": "civora-core: staff sessions, authenticators and invitations",
+      "publicClient": false,
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "implicitFlowEnabled": false,
+      "attributes": {
+        "civora.client-kind": "service"
+      }
     }
   ],
   "components": {
@@ -376,5 +388,19 @@
       "civoraNoSecurityKey": "You cannot sign in without an enrolled security key. Use your invitation link or contact your institution's administrator."
     }
   },
-  "webAuthnPolicyAcceptableAaguids": []
+  "webAuthnPolicyAcceptableAaguids": [],
+  "users": [
+    {
+      "username": "service-account-civora-core-provisioner",
+      "enabled": true,
+      "serviceAccountClientId": "civora-core-provisioner",
+      "clientRoles": {
+        "realm-management": [
+          "manage-users",
+          "view-users",
+          "query-users"
+        ]
+      }
+    }
+  ]
 }

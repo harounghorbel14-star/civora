@@ -46,6 +46,40 @@
         ],
         "type": "object"
       },
+      "AuthenticatorDto": {
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "passkey",
+              "security-key",
+              "totp"
+            ],
+            "type": "string"
+          },
+          "label": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "kind"
+        ],
+        "type": "object"
+      },
       "CreateMandate": {
         "properties": {
           "expiresAt": {
@@ -72,6 +106,31 @@
         "required": [
           "scopes",
           "expiresAt"
+        ],
+        "type": "object"
+      },
+      "CreateUnit": {
+        "properties": {
+          "kind": {
+            "enum": [
+              "branch",
+              "team"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "parentId": {
+            "description": "Required for a team: its branch",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "name"
         ],
         "type": "object"
       },
@@ -146,6 +205,45 @@
         ],
         "type": "object"
       },
+      "EnrolRequest": {
+        "properties": {
+          "kind": {
+            "description": "Citizens: passkey or totp. Staff: security-key",
+            "enum": [
+              "passkey",
+              "totp",
+              "security-key"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "type": "object"
+      },
+      "EnrolResponse": {
+        "properties": {
+          "keycloakAction": {
+            "description": "Add kc_action=<this> to the authorization request; the ceremony happens at the identity provider",
+            "example": "webauthn-register-passwordless",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "passkey",
+              "totp",
+              "security-key"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "keycloakAction"
+        ],
+        "type": "object"
+      },
       "HealthChecks": {
         "properties": {
           "countryPack": {
@@ -199,6 +297,52 @@
           "environment",
           "countryPack",
           "checks"
+        ],
+        "type": "object"
+      },
+      "InvitationDto": {
+        "properties": {
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "expiresAt"
+        ],
+        "type": "object"
+      },
+      "InvitationRequest": {
+        "properties": {
+          "email": {
+            "format": "email",
+            "type": "string"
+          },
+          "locale": {
+            "example": "fr-TN",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "member",
+              "supervisor"
+            ],
+            "type": "string"
+          },
+          "unitId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "unitId",
+          "role"
         ],
         "type": "object"
       },
@@ -425,6 +569,63 @@
         ],
         "type": "object"
       },
+      "MemberDto": {
+        "properties": {
+          "grantedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "personId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "member",
+              "supervisor"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "personId",
+          "role",
+          "grantedAt"
+        ],
+        "type": "object"
+      },
+      "MembershipDto": {
+        "properties": {
+          "kind": {
+            "enum": [
+              "branch",
+              "team"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "member",
+              "supervisor"
+            ],
+            "type": "string"
+          },
+          "unitId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "unitId",
+          "kind",
+          "name",
+          "role"
+        ],
+        "type": "object"
+      },
       "PackInfo": {
         "properties": {
           "digest": {
@@ -482,6 +683,97 @@
         },
         "required": [
           "email"
+        ],
+        "type": "object"
+      },
+      "RoleBody": {
+        "properties": {
+          "role": {
+            "enum": [
+              "member",
+              "supervisor"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "role"
+        ],
+        "type": "object"
+      },
+      "SessionDto": {
+        "properties": {
+          "applications": {
+            "example": [
+              "civora-web"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "current": {
+            "description": "The session this access token belongs to",
+            "type": "boolean"
+          },
+          "id": {
+            "description": "Session id (opaque)",
+            "example": "-JoesOrzuMGBIpK-ezgyu2Nk",
+            "type": "string"
+          },
+          "ipAddress": {
+            "description": "Address the session was last used from (shown only to its owner)",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "lastAccessAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "current",
+          "startedAt",
+          "lastAccessAt",
+          "applications"
+        ],
+        "type": "object"
+      },
+      "UnitDto": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "branch",
+              "team"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "parentId": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "name"
         ],
         "type": "object"
       }
@@ -828,6 +1120,219 @@
         ]
       }
     },
+    "/v1/me/authenticators": {
+      "get": {
+        "operationId": "listMyAuthenticators",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AuthenticatorDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "description": "No valid access token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Your passkeys, security keys and authenticator apps (never the password)",
+        "tags": [
+          "identity"
+        ]
+      },
+      "post": {
+        "operationId": "startAuthenticatorEnrolment",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnrolRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrolResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "description": "No valid access token, or no recent sign-in (WWW-Authenticate: error=\"insufficient_user_authentication\", max_age)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Start adding an authenticator: returns the identity-provider action the app runs",
+        "tags": [
+          "identity"
+        ]
+      }
+    },
+    "/v1/me/authenticators/{id}": {
+      "delete": {
+        "operationId": "removeMyAuthenticator",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed"
+          },
+          "401": {
+            "description": "No valid access token, or no recent sign-in (WWW-Authenticate: error=\"insufficient_user_authentication\", max_age)"
+          },
+          "404": {
+            "description": "No such authenticator of yours"
+          },
+          "409": {
+            "description": "It is your last way to sign in (add another first)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove one of your authenticators; refused if you could no longer sign in",
+        "tags": [
+          "identity"
+        ]
+      }
+    },
+    "/v1/me/memberships": {
+      "get": {
+        "operationId": "listMyMemberships",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MembershipDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "403": {
+            "description": "Not staff of an institution"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Your roles in the branches and teams of your institution",
+        "tags": [
+          "organisation"
+        ]
+      }
+    },
+    "/v1/me/sessions": {
+      "get": {
+        "operationId": "listMySessions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SessionDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "description": "No valid access token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Your signed-in sessions, the current one marked",
+        "tags": [
+          "identity"
+        ]
+      }
+    },
+    "/v1/me/sessions/{id}": {
+      "delete": {
+        "operationId": "endMySession",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Ended"
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "404": {
+            "description": "No such session of yours"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Sign out one of your sessions (its refresh token stops working at once; access tokens expire within 5 minutes)",
+        "tags": [
+          "identity"
+        ]
+      }
+    },
     "/v1/meta/locales": {
       "get": {
         "description": "Driven by the country pack; negotiates `Accept-Language` (RFC 9110) and returns `Content-Language`.",
@@ -858,6 +1363,228 @@
         "summary": "Supported locales and text direction (O-API2)",
         "tags": [
           "meta"
+        ]
+      }
+    },
+    "/v1/org/units": {
+      "get": {
+        "operationId": "listUnits",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/UnitDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "403": {
+            "description": "Not staff of an institution"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Branches and teams of your institution",
+        "tags": [
+          "organisation"
+        ]
+      },
+      "post": {
+        "operationId": "createUnit",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUnit"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnitDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "description": "No valid access token, or no recent sign-in (WWW-Authenticate: error=\"insufficient_user_authentication\", max_age)"
+          },
+          "403": {
+            "description": "Not the tenant administrator"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a branch, or a team inside a branch",
+        "tags": [
+          "organisation"
+        ]
+      }
+    },
+    "/v1/org/units/{id}/members": {
+      "get": {
+        "operationId": "listUnitMembers",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MemberDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          },
+          "403": {
+            "description": "Neither the tenant administrator nor a supervisor of this unit or its branch"
+          },
+          "404": {
+            "description": "No such unit in your institution"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Members of a unit (tenant administrator, or a supervisor of the unit or its branch)",
+        "tags": [
+          "organisation"
+        ]
+      }
+    },
+    "/v1/org/units/{id}/members/{personId}": {
+      "delete": {
+        "operationId": "removeUnitRole",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "personId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed"
+          },
+          "401": {
+            "description": "No valid access token, or no recent sign-in (WWW-Authenticate: error=\"insufficient_user_authentication\", max_age)"
+          },
+          "403": {
+            "description": "Not the tenant administrator"
+          },
+          "404": {
+            "description": "No such membership"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a staff member from a unit",
+        "tags": [
+          "organisation"
+        ]
+      },
+      "put": {
+        "operationId": "setUnitRole",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "personId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Set"
+          },
+          "401": {
+            "description": "No valid access token, or no recent sign-in (WWW-Authenticate: error=\"insufficient_user_authentication\", max_age)"
+          },
+          "403": {
+            "description": "Not the tenant administrator"
+          },
+          "404": {
+            "description": "No such unit, or not a staff member of your institution"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Give a staff member of your institution a role in a unit",
+        "tags": [
+          "organisation"
         ]
       }
     },
@@ -897,6 +1624,55 @@
         "summary": "Ask for a citizen account; an activation link is e-mailed if the address can be used",
         "tags": [
           "identity"
+        ]
+      }
+    },
+    "/v1/staff/invitations": {
+      "post": {
+        "operationId": "inviteStaff",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvitationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "description": "No valid access token, or no recent sign-in (WWW-Authenticate: error=\"insufficient_user_authentication\", max_age)"
+          },
+          "403": {
+            "description": "Not the tenant administrator"
+          },
+          "404": {
+            "description": "No such unit in your institution"
+          },
+          "409": {
+            "description": "This address cannot be invited (it already has a staff account)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Invite a staff member into a unit of your institution (invitation link by e-mail)",
+        "tags": [
+          "organisation"
         ]
       }
     }

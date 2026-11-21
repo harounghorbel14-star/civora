@@ -41,9 +41,10 @@ cat > .generated/s3.json <<JSON
 JSON
 chmod 600 .generated/s3.json
 # Written after Keycloak is up (below); must exist before start so that Docker mounts a file, not a directory.
-[ -f .generated/provisioner.secret ] || install -m 600 /dev/null .generated/provisioner.secret
-# The core runs as UID 10001 and must read it; the dev cell is local only.
-chmod 644 .generated/provisioner.secret
+for f in provisioner.secret staff-provisioner.secret; do
+  [ -f ".generated/$f" ] || install -m 600 /dev/null ".generated/$f"
+  chmod 644 ".generated/$f"   # the core runs as UID 10001 and must read it; the dev cell is local only
+done
 
 # 2. Build the application image and start everything; wait for health checks.
 #    PROXY_CA=/path/ca.crt passes a TLS-inspecting proxy's CA as a build secret (never stored in the image).
@@ -68,12 +69,13 @@ for spec in "civora-citizens citizens" "civora-staff staff" "civora-dev dev"; do
   set -- $spec
   extra=(--smtp-host mail --smtp-port 1025)
   [ "$2" = citizens ] && extra+=(--provisioner-secret-out .generated/provisioner.secret)
+  [ "$2" = staff ] && extra+=(--provisioner-secret-out .generated/staff-provisioner.secret)
   python3 "$here/keycloak/apply-realm-policy.py" --server http://localhost:8080 --realm "$1" --profile "$2" --export ".generated/$1.live.json" "${extra[@]}" >/dev/null
 done
 unset KC_ADMIN_TOKEN
 # Staff security keys: no approved models and no vendor roots in the dev cell, so key enrolment fails closed here
 # (the realms test supplies a test root and list: infra/tests/keycloak-realms/run.sh).
-chmod 644 .generated/provisioner.secret
+chmod 644 .generated/provisioner.secret .generated/staff-provisioner.secret
 docker compose restart core >/dev/null && docker compose up -d --wait --wait-timeout 120 core >/dev/null
 
 # 3. Smoke tests.

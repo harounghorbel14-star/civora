@@ -127,7 +127,7 @@ the application role cannot read the table). Whole suite 74/74; OpenAPI 9 paths 
 | R-P3-5 | Officer key models not restricted | **Closed as a mechanism** (§9.3): attestation verified, approved list enforced (A1, A2); fails closed until the deployment supplies the approved models and their vendor roots — **founder decision: which key models** |
 | R-P3-6 | Credential stuffing across accounts | **Closed at the gateway** (§9.4), provided Keycloak's public endpoints are reachable only through the gateway (deployment rule). Breached-password screening: evaluation, week 5 |
 | R-P3-7 | Lockout as denial of service | Open, low: temporary lockout only (at most 15 min); the gateway limit also slows mass lockouts |
-| R-P3-8 | Registrations that are never activated leave accounts without credentials (they cannot sign in; the link expires after 12 h; asking again re-sends it) | New, low: cleanup of accounts unactivated after 24 h, week 3 |
+| R-P3-8 | Registrations that are never activated leave accounts without credentials (they cannot sign in; the link expires after 12 h; asking again re-sends it) | **Closed** (week 3): hourly cleanup job, [doc 05](05-organisation-invitations-cleanup.md) |
 | R-P3-9 | Activation and invitation e-mails need a mail relay in each cell | New, external: provider choice for staging/pilot (no relay in Git; `--smtp-host` per deployment, relay password from Keycloak's vault) |
 | R-P3-10 | An address that is already active receives nothing when registered again (no "you already have an account" e-mail) | New, low (usability): a notification e-mail sent by the core is possible once a relay exists (R-P3-9) |
 
