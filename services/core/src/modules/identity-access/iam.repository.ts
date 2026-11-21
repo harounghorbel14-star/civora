@@ -23,6 +23,16 @@ export interface OrgUnitRow {
   createdAt: Date;
 }
 
+export type LinkOutcome = 'linked' | 'refreshed' | 'rejected' | 'linked-elsewhere' | 'other-identity';
+
+export interface IdentityClaimView {
+  type: string;
+  source: string;
+  loa: string;
+  verifiedAt: Date;
+  expiresAt: Date | null;
+}
+
 export interface MandateRow {
   id: string;
   principal_id: string;
@@ -188,6 +198,36 @@ export class IamRepository {
     return this.asPerson(personId, async (c) => {
       await c.query('select iam.sync_authenticators($1, $2::jsonb)', [realm, JSON.stringify(items)]);
     });
+  }
+
+  /** Identity links (P3-API6): start an attempt; its state is stored as a digest only. */
+  startIdentityLink(personId: string, stateDigest: Buffer, nonce: string, verifier: string, ttlSeconds: number): Promise<string> {
+    return this.asPerson(personId, async (c) => (await c.query<{ id: string }>(
+      'select iam.start_identity_link($1, $2, $3, $4) as id', [stateDigest, nonce, verifier, ttlSeconds])).rows[0]!.id);
+  }
+
+  /** The attempt's nonce and verifier, once; null when there is no such open attempt for this person and state. */
+  claimIdentityLink(personId: string, id: string, stateDigest: Buffer): Promise<{ nonce: string; codeVerifier: string } | null> {
+    return this.asPerson(personId, async (c) => {
+      const r = await c.query<{ nonce: string; code_verifier: string }>('select * from iam.claim_identity_link($1, $2)', [id, stateDigest]);
+      return { nonce: r.rows[0]!.nonce, codeVerifier: r.rows[0]!.code_verifier };
+    }).catch((e: unknown) => {
+      if ((e as { code?: string }).code === 'P0002') return null;
+      throw e;
+    });
+  }
+
+  /** Records the outcome of a claimed attempt; digest null when the eID refused. */
+  finishIdentityLink(personId: string, id: string, digest: Buffer | null, source: string, loa: string | null): Promise<LinkOutcome> {
+    return this.asPerson(personId, async (c) => (await c.query<{ outcome: LinkOutcome }>(
+      'select iam.finish_identity_link($1, $2, $3, $4) as outcome', [id, digest, source, loa])).rows[0]!.outcome);
+  }
+
+  /** The person's verified identity claims: types, sources and levels only, never the digests. */
+  identityClaims(personId: string): Promise<IdentityClaimView[]> {
+    return this.asPerson(personId, async (c) => (await c.query<IdentityClaimView>(
+      `select claim_type as type, source, loa, verified_at as "verifiedAt", expires_at as "expiresAt"
+         from iam.identity_claim order by claim_type, source`)).rows);
   }
 
   close(): Promise<void> {

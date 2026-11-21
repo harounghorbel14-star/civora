@@ -63,3 +63,17 @@ applied in another institution; branch supervisor sees team members, a team memb
 another institution; the application role cannot insert units directly. Unit: cleanup removes only unverified,
 credential-less, old accounts. Tests: 85 across the workspace (core 67, with PostgreSQL); OpenAPI 18 paths / 23 operations; module boundaries pass; chart lint
 and manifest validation pass.
+
+## 5. Defect found afterwards (21 Nov 2026, fixed)
+
+The longer realms run of week 3 part 3 ([doc 06](06-simulated-eid-identity-links.md)) showed that the cleanup also
+removed **Keycloak service-account users**: they have no e-mail, no credential and no verified e-mail, so they matched
+"never activated". In that run it removed the core's provisioner service accounts in both realms, and every later
+admin call of the core failed (`401`). Check 9 above did not see it, because no test needed the provisioner after the
+cleanup. This version was merged into `main` with PR #6; no cell runs the CronJob yet (it is off by default).
+
+Fix: the cleanup only considers accounts **with an e-mail address**, never a service account (username prefix
+`service-account-`, and the full record's service-account link is checked again before deleting). New checks: unit
+test with service accounts and an account without e-mail; realms test: both provisioner service accounts still exist
+after the cleanup, and a registration still sends its e-mail afterwards.
+

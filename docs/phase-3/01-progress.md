@@ -22,13 +22,15 @@
 | 3 | Step-up (A4), sessions (API3), authenticators (API4, F2), authenticator mirror (DB3) | **Done** (local) | [04](04-sessions-authenticators-step-up.md): account checks against the real realms all passed; core 82 tests; dev cell 15/15 |
 | 3 | Branch/team roles (R3), staff invitations (no administrator-known passwords), cleanup of accounts never activated (R-P3-8), chart: identity settings, Keycloak egress, cleanup CronJob | **Done** (local) | [05](05-organisation-invitations-cleanup.md): organisation checks against the real realms all passed; 85 tests across the workspace (core 67) |
 | 3 | GitHub on `c2b0039` (step-up, sessions, authenticators) | CI run 47 **green**; nightly run 21: `identity-realms` failed once in `[fr]`: a navigation to Keycloak was interrupted by Chromium's error page for the previous redirect | Test-harness race, not identity code: the helper now waits for the page and retries an interrupted navigation (`lib.cjs`); full run afterwards in ar/fr/en: 123 checks, all passed |
-| 3 | Simulated eID (D4, API6); staff SSO (R1) | Next | — |
+| 3 | GitHub on `f36a50c` (branches, teams, invitations, cleanup) | CI run 48 **green**; nightly run 23 **green, 12 of 12 jobs** (identity realms with the organisation checks) | Merged into `main`: PR #6 (`2f06576`) |
+| 3 | Simulated national eID (D4), identity links (API6), keyed digests in `iam.identity_claim` (DB4); ADR-028 adapter rules in code; dev cell with the simulator | **Done** (local) | [06](06-simulated-eid-identity-links.md): whole realms run 142 checks, all passed (eID, leak scan of the core database and log); 110 tests across the workspace (core 92); dev cell 16/16. The first run found a defect in the week-3 cleanup (it removed Keycloak service accounts; merged in PR #6, CronJob off by default): fixed, [05 §5](05-organisation-invitations-cleanup.md) |
+| 3 | Staff SSO (R1) | Next | — |
 
 ## Completion estimate (21 Nov 2026, updated during week 3)
 
 Each of the 43 work items of the specification ([00](00-phase-3-start-and-specification-audit.md); objectives,
 dependency, time and budget lines excluded) scored by what is built **and tested**: 0, 25, 50, 75 or 100 %.
-**Phase 3: about 66 %** (28.25 of 43). Acceptance criteria: 1 of 3 met (AC3), AC1 half, AC2 not started.
+**Phase 3: about 72 %** (30.75 of 43). Acceptance criteria: 1 of 3 met (AC3), AC1 half, AC2 not started.
 Time: 2 of 6 planned weeks used. The scoring is an engineering estimate, not an acceptance decision.
 
 | Item | Done | What is missing |
@@ -36,7 +38,7 @@ Time: 2 of 6 planned weeks used. The scoring is an engineering estimate, not an 
 | P3-D1 citizen and officer authentication | 75% | realm flows, step-up, staff invitations built and tested; app screens and staff SSO missing |
 | P3-D2 profile | 75% | GET/PATCH /v1/me; no app screen |
 | P3-D3 mandates | 75% | domain, API, audit events; 'acting on behalf of' UI missing |
-| P3-D4 simulated eID adapter | 0% | week 3 |
+| P3-D4 simulated eID adapter | 100% | port NationalEid, simulated-oidc adapter, ADR-028 mode rules, simulator realm (doc 06) |
 | P3-D5 account recovery design | 0% | week 6 |
 | P3-A1 realms per cell | 100% |  |
 | P3-A2 OIDC to apps | 50% | clients with PKCE and audience; no app integrated yet |
@@ -51,7 +53,7 @@ Time: 2 of 6 planned weeks used. The scoring is an engineering estimate, not an 
 | P3-DB1 iam.person | 100% |  |
 | P3-DB2 iam.account | 100% |  |
 | P3-DB3 iam.authenticator (mirror) | 100% | mirror refreshed through iam.sync_authenticators (doc 04) |
-| P3-DB4 iam.identity_claim | 50% | table with RLS; filled by the eID adapter (week 3) |
+| P3-DB4 iam.identity_claim | 100% | keyed digests from the eID adapter; one identity per person (doc 06) |
 | P3-DB5 iam.mandate | 100% |  |
 | P3-DB6 iam.pairwise_id | 50% | table with RLS; pairwise ids issued by Keycloak, mirror not filled |
 | P3-API1 OIDC endpoints | 100% |  |
@@ -59,17 +61,17 @@ Time: 2 of 6 planned weeks used. The scoring is an engineering estimate, not an 
 | P3-API3 sessions | 100% | doc 04 |
 | P3-API4 authenticators | 100% | doc 04 |
 | P3-API5 mandates | 100% |  |
-| P3-API6 identity links (simulated eID) | 0% | week 3 |
+| P3-API6 identity links (simulated eID) | 100% | start (step-up), complete, list (doc 06) |
 | P3-SEC1 ASVS L3 | 25% | controls in place; no formal ASVS assessment yet (week 5) |
 | P3-SEC2 rate limits | 75% | gateway limits on login, token, registration, API; full endpoint review week 5 |
 | P3-SEC3 credential stuffing | 100% |  |
 | P3-SEC4 recovery re-proofing | 0% | week 6, depends on Q3-4 |
 | P3-SEC5 officers require FIDO2 | 100% | approved models: founder decision Q3-5 |
-| P3-T1 unit + integration | 75% | 85 tests (core 67 with PostgreSQL) and the realms integration run (123 checks); grows with each feature |
+| P3-T1 unit + integration | 75% | 110 tests (core 92 with PostgreSQL) and the realms integration run; grows with each feature |
 | P3-T2 E2E Playwright, Detox | 50% | Playwright on realm flows in 3 languages; app screens and Detox (Q3-3) missing |
 | P3-T3 negative tests (session fixation, CSRF, token replay) | 50% | token forgery/replay, TOTP replay, forged WebAuthn done; session fixation and CSRF not yet |
 | P3-T4 mandate-scope authorisation tests | 75% | party and scope rules tested; enforcement on domain endpoints comes with them |
-| P3-AC1 all auth flows E2E in AR/FR/EN | 50% | realm flows pass in all three; sessions, step-up and invitations pass through the core (one language each); eID and app screens not yet |
+| P3-AC1 all auth flows E2E in AR/FR/EN | 50% | realm flows pass in all three; sessions, step-up, invitations and eID links pass through the core (eID pages in all three); app screens not yet |
 | P3-AC2 no high findings in internal security review | 0% | review in week 6 |
 | P3-AC3 mandate actions logged and visible | 100% |  |
 | P3-RISK SMS reliance, passkey usability for elderly users | 25% | password + TOTP alternative exists; assisted flows not designed |

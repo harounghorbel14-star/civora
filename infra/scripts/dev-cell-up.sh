@@ -41,10 +41,13 @@ cat > .generated/s3.json <<JSON
 JSON
 chmod 600 .generated/s3.json
 # Written after Keycloak is up (below); must exist before start so that Docker mounts a file, not a directory.
-for f in provisioner.secret staff-provisioner.secret; do
+for f in provisioner.secret staff-provisioner.secret eid-sim-client.secret; do
   [ -f ".generated/$f" ] || install -m 600 /dev/null ".generated/$f"
   chmod 644 ".generated/$f"   # the core runs as UID 10001 and must read it; the dev cell is local only
 done
+# Key for the keyed digests of national identifiers (identity links): kept while the database is kept.
+[ -s .generated/identity-digest.key ] || head -c 32 /dev/urandom | base64 > .generated/identity-digest.key
+chmod 644 .generated/identity-digest.key
 
 # 2. Build the application image and start everything; wait for health checks.
 #    PROXY_CA=/path/ca.crt passes a TLS-inspecting proxy's CA as a build secret (never stored in the image).
@@ -72,10 +75,15 @@ for spec in "civora-citizens citizens" "civora-staff staff" "civora-dev dev"; do
   [ "$2" = staff ] && extra+=(--provisioner-secret-out .generated/staff-provisioner.secret)
   python3 "$here/keycloak/apply-realm-policy.py" --server http://localhost:8080 --realm "$1" --profile "$2" --export ".generated/$1.live.json" "${extra[@]}" >/dev/null
 done
+# SIMULATED national eID: a fresh secret for the core's relying-party client (never committed).
+eid_client=$(curl -fsS -H "Authorization: Bearer $KC_ADMIN_TOKEN" "localhost:8080/admin/realms/sim-national-eid/clients?clientId=civora-core-eid" \
+  | python3 -c 'import json,sys;print(json.load(sys.stdin)[0]["id"])')
+curl -fsS -X POST -H "Authorization: Bearer $KC_ADMIN_TOKEN" "localhost:8080/admin/realms/sim-national-eid/clients/$eid_client/client-secret" \
+  | python3 -c 'import json,sys;print(json.load(sys.stdin)["value"])' > .generated/eid-sim-client.secret
 unset KC_ADMIN_TOKEN
 # Staff security keys: no approved models and no vendor roots in the dev cell, so key enrolment fails closed here
 # (the realms test supplies a test root and list: infra/tests/keycloak-realms/run.sh).
-chmod 644 .generated/provisioner.secret .generated/staff-provisioner.secret
+chmod 644 .generated/provisioner.secret .generated/staff-provisioner.secret .generated/eid-sim-client.secret
 docker compose restart core >/dev/null && docker compose up -d --wait --wait-timeout 120 core >/dev/null
 
 # 3. Smoke tests.
@@ -102,6 +110,8 @@ registration_ok() {
 }
 check "registration answers 202 and the activation e-mail arrives (dev mail catcher)" "registration_ok"
 check "core identity configured (/v1/me without a token: 401, not 503)" "test \"\$(curl -s -o /dev/null -w '%{http_code}' localhost:3000/v1/me)\" = 401"
+check "SIMULATED national eID realm answers; the core's eID adapter is configured (simulated mode)" \
+  "curl -fsS localhost:8080/realms/sim-national-eid/.well-known/openid-configuration | grep -q '\"issuer\":\"http://localhost:8080/realms/sim-national-eid\"' && test -s .generated/eid-sim-client.secret && ! docker compose logs core 2>&1 | grep -qi 'AdapterModeError'"
 check "redis auth required"                  "docker compose exec -T redis redis-cli ping | grep -q NOAUTH"
 check "object store rejects anonymous"       "! curl -fsS localhost:8333/"
 check "openbao unsealed"                     "curl -fsS localhost:8200/v1/sys/health | grep -q '\"sealed\":false'"

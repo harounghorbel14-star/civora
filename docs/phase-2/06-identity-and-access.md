@@ -6,6 +6,7 @@
 | Original items | **O-A2** Keycloak (dev cell); **O-A7** policy-engine spike |
 | Built in Phase 2 | Keycloak 26.0 in the dev cell with realm `civora-dev`: AR/FR/EN, brute-force protection, password policy, PKCE public client for the Workspace, bearer-only API client, `tenant_id` claim mapper, synthetic users with random passwords. Cedar policy model with 24 conformance cases |
 | Phase 3 update (21 Nov 2026) | The dev cell now runs Keycloak 26.8.1 (pinned) with the citizens and staff realms, a post-import policy and live conformance checks; the dev realm's password grant is denied realm-wide. See [Phase 3 doc 03](../phase-3/03-identity-realms-and-authentication.md) |
+| Phase 3 update (21 Nov 2026, eID) | Identity links through the **simulated** national eID: the core verifies the eID's signed answer itself and keeps a keyed digest of the identifier (proofing, not sign-in). Signing in with the eID through the Keycloak broker (§6.2) stays for Phase 12, authorised only. See [Phase 3 doc 06](../phase-3/06-simulated-eid-identity-links.md) |
 | Built later | Phase 3: staff SSO, customer OTP, accounts, sessions, tenant admin. Phase 3/12: citizen accounts and eID brokering (authorised only) |
 
 ## 6.1 Identity populations

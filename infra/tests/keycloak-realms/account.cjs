@@ -6,29 +6,10 @@
 const { chromium } = require('playwright');
 const lib = require('./lib.cjs');
 const { KC, WEB_CB, WS_CB, TENANT, check, info, stamp, claims, sleep, admin, freshTotp, activationMail, newContext, addAuthenticator, authorize,
-  waitFor, codeFrom, exchange, core, visible, submit, activate, choosePasskey, credentialTypes, tag, form } = lib;
+  waitFor, codeFrom, exchange, core, visible, submit, activate, choosePasskey, credentialTypes, tag, form, signIn } = lib;
 
 const STEP_UP = Number(process.env.STEP_UP_MAX_AGE_SECONDS || 30);
 const json = (body) => ({ method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
-
-/** Signs in through the browser; returns the token response. prompt=login forces a fresh sign-in. */
-async function signIn(ctx, { realm, client, cb, email, password, secret, passkey = false, extra = {} }) {
-  const a = authorize(ctx.page, realm, client, cb, extra);
-  const n = ctx.captured.length;
-  await a.go();
-  if (passkey) {
-    if (await choosePasskey(ctx.page)) await ctx.page.locator('#authenticateWebAuthnButton').click();
-  } else if (await waitFor(() => visible(ctx.page, '#password'), 5000)) {
-    // On re-authentication (prompt=login) Keycloak already knows the user and shows only the password field.
-    if (await visible(ctx.page, '#username')) await ctx.page.locator('#username').fill(email);
-    await ctx.page.locator('#password').fill(password);
-    await submit(ctx.page);
-    if (secret && (await waitFor(() => visible(ctx.page, '#otp'), 8000))) { await ctx.page.locator('#otp').fill(await freshTotp(secret)); await submit(ctx.page); }
-    if (realm === 'civora-staff' && (await waitFor(() => visible(ctx.page, '#authenticateWebAuthnButton'), 8000))) await ctx.page.locator('#authenticateWebAuthnButton').click();
-  }
-  const code = await codeFrom(ctx.captured, n);
-  return code ? (await exchange(realm, client, code, a.verifier, cb)).body : {};
-}
 
 (async () => {
   await lib.refreshAdmin();

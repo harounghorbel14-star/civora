@@ -93,6 +93,10 @@ services:
       KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
       KC_BOOTSTRAP_ADMIN_USERNAME: dev-admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?run infra/scripts/dev-cell-up.sh}
+      # Issuers as the browser sees them, whoever asks; services inside the cell reach Keycloak at keycloak:8080
+      # (back-channel). Needed by the core's eID adapter, which exchanges codes inside the cell.
+      KC_HOSTNAME: http://localhost:8080
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
     ports: ["127.0.0.1:8080:8080"]
     # Realms imported on first start; infra/scripts/dev-cell-up.sh then applies the post-import policy and checks
     # the live realms (infra/keycloak/apply-realm-policy.py, infra/scripts/check-realm-security.py --live).
@@ -100,6 +104,8 @@ services:
       - ./keycloak/civora-dev-realm.json:/opt/keycloak/data/import/civora-dev-realm.json:ro
       - ../keycloak/realms/civora-citizens.json:/opt/keycloak/data/import/civora-citizens.json:ro
       - ../keycloak/realms/civora-staff.json:/opt/keycloak/data/import/civora-staff.json:ro
+      # SIMULATED national eID (synthetic identities only; dev cell and tests, never staging or production).
+      - ../keycloak/simulators/sim-national-eid.json:/opt/keycloak/data/import/sim-national-eid.json:ro
     depends_on:
       pg-core: { condition: service_healthy }
     healthcheck:
@@ -169,12 +175,20 @@ services:
       KEYCLOAK_PROVISIONER_SECRET_FILE: /run/secrets/keycloak-provisioner
       KEYCLOAK_STAFF_PROVISIONER_SECRET_FILE: /run/secrets/keycloak-staff-provisioner
       ACTIVATION_REDIRECT_URI: https://app.civora-cell.invalid/activated
+      # Identity links through the SIMULATED national eID (Phase 3 doc 06); secret and digest key written by dev-cell-up.sh.
+      EID_SIM_ISSUER: http://localhost:8080/realms/sim-national-eid
+      EID_SIM_INTERNAL_URL: http://keycloak:8080
+      EID_SIM_CLIENT_SECRET_FILE: /run/secrets/eid-sim-client
+      EID_REDIRECT_URI: https://app.civora-cell.invalid/identity/eid/callback
+      IDENTITY_CLAIM_DIGEST_KEY_FILE: /run/secrets/identity-digest-key
       OTEL_EXPORTER_OTLP_ENDPOINT: http://observability:4318
       OTEL_BSP_SCHEDULE_DELAY: "1000"   # dev only: export spans within a second
     ports: ["127.0.0.1:3000:3000"]
     volumes:
       - ./.generated/provisioner.secret:/run/secrets/keycloak-provisioner:ro
       - ./.generated/staff-provisioner.secret:/run/secrets/keycloak-staff-provisioner:ro
+      - ./.generated/eid-sim-client.secret:/run/secrets/eid-sim-client:ro
+      - ./.generated/identity-digest.key:/run/secrets/identity-digest-key:ro
     read_only: true
     tmpfs: ["/tmp"]
     cap_drop: ["ALL"]

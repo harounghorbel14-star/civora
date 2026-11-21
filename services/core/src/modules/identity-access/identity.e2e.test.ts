@@ -220,6 +220,73 @@ describe('identity and mandates, end to end (Phase 3 week 1)', { skip: !adminUrl
     await c.end();
   });
 
+  it('identity links (P3-API6): single-use attempts, one person per national identity, no identifier stored (as the application role)', async () => {
+    const fay = await sign('fay');
+    assert.deepEqual((await call('/v1/identity/links', fay)).body, []);
+    const c = new Client({ connectionString: appDbUrl });
+    await c.connect();
+    const person = async (realm: string, subject: string, tenant: string | null = null) =>
+      (await c.query('select iam.ensure_person($1, $2, $3, null) as id', [realm, subject, tenant])).rows[0].id as string;
+    const as = async <T>(who: string, fn: () => Promise<T>): Promise<T> => {
+      await c.query('begin');
+      await c.query("select set_config('app.person_id', $1, true)", [who]);
+      try { const r = await fn(); await c.query('commit'); return r; } catch (e) { await c.query('rollback'); throw e; }
+    };
+    const one = async (sql: string, args: unknown[] = []) => (await c.query(sql, args)).rows[0];
+    const d = (n: number) => Buffer.alloc(32, n);
+    const start = (who: string, state: number) => as(who, async () => (await one('select iam.start_identity_link($1, $2, $3, 600) as id', [d(state), 'n'.repeat(43), 'v'.repeat(43)])).id as string);
+    const claim = (who: string, id: string, state: number) => as(who, () => one('select * from iam.claim_identity_link($1, $2)', [id, d(state)]));
+    const finish = (who: string, id: string, digest: Buffer | null) => as(who, async () => (await one("select iam.finish_identity_link($1, $2, 'eid-simulated', 'high') as o", [id, digest])).o as string);
+    const p1 = await person('citizens', 'fay');
+    const p2 = await person('citizens', 'gus');
+    const staff = await person('staff', 'hal', '33333333-3333-4333-8333-333333333333');
+    const NID = d(200); // a keyed digest as the core computes it; the identifier itself never reaches the database
+
+    const a1 = await start(p1, 1);
+    await assert.rejects(claim(p2, a1, 1), /no such open link attempt/, 'someone else cannot claim the attempt');
+    await assert.rejects(claim(p1, a1, 9), /no such open link attempt/, 'wrong state');
+    assert.deepEqual(await claim(p1, a1, 1), { nonce: 'n'.repeat(43), code_verifier: 'v'.repeat(43) });
+    await assert.rejects(claim(p1, a1, 1), /no such open link attempt/, 'single use');
+    assert.equal(await finish(p1, a1, NID), 'linked');
+    await assert.rejects(finish(p1, a1, NID), /no such claimed link attempt/, 'an outcome is recorded once');
+
+    const a2 = await start(p2, 2);
+    await claim(p2, a2, 2);
+    assert.equal(await finish(p2, a2, NID), 'linked-elsewhere', 'one national identity, one person');
+    const a3 = await start(p1, 3);
+    await claim(p1, a3, 3);
+    assert.equal(await finish(p1, a3, d(201)), 'other-identity', 'an account keeps the identity it linked');
+    const a4 = await start(p1, 4);
+    await claim(p1, a4, 4);
+    assert.equal(await finish(p1, a4, NID), 'refreshed');
+    const a5 = await start(p2, 5);
+    await claim(p2, a5, 5);
+    assert.equal(await finish(p2, a5, null), 'rejected', 'the eID refused: recorded, nothing linked');
+
+    await assert.rejects(start(staff, 6), /citizens only/);
+    await assert.rejects(as(p2, () => one("select iam.start_identity_link($1, $2, $3, 30)", [d(7), 'n'.repeat(43), 'v'.repeat(43)])), /60\.\.900/);
+    for (let i = 0; i < 3; i++) await start(p2, 10 + i);
+    await assert.rejects(start(p2, 20), /too many identity link attempts/, 'five attempts per hour');
+    await assert.rejects(c.query('select count(*) from iam.identity_link_attempt'), /permission denied/);
+    await assert.rejects(c.query("insert into iam.identity_claim (person_id, claim_type, value_digest, source, loa) values ($1, 'national-id-link', $2, 'eid-simulated', 'high')", [p2, d(9)]), /permission denied/);
+    await c.end();
+
+    const listed = (await call('/v1/identity/links', fay)).body;
+    assert.equal(listed.length, 1);
+    assert.deepEqual(Object.keys(listed[0]).sort(), ['expiresAt', 'loa', 'source', 'type', 'verifiedAt'], 'never the digest');
+    assert.deepEqual([listed[0].type, listed[0].source, listed[0].loa], ['national-id-link', 'eid-simulated', 'high']);
+    assert.equal((await call('/v1/identity/links', await sign('gus'))).body.length, 0, 'only your own claims');
+  });
+
+  it('identity links: 503 when no eID is configured in the cell; a recent sign-in is required to start', async () => {
+    const recent = await sign('ivy', { auth_time: Math.floor(Date.now() / 1000), acr: '1' });
+    assert.equal((await call('/v1/identity/links', recent, { method: 'POST', body: {} })).status, 503);
+    const old = await sign('ivy', { auth_time: Math.floor(Date.now() / 1000) - 3600, acr: '1' });
+    const r = await call('/v1/identity/links', old, { method: 'POST', body: {} });
+    assert.equal(r.status, 401);
+    assert.match(r.headers.get('www-authenticate') ?? '', /insufficient_user_authentication/);
+  });
+
   it('database: activation e-mails per address are bounded (registration_permit, as the application role)', async () => {
     const c = new Client({ connectionString: appDbUrl });
     await c.connect();

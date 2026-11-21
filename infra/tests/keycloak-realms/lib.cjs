@@ -224,7 +224,27 @@ async function activate(page, link) {
   return { seen, secret, password };
 }
 
+/** Signs in through the browser; returns the token response. prompt=login forces a fresh sign-in. */
+async function signIn(ctx, { realm, client, cb, email, password, secret, passkey = false, extra = {} }) {
+  const a = authorize(ctx.page, realm, client, cb, extra);
+  const n = ctx.captured.length;
+  await a.go();
+  if (passkey) {
+    if (await choosePasskey(ctx.page)) await ctx.page.locator('#authenticateWebAuthnButton').click();
+  } else if (await waitFor(() => visible(ctx.page, '#password'), 5000)) {
+    // On re-authentication (prompt=login) Keycloak already knows the user and shows only the password field.
+    if (await visible(ctx.page, '#username')) await ctx.page.locator('#username').fill(email);
+    await ctx.page.locator('#password').fill(password);
+    await submit(ctx.page);
+    if (secret && (await waitFor(() => visible(ctx.page, '#otp'), 8000))) { await ctx.page.locator('#otp').fill(await freshTotp(secret)); await submit(ctx.page); }
+    if (realm === 'civora-staff' && (await waitFor(() => visible(ctx.page, '#authenticateWebAuthnButton'), 8000))) await ctx.page.locator('#authenticateWebAuthnButton').click();
+  }
+  const code = await codeFrom(ctx.captured, n);
+  return code ? (await exchange(realm, client, code, a.verifier, cb)).body : {};
+}
+
 module.exports = {
+  signIn,
   KC, CORE, MAIL, ARTIFACTS, LOCALES, WEB_CB, WS_CB, RP1_CB, RP2_CB, TENANT, TEST_AAGUID, POLICY, LANG,
   check, failures, info, stamp, b64url, rnd, tag, claims, pw, sleep, median, form, refreshAdmin, admin, adminToken: () => adminToken,
   credentialTypes, userByEmail, freshTotp, mails, activationMail, newContext, addAuthenticator, authorize, waitFor, codeFrom, exchange,
