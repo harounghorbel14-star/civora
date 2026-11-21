@@ -4,7 +4,7 @@
 |---|---|
 | **Version** | **2.2: Phase 1 completion and validation mission (18 Nov 2026).** 2.1 applied the founder review; 2.0 was the update to the *Master Project Directive — Phase 1* |
 | **Previous version** | 1.0 (same day). All content preserved and restructured; see [change-record.md](change-record.md) |
-| **Status** | **Readiness: NOT READY — VALIDATION ITEMS REMAINING** ([readiness report](phase-1-readiness-report.md)). Phase 1 approval **PENDING (P1-D12)**. All desk work is complete; the remaining items need the founder, counsel or institutions. Phase 2 and all coding on hold. *Annotated 19 Nov 2026: Phase 2 started by founder decision P2-D0 ([../phase-2/](../phase-2/README.md)); Phase 1 approval still pending* |
+| **Status** | **Phase 1 APPROVED by the founder on 21 Nov 2026 (P1-D12)** ([decision](23-founder-approval-decisions.md) §23.6). Validation items still open are tracked in the [validation evidence register](validation-evidence-register.md); P1-D3, P1-D7 and P1-D9 remain conditional |
 | **Roadmap** | Original 15-phase roadmap unchanged and in original order. Execution model **approved (P1-D4): overlapping independent activities**, with all dependencies, order, full scope, deliverables and approval gates preserved |
 | **Evidence labels** | [V] verified · [P] press/secondary · [A] assumption · [U] unverified (as in Phase 0). Sources: [sources.md](sources.md) (S120–S200) + [Phase 0 sources](../phase-0/sources.md) (S1–S119) |
 

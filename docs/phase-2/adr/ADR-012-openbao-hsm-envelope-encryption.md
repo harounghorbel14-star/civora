@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | **Proposed — awaiting founder approval (acceptance criterion O-AC2)** |
+| Status | **Accepted with conditions** — approved by the founder on 21 Nov 2026 (decision P2-D1; [decision record](../founder-review/P2-founder-decision-record.md)). Condition: Shamir 3-of-5 unseal until a provider offers an HSM (register §3.3) |
 | Date | 19 November 2026 |
 | Origin | Phase 0 §8.12 backlog item 012 (topic unchanged) |
 | Covers | O-SEC1 |

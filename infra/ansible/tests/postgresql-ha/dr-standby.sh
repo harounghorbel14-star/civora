@@ -47,7 +47,8 @@ docker network create --subnet "$subnet" "$net" >/dev/null
 node_up() {
   docker run -d --name "$1" --hostname "$1" --network "$net" --ip "${ip[$1]}" \
     --privileged --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:rw "$image" >/dev/null
-  until docker exec "$1" systemctl is-system-running 2>/dev/null | grep -qE 'running|degraded'; do sleep 1; done
+  waited=0; for _ in $(seq 1 120); do docker exec "$1" systemctl is-system-running 2>/dev/null | grep -qE 'running|degraded' && { waited=1; break; }; sleep 1; done
+  [ "$waited" = 1 ] || { echo "  FAIL timed out after 120 s waiting for: docker exec $1 systemctl is-system-running 2>/dev/null | grep -qE 'running|degra"; exit 1; }  # bounded wait
 }
 for n in "${!ip[@]}"; do node_up "$n"; done
 stamp "site A (2 database servers + repository 1) and site B (repository 2 + 2 database servers) up"

@@ -4,7 +4,7 @@
 - Overall direction accepted in principle.
 - **P1-D4 approved:** overlapping independent activities.
 - **P1-D13 approved as an evaluation:** KELORA, TELORA and NASAQ are evaluated; **no final name selected**.
-- **Phase 1 approval pending (P1-D12).** See the [readiness report](phase-1-readiness-report.md).
+- **Phase 1 APPROVED by the founder on 21 Nov 2026 (P1-D12)** — see §23.6. Validation evidence still open stays tracked in the [validation evidence register](validation-evidence-register.md).
 - **Phase 2 and application development are on hold.**
 
 ## 23.1 Decision register
@@ -22,7 +22,7 @@
 | **P1-D9** | Pricing | 🟡 **CONDITIONAL** | Experimental pricing hypotheses until tested with prospective institutional customers | [19](19-commercial-and-pricing-strategy.md) §19.7 |
 | **P1-D10** | 20-sector Government catalog | ✅ **APPROVED WITH BOUNDARIES** | Excludes unauthorised operational policing, emergency dispatch, electoral administration and restricted national-register functions | [05](05-government-master-service-catalog.md) §5.2 |
 | **P1-D11** | Design-partner agreement | ✅ **APPROVED IN PRINCIPLE** | Subject to review by qualified Tunisian counsel | [supporting/design-partner-agreement-template.md](supporting/design-partner-agreement-template.md) |
-| **P1-D12** | Phase 1 approval | ⏳ **PENDING** (unchanged; stays pending until all Phase 1 acceptance criteria are met) | Until the required clarifications and outstanding evidence are documented. Readiness status on 18 Nov 2026: **NOT READY — VALIDATION ITEMS REMAINING** | [validation-evidence-register.md](validation-evidence-register.md); [phase-1-readiness-report.md](phase-1-readiness-report.md) |
+| **P1-D12** | Phase 1 approval | ✅ **APPROVED by the founder on 21 Nov 2026** (§23.6). *Previously pending until all Phase 1 acceptance criteria were met; the founder approved with the open validation items carried forward* | Until the required clarifications and outstanding evidence are documented. Readiness status on 18 Nov 2026: **NOT READY — VALIDATION ITEMS REMAINING** | [validation-evidence-register.md](validation-evidence-register.md); [phase-1-readiness-report.md](phase-1-readiness-report.md) |
 
 ## 23.2 New decisions raised by this review
 
@@ -61,10 +61,10 @@
 | ✅ Approved | P1-D1, P1-D2, **P1-D4 (overlapping independent activities)**, P1-D5, P1-D6, P1-D8, P1-D10 (with boundaries), P1-D11 (in principle), **P1-D13 (evaluate KELORA, TELORA, NASAQ; no final name)** |
 | ✅ Resolved | P1-D4a (by P1-D4) |
 | 🟡 Conditional | P1-D3 (until market validation), P1-D7 (until independent validation), P1-D9 (pricing experimental) |
-| ⏳ Pending | P1-D12 (Phase 1 approval), P1-D14 (Workspace AI in Phase 10, decide at Phase 10) |
+| ⏳ Pending | P1-D14 (Workspace AI in Phase 10, decide at Phase 10). *P1-D12 approved 21 Nov 2026 (§23.6)* |
 | Decisions the founder will need later (not now) | Final company name after attorney clearance (follow-up to P1-D13). Confirmation or revision of P1-D3 at the Day-90 gate. Funding commitment (P1-D7), now informed by the market-size check (§20.7.7: Workspace RF alone cannot carry the Moderate plan). Citizen Data Charter wording (Phase 0 D6 follow-up; 5 proposals in [validation/charter-review-pack.md](validation/charter-review-pack.md)) |
 
-The founder actions needed to move P1-D3, P1-D7 and P1-D12 are listed in the [readiness report](phase-1-readiness-report.md) §7. **Phase 1 is not approved by this document.**
+The founder actions needed to move P1-D3, P1-D7 and P1-D12 are listed in the [readiness report](phase-1-readiness-report.md) §7. *(18 Nov 2026 text: "Phase 1 is not approved by this document." Superseded on 21 Nov 2026: Phase 1 approved by the founder, §23.6.)*
 
 ## 23.6 Decisions recorded after 18 November 2026
 
@@ -74,3 +74,16 @@ The founder actions needed to move P1-D3, P1-D7 and P1-D12 are listed in the [re
 
 **Phase 1 is still not approved.**
 
+### 21 Nov 2026 — P1-D12 approved; Phase 2 approved; Phase 3 started
+
+**Founder instruction (verbatim):** "Look now do phase1 approved and phase 2 ready and approved and if you finish this go to start phase 3".
+
+| ID | Decision | Recorded |
+|---|---|---|
+| **P1-D12** | **Phase 1 approved** | ✅ 21 Nov 2026 |
+
+**What this changes, and what it does not:**
+- **Not changed:** the conditional decisions P1-D3, P1-D7 and P1-D9 stay conditional on market and independent validation, as before. The instruction did not address them.
+- **Still open:** validation evidence items not yet met remain open in the [validation evidence register](validation-evidence-register.md). They are not marked as met; they continue as tracked commercial validation alongside Phase 3 (P1-D4, overlapping independent activities).
+- **Phase 2:** approved the same day ([Phase 2 decision record](../phase-2/founder-review/P2-founder-decision-record.md)).
+- **Phase 3:** started on the same instruction ([start record](../phase-3/00-phase-3-start-and-specification-audit.md)).

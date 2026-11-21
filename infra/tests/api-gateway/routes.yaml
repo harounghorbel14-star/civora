@@ -1,4 +1,4 @@
-# CIVORA edge routes (ADR-030), rendered by run.sh: @CORE@, @ISSUER@, @CLIENT_SECRET@ are filled per run.
+# CIVORA edge routes (ADR-030), rendered by run.sh: @CORE@, @KEYCLOAK@, @ISSUER@, @CLIENT_SECRET@ are filled per run.
 # The production equivalent is generated as ApisixRoute/ApisixGlobalRule resources from these same plugin settings.
 global_rules:
   - id: civora-defaults
@@ -15,6 +15,46 @@ routes:
   - id: health
     uri: /health
     methods: [GET, HEAD]
+    upstream: { type: roundrobin, nodes: { "@CORE@": 1 } }
+  # --- Identity provider (Phase 3 doc 03, R-P3-6): Keycloak's public endpoints only through the gateway. ---
+  # Credential stuffing tries one password on many accounts, which per-account lockout does not see: login submissions
+  # and token requests are limited per client address. Limits allow for carrier-grade NAT (many citizens behind one
+  # address): 20 login submissions a minute per address, on top of Keycloak's lockout after 5 failures per account.
+  - id: keycloak-login-submissions
+    uri: /realms/*
+    methods: [POST]
+    vars: [["uri", "~~", "^/realms/[^/]+/login-actions/"]]
+    priority: 20
+    plugins:
+      limit-count: { count: 20, time_window: 60, key_type: var, key: remote_addr, rejected_code: 429, policy: local }
+    upstream: { type: roundrobin, nodes: { "@KEYCLOAK@": 1 } }
+  - id: keycloak-token
+    uri: /realms/*
+    methods: [POST]
+    vars: [["uri", "~~", "^/realms/[^/]+/protocol/openid-connect/token$"]]
+    priority: 20
+    plugins:
+      limit-count: { count: 60, time_window: 60, key_type: var, key: remote_addr, rejected_code: 429, policy: local }
+    upstream: { type: roundrobin, nodes: { "@KEYCLOAK@": 1 } }
+  - id: keycloak-public
+    uri: /realms/*                   # login pages, discovery, keys; the admin API and console (/admin/*) are not routed
+    methods: [GET, HEAD, POST]
+    priority: 10
+    plugins:
+      limit-count: { count: 300, time_window: 60, key_type: var, key: remote_addr, rejected_code: 429, policy: local }
+    upstream: { type: roundrobin, nodes: { "@KEYCLOAK@": 1 } }
+  - id: keycloak-resources
+    uri: /resources/*                # login page styles and scripts
+    methods: [GET, HEAD]
+    upstream: { type: roundrobin, nodes: { "@KEYCLOAK@": 1 } }
+  # Citizen registration is public (no token yet) and answers the same for every address; bounded per client address
+  # against mass account creation and e-mail flooding (the core also bounds e-mails per address).
+  - id: registrations
+    uri: /v1/registrations
+    methods: [POST]
+    priority: 20
+    plugins:
+      limit-count: { count: 10, time_window: 600, key_type: var, key: remote_addr, rejected_code: 429, policy: local }
     upstream: { type: roundrobin, nodes: { "@CORE@": 1 } }
   - id: api-v1
     uri: /v1/*

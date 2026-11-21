@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | **Proposed — awaiting founder approval (acceptance criterion O-AC2)** |
+| Status | **Accepted with conditions** — approved by the founder on 21 Nov 2026 (decision P2-D1; [decision record](../founder-review/P2-founder-decision-record.md)). Condition: Valkey (BSD) instead of Redis >= 7.4 (register §3.2) |
 | Date | 19 November 2026 |
 | Origin | Phase 0 §8.12 backlog item 008 (topic unchanged) |
 | Covers | O-A4 |

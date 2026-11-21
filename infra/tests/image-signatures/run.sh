@@ -47,7 +47,8 @@ root_token=$(head -c 24 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 24)
 docker run -d --name civora-sig-bao --network "$net" -p 127.0.0.1:8200:8200 --cap-add IPC_LOCK \
   -e BAO_DEV_ROOT_TOKEN_ID="$root_token" -e BAO_DEV_LISTEN_ADDRESS=0.0.0.0:8200 "$bao_image" server -dev >/dev/null
 bao() { docker exec -e BAO_ADDR=http://127.0.0.1:8200 -e BAO_TOKEN="${BAO_AS:-$root_token}" civora-sig-bao bao "$@"; }
-until bao status >/dev/null 2>&1; do sleep 1; done
+waited=0; for _ in $(seq 1 120); do bao status >/dev/null 2>&1 && { waited=1; break; }; sleep 1; done
+[ "$waited" = 1 ] || { echo "  FAIL timed out after 120 s waiting for: bao status"; exit 1; }  # bounded wait
 bao secrets enable transit >/dev/null
 bao write -f transit/keys/civora-release type=ecdsa-p256 exportable=false >/dev/null
 printf 'path "transit/sign/civora-release" { capabilities = ["update"] }\npath "transit/sign/civora-release/*" { capabilities = ["update"] }\npath "transit/keys/civora-release" { capabilities = ["read"] }\n' \
@@ -69,8 +70,10 @@ docker run -d --name civora-sig-k3s --privileged --tmpfs /run --tmpfs /var/run -
   -p "127.0.0.1:$port:6443" -e K3S_KUBECONFIG_MODE=644 -v "$work/registries.yaml:/etc/rancher/k3s/registries.yaml:ro" \
   -v "$work/ca.crt:/etc/civora/registry-ca.crt:ro" "$k3s_image" server --disable=traefik --disable=metrics-server >/dev/null
 kc() { docker exec -i civora-sig-k3s kubectl "$@"; }
-until kc get --raw /readyz >/dev/null 2>&1; do sleep 2; done
-until kc get nodes -o name 2>/dev/null | grep -q node; do sleep 2; done
+waited=0; for _ in $(seq 1 90); do kc get --raw /readyz >/dev/null 2>&1 && { waited=1; break; }; sleep 2; done
+[ "$waited" = 1 ] || { echo "  FAIL timed out after 180 s waiting for: kc get --raw /readyz"; exit 1; }  # bounded wait
+waited=0; for _ in $(seq 1 90); do kc get nodes -o name 2>/dev/null | grep -q node && { waited=1; break; }; sleep 2; done
+[ "$waited" = 1 ] || { echo "  FAIL timed out after 180 s waiting for: kc get nodes -o name 2>/dev/null | grep -q node"; exit 1; }  # bounded wait
 kc wait --for=condition=Ready node --all --timeout=180s >/dev/null
 stamp "k3s ready"
 

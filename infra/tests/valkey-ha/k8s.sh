@@ -21,8 +21,12 @@ docker rm -f "$name" >/dev/null 2>&1 || true
 docker run -d --name "$name" --privileged --tmpfs /run --tmpfs /var/run -p "127.0.0.1:$port:6443" -e K3S_KUBECONFIG_MODE=644 \
   "$k3s_image" server --disable=traefik --disable=metrics-server --tls-san=127.0.0.1 >/dev/null
 kc() { docker exec -i "$name" kubectl "$@"; }
-until kc get --raw /readyz >/dev/null 2>&1; do sleep 2; done
-until kc get nodes -o name 2>/dev/null | grep -q node; do sleep 2; done
+# Bounded waits: if k3s does not come up, fail with its log instead of hanging until the job is killed (nightly run 18
+# hung here for the whole 25-minute job limit with no output).
+k3s_up() { for _ in $(seq 1 90); do eval "$1" >/dev/null 2>&1 && return 0; sleep 2; done
+  echo "  FAIL k3s did not become ready within 180 s ($2)"; docker logs --tail 40 "$name" 2>&1 | sed 's/^/       /'; exit 1; }
+k3s_up 'kc get --raw /readyz' "API server"
+k3s_up 'kc get nodes -o name | grep -q node' "node registration"
 kc wait --for=condition=Ready node --all --timeout=180s >/dev/null
 docker exec "$name" cat /etc/rancher/k3s/k3s.yaml | sed "s#https://127.0.0.1:6443#https://127.0.0.1:$port#" > "$work/kubeconfig"
 export KUBECONFIG="$work/kubeconfig" NO_PROXY="${NO_PROXY:+$NO_PROXY,}127.0.0.1,localhost" no_proxy="${no_proxy:+$no_proxy,}127.0.0.1,localhost"

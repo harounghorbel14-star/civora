@@ -17,6 +17,10 @@ export class ProblemDetailsFilter implements ExceptionFilter {
     const req = ctx.getRequest<Request>();
     const status = exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
     const requestId = (req.headers['x-request-id'] as string | undefined) ?? undefined;
+    // Validation problems (fixed messages written by the code; they never echo the submitted values).
+    const body = exception instanceof HttpException ? exception.getResponse() : undefined;
+    const errors = status === 400 && body && typeof body === 'object' && Array.isArray((body as { errors?: unknown }).errors)
+      ? ((body as { errors: unknown[] }).errors).slice(0, 20).map(String) : undefined;
     if (status >= 500) this.logger.error(`unhandled error requestId=${requestId ?? '-'} type=${(exception as Error)?.name ?? 'unknown'}`);
     res
       .status(status)
@@ -27,6 +31,7 @@ export class ProblemDetailsFilter implements ExceptionFilter {
         status,
         instance: req.originalUrl?.split('?')[0],
         requestId,
+        ...(errors ? { errors } : {}),
       });
   }
 }

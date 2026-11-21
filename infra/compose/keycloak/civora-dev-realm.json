@@ -84,6 +84,15 @@
       "publicClient": false,
       "bearerOnly": true,
       "standardFlowEnabled": false
+    },
+    {
+      "clientId": "admin-cli",
+      "name": "${client_admin-cli}",
+      "publicClient": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false
     }
   ],
   "users": [
@@ -119,5 +128,24 @@
         "tenant-admin"
       ]
     }
-  ]
+  ],
+  "authenticationFlows": [
+    {
+      "alias": "deny-direct-grant",
+      "description": "No password grant in this realm: every login goes through the browser flow and its second factor",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "deny-access-authenticator",
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false,
+          "authenticatorFlow": false
+        }
+      ]
+    }
+  ],
+  "directGrantFlow": "deny-direct-grant"
 }

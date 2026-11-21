@@ -1,5 +1,6 @@
 import { strict as assert } from 'node:assert';
 import { execFileSync } from 'node:child_process';
+import { readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, it } from 'node:test';
 import { Client } from 'pg';
@@ -29,7 +30,7 @@ describe('base schema migrations (O-DB1, O-DB2)', { skip: !url && 'TEST_DATABASE
     };
     run('up');
     assert.deepEqual(await schemas(), ['audit', 'config', 'iam']);
-    run('down', '1');
+    run('down', String(readdirSync(resolve(root, 'migrations')).filter((f) => f.endsWith('.sql')).length));
     assert.deepEqual(await schemas(), []);
     run('up');
     assert.deepEqual(await schemas(), ['audit', 'config', 'iam']);

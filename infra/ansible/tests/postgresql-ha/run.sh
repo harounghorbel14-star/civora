@@ -54,7 +54,8 @@ for n in "${!ip[@]}"; do
     --privileged --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:rw "$image" >/dev/null
 done
 for n in "${!ip[@]}"; do
-  until docker exec "$n" systemctl is-system-running 2>/dev/null | grep -qE 'running|degraded'; do sleep 1; done
+  waited=0; for _ in $(seq 1 120); do docker exec "$n" systemctl is-system-running 2>/dev/null | grep -qE 'running|degraded' && { waited=1; break; }; sleep 1; done
+  [ "$waited" = 1 ] || { echo "  FAIL timed out after 120 s waiting for: docker exec $n systemctl is-system-running 2>/dev/null | grep -qE 'running|degra"; exit 1; }  # bounded wait
 done
 stamp "${#ip[@]} nodes up ($db_nodes database + 1 backup)"
 
@@ -265,6 +266,13 @@ fi
 docker unpause "$L2" >/dev/null
 check "crash: frozen node rejoins as streaming standby (pg_rewind)" \
   "for i in \$(seq 1 90); do [ \"\$(state_of $S2 $L2)\" = streaming ] && exit 0; sleep 2; done; exit 1"
+# On failure, say why (nightly run 18 saw this step fail once with no detail): cluster view and the node's Patroni log.
+if [ "$(state_of "$S2" "$L2")" != streaming ]; then
+  echo "       diagnostics: cluster as seen from $S2"
+  cluster_on "$S2" 2>&1 | sed 's/^/         /'
+  echo "       diagnostics: last Patroni log lines on $L2"
+  docker exec "$L2" journalctl -u patroni -n 60 --no-pager 2>&1 | sed 's/^/         /'
+fi
 [[ "$app_path" == 1 ]] && check "civora-core survived the crash failover (same process; database up through pg-router)" "app_alive"
 
 # Rebuild a standby from the leader (runbook §5, when pg_rewind cannot repair a node).

@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Phase | Phase 2 — Technical Architecture (original roadmap, unchanged) |
-| Status | **Proposed — awaiting founder approval** (ADRs) and **external security review** (threat model). Phase 1 is **not approved** (P1-D12 pending) |
+| Status | ADRs **accepted** by the founder on 21 Nov 2026 (P2-D1; 6 with conditions). Threat model: **external security review still pending** (CF-2). Phase 1 **approved** 21 Nov 2026 (P1-D12) |
 | Builds on | Phase 0 §8 (technical architecture), §9 (database), §10 (security); Phase 1 [18](../phase-1/18-shared-platform-requirements.md) (shared platform requirements) and the PRD NFRs ([12](../phase-1/12-product-requirements-document.md) §12.7) |
 | What is new in Phase 2 | Phase 0 proposals turned into 29 ADRs. A walking skeleton, CI/CD, IaC and a policy-engine spike were built and tested ([17](17-technical-validation-strategy.md)) |
 

@@ -1,0 +1,468 @@
+{
+  "realm": "civora-citizens",
+  "displayName": "CIVORA",
+  "enabled": true,
+  "sslRequired": "external",
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "bruteForceProtected": true,
+  "failureFactor": 5,
+  "permanentLockout": false,
+  "waitIncrementSeconds": 60,
+  "maxFailureWaitSeconds": 900,
+  "quickLoginCheckMilliSeconds": 1000,
+  "minimumQuickLoginWaitSeconds": 60,
+  "maxDeltaTimeSeconds": 43200,
+  "passwordPolicy": "length(12) and notUsername and notEmail and passwordHistory(5) and maxLength(128)",
+  "accessTokenLifespan": 300,
+  "revokeRefreshToken": true,
+  "refreshTokenMaxReuse": 0,
+  "ssoSessionIdleTimeout": 900,
+  "ssoSessionMaxLifespan": 28800,
+  "internationalizationEnabled": true,
+  "supportedLocales": [
+    "ar",
+    "fr",
+    "en"
+  ],
+  "defaultLocale": "ar",
+  "otpPolicyType": "totp",
+  "otpPolicyAlgorithm": "HmacSHA1",
+  "otpPolicyDigits": 6,
+  "otpPolicyPeriod": 30,
+  "otpPolicyLookAheadWindow": 1,
+  "registrationAllowed": false,
+  "verifyEmail": true,
+  "attributes": {
+    "civora.profile": "citizens",
+    "civora.purpose": "Citizens of one country cell (P3-A1). Passkeys first; password + TOTP as the alternative; SMS only as a simulated fallback until a provider is chosen (Q3-1). Accounts are created by the core and activated by an e-mailed link (no self-registration page, no enumeration)."
+  },
+  "webAuthnPolicyPasswordlessRpEntityName": "CIVORA",
+  "webAuthnPolicyPasswordlessSignatureAlgorithms": [
+    "ES256",
+    "RS256"
+  ],
+  "webAuthnPolicyPasswordlessUserVerificationRequirement": "required",
+  "webAuthnPolicyPasswordlessAttestationConveyancePreference": "none",
+  "webAuthnPolicyPasswordlessAuthenticatorAttachment": "",
+  "browserFlow": "citizens-browser",
+  "authenticationFlows": [
+    {
+      "alias": "citizens-browser",
+      "description": "Passkey (no username asked first), or e-mail + password + TOTP on one page: no step reveals whether an address has an account",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-cookie",
+          "requirement": "ALTERNATIVE",
+          "authenticatorFlow": false,
+          "userSetupAllowed": false,
+          "priority": 10
+        },
+        {
+          "flowAlias": "citizens-forms",
+          "requirement": "ALTERNATIVE",
+          "authenticatorFlow": true,
+          "userSetupAllowed": false,
+          "priority": 20
+        }
+      ]
+    },
+    {
+      "alias": "citizens-forms",
+      "description": "",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "webauthn-authenticator-passwordless",
+          "requirement": "ALTERNATIVE",
+          "authenticatorFlow": false,
+          "userSetupAllowed": false,
+          "priority": 10
+        },
+        {
+          "flowAlias": "citizens-password",
+          "requirement": "ALTERNATIVE",
+          "authenticatorFlow": true,
+          "userSetupAllowed": false,
+          "priority": 20
+        }
+      ]
+    },
+    {
+      "alias": "citizens-password",
+      "description": "",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-username-password-form",
+          "requirement": "REQUIRED",
+          "authenticatorFlow": false,
+          "userSetupAllowed": false,
+          "priority": 10
+        },
+        {
+          "flowAlias": "citizens-otp",
+          "requirement": "CONDITIONAL",
+          "authenticatorFlow": true,
+          "userSetupAllowed": false,
+          "priority": 20
+        },
+        {
+          "flowAlias": "citizens-no-second-factor",
+          "requirement": "CONDITIONAL",
+          "authenticatorFlow": true,
+          "userSetupAllowed": false,
+          "priority": 30
+        }
+      ]
+    },
+    {
+      "alias": "citizens-otp",
+      "description": "Runs only when the account has this second factor",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "conditional-user-configured",
+          "requirement": "REQUIRED",
+          "authenticatorFlow": false,
+          "userSetupAllowed": false,
+          "priority": 10
+        },
+        {
+          "authenticator": "auth-otp-form",
+          "requirement": "REQUIRED",
+          "authenticatorFlow": false,
+          "userSetupAllowed": false,
+          "priority": 20
+        }
+      ]
+    },
+    {
+      "alias": "citizens-no-second-factor",
+      "description": "An account without its second factor cannot sign in; first credentials come only from the activation link",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "conditional-sub-flow-executed",
+          "requirement": "REQUIRED",
+          "authenticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticatorConfig": "citizens-second-factor-not-run",
+          "priority": 10
+        },
+        {
+          "authenticator": "deny-access-authenticator",
+          "requirement": "REQUIRED",
+          "authenticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticatorConfig": "citizens-deny-no-second-factor",
+          "priority": 20
+        }
+      ]
+    },
+    {
+      "alias": "deny-direct-grant",
+      "description": "No password grant in this realm: every login goes through the browser flow and its second factor",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "deny-access-authenticator",
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false,
+          "authenticatorFlow": false
+        }
+      ]
+    }
+  ],
+  "requiredActions": [
+    {
+      "alias": "CONFIGURE_TOTP",
+      "name": "Configure OTP",
+      "providerId": "CONFIGURE_TOTP",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 10,
+      "config": {}
+    },
+    {
+      "alias": "webauthn-register-passwordless",
+      "name": "Webauthn Register Passwordless",
+      "providerId": "webauthn-register-passwordless",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 20,
+      "config": {}
+    },
+    {
+      "alias": "UPDATE_PASSWORD",
+      "name": "Update Password",
+      "providerId": "UPDATE_PASSWORD",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 30,
+      "config": {}
+    },
+    {
+      "alias": "VERIFY_EMAIL",
+      "name": "Verify Email",
+      "providerId": "VERIFY_EMAIL",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 40,
+      "config": {}
+    },
+    {
+      "alias": "UPDATE_PROFILE",
+      "name": "Update Profile",
+      "providerId": "UPDATE_PROFILE",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 50,
+      "config": {}
+    },
+    {
+      "alias": "webauthn-register",
+      "name": "Webauthn Register",
+      "providerId": "webauthn-register",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 60,
+      "config": {}
+    },
+    {
+      "alias": "update_user_locale",
+      "name": "Update User Locale",
+      "providerId": "update_user_locale",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 70,
+      "config": {}
+    }
+  ],
+  "roles": {
+    "realm": [
+      {
+        "name": "citizen",
+        "description": "A citizen using CIVORA services"
+      },
+      {
+        "name": "default-roles-civora-citizens",
+        "description": "Roles every account of this realm receives",
+        "composite": true,
+        "composites": {
+          "realm": [
+            "citizen"
+          ],
+          "client": {
+            "account": [
+              "view-profile",
+              "manage-account"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "civora-web",
+      "name": "CIVORA web app (citizens)",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": true,
+      "redirectUris": [
+        "https://app.civora-cell.invalid/*"
+      ],
+      "webOrigins": [
+        "https://app.civora-cell.invalid"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "https://app.civora-cell.invalid/*",
+        "civora.client-kind": "first-party"
+      },
+      "protocolMappers": [
+        {
+          "name": "audience civora-core",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.client.audience": "civora-core",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "civora-mobile",
+      "name": "CIVORA mobile app (citizens)",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": true,
+      "redirectUris": [
+        "tn.civora.app:/oauth2redirect"
+      ],
+      "webOrigins": [],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "tn.civora.app:/oauth2redirect",
+        "civora.client-kind": "first-party"
+      },
+      "protocolMappers": [
+        {
+          "name": "audience civora-core",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.client.audience": "civora-core",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "civora-core",
+      "name": "civora-core API (resource server)",
+      "publicClient": false,
+      "bearerOnly": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "implicitFlowEnabled": false
+    },
+    {
+      "clientId": "rp-example-agency",
+      "name": "Example relying party (template; disabled)",
+      "enabled": false,
+      "publicClient": false,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "implicitFlowEnabled": false,
+      "redirectUris": [
+        "https://services.agency.invalid/callback"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "civora.client-kind": "relying-party"
+      },
+      "protocolMappers": [
+        {
+          "name": "pairwise subject",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-sha256-pairwise-sub-mapper",
+          "config": {
+            "sectorIdentifierUri": "",
+            "pairwiseSubAlgorithmSalt": ""
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "admin-cli",
+      "name": "${client_admin-cli}",
+      "publicClient": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false
+    },
+    {
+      "clientId": "civora-core-provisioner",
+      "name": "civora-core: creates citizen accounts and sends activation links",
+      "publicClient": false,
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "implicitFlowEnabled": false,
+      "attributes": {
+        "civora.client-kind": "service"
+      }
+    }
+  ],
+  "components": {
+    "org.keycloak.userprofile.UserProfileProvider": [
+      {
+        "providerId": "declarative-user-profile",
+        "subComponents": {},
+        "config": {
+          "kc.user.profile.config": [
+            "{\"attributes\":[{\"name\":\"username\",\"displayName\":\"${username}\",\"validations\":{\"length\":{\"min\":3,\"max\":255},\"username-prohibited-characters\":{},\"up-username-not-idn-homograph\":{}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"email\",\"displayName\":\"${email}\",\"validations\":{\"email\":{},\"length\":{\"max\":255}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"firstName\",\"displayName\":\"${firstName}\",\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"lastName\",\"displayName\":\"${lastName}\",\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false}],\"groups\":[{\"name\":\"user-metadata\",\"displayHeader\":\"User metadata\",\"displayDescription\":\"Attributes, which refer to user metadata\"}]}"
+          ]
+        }
+      }
+    ]
+  },
+  "defaultRole": {
+    "name": "default-roles-civora-citizens",
+    "composite": true
+  },
+  "webAuthnPolicyPasswordlessResidentKey": "required",
+  "directGrantFlow": "deny-direct-grant",
+  "authenticatorConfig": [
+    {
+      "alias": "citizens-second-factor-not-run",
+      "config": {
+        "flow_to_check": "citizens-otp",
+        "check_result": "not-executed"
+      }
+    },
+    {
+      "alias": "citizens-deny-no-second-factor",
+      "config": {
+        "denyErrorMessage": "civoraNoSecondFactor"
+      }
+    }
+  ],
+  "registrationEmailAsUsername": true,
+  "displayNameHtml": "${civoraRealmName}",
+  "localizationTexts": {
+    "ar": {
+      "civoraRealmName": "CIVORA — فضاء المواطنين",
+      "civoraNoSecondFactor": "لا يمكن الدخول: هذا الحساب لم يُفعَّل بعد. استعمل رابط التفعيل الذي وصلك بالبريد الإلكتروني."
+    },
+    "fr": {
+      "civoraRealmName": "CIVORA — Espace citoyens",
+      "civoraNoSecondFactor": "Connexion impossible : ce compte n'est pas encore activé. Utilisez le lien d'activation reçu par e-mail."
+    },
+    "en": {
+      "civoraRealmName": "CIVORA — Citizens",
+      "civoraNoSecondFactor": "You cannot sign in: this account is not activated yet. Use the activation link you received by e-mail."
+    }
+  },
+  "users": [
+    {
+      "username": "service-account-civora-core-provisioner",
+      "enabled": true,
+      "serviceAccountClientId": "civora-core-provisioner",
+      "clientRoles": {
+        "realm-management": [
+          "manage-users",
+          "view-users",
+          "query-users"
+        ]
+      }
+    }
+  ]
+}

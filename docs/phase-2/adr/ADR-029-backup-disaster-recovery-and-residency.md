@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | **Proposed — awaiting founder approval (acceptance criterion O-AC2)** |
+| Status | **Accepted with conditions** — approved by the founder on 21 Nov 2026 (decision P2-D1; [decision record](../founder-review/P2-founder-decision-record.md)). Condition: recovery objectives by data class, doc 15 §15.4.1 (register §3.5) |
 | Date | 19 November 2026 |
 | Origin | New in Phase 2 |
 | Covers | R-5; PRD §12.7 (RPO ≤ 15 min, RTO ≤ 4 h); Phase 0 §9.9, §10.11 |

@@ -11,8 +11,10 @@ docker rm -f "$name" >/dev/null 2>&1 || true
 trap 'docker rm -f "$name" >/dev/null 2>&1 || true' EXIT
 docker run -d --name "$name" --privileged --tmpfs /run --tmpfs /var/run "$k3s_image" server --disable=traefik --disable=metrics-server >/dev/null
 K() { docker exec -i "$name" kubectl "$@"; }
-until K get --raw /readyz >/dev/null 2>&1; do sleep 2; done
-until K get serviceaccount default -n default >/dev/null 2>&1; do sleep 1; done
+waited=0; for _ in $(seq 1 90); do K get --raw /readyz >/dev/null 2>&1 && { waited=1; break; }; sleep 2; done
+[ "$waited" = 1 ] || { echo "  FAIL timed out after 180 s waiting for: K get --raw /readyz"; exit 1; }  # bounded wait
+waited=0; for _ in $(seq 1 120); do K get serviceaccount default -n default >/dev/null 2>&1 && { waited=1; break; }; sleep 1; done
+[ "$waited" = 1 ] || { echo "  FAIL timed out after 120 s waiting for: K get serviceaccount default -n default"; exit 1; }  # bounded wait
 ns=civora-validate
 K create ns "$ns" >/dev/null
 K label ns "$ns" pod-security.kubernetes.io/enforce=restricted pod-security.kubernetes.io/warn=restricted >/dev/null

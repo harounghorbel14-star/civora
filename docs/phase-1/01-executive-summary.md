@@ -13,7 +13,7 @@
 > **Founder review, 18 Nov 2026.** The direction is accepted in principle.
 > - **Approved:** P1-D1, D2, D5, D6, D8, D10 (with boundaries), D11 (in principle).
 > - **Conditional:** P1-D3 (first product), D4 (roadmap: full scope for every phase; **approved later the same day**, see above), D7 (financials: no funding commitment yet), D9 (pricing is experimental).
-> - **Phase 1 approval (P1-D12) is pending** until the evidence in [validation-evidence-register.md](validation-evidence-register.md) is documented.
+> - **Phase 1 approved by the founder on 21 Nov 2026 (P1-D12)** ([doc 23](23-founder-approval-decisions.md) §23.6). Open evidence in [validation-evidence-register.md](validation-evidence-register.md) remains tracked.
 > - **Phase 2 and coding are on hold.**
 >
 > **What changed in v2.1:**

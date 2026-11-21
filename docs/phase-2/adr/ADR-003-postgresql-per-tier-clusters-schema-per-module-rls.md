@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | **Proposed — awaiting founder approval (acceptance criterion O-AC2)** |
+| Status | **Accepted with conditions** — approved by the founder on 21 Nov 2026 (decision P2-D1; [decision record](../founder-review/P2-founder-decision-record.md)). Condition: three database servers per regulated production site; standby cluster at the second site for critical data (register §3.1) |
 | Date | 19 November 2026 |
 | Origin | Phase 0 §8.12 backlog item 003 (topic unchanged) |
 | Covers | O-A3, O-DB1, R-1, R-3 |

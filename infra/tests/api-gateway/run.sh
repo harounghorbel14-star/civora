@@ -8,7 +8,9 @@
 #   3. request body above 1 MiB: 413, never reaches the application;
 #   4. only declared routes are served (unknown path: 404; method not allowed on /health: 404);
 #   5. the admin API does not exist on the data plane (port 9180 refuses);
-#   6. no version in the Server header; a request id is added for tracing; security headers present.
+#   6. no version in the Server header; a request id is added for tracing; security headers present;
+#   7. credential stuffing: login submissions and token requests limited per client across accounts; Keycloak's admin
+#      API not routed; public registration limited per client (Phase 3 doc 03).
 # Needs docker, curl, python3. Synthetic data only.
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -33,7 +35,8 @@ docker run -d --name gw-core --network "$net" -e CIVORA_ENV=dev -e DATABASE_URL=
 # Identity provider (development mode is enough to issue real signed tokens).
 docker run -d --name gw-keycloak --network "$net" -e KC_BOOTSTRAP_ADMIN_USERNAME=admin -e KC_BOOTSTRAP_ADMIN_PASSWORD="$kc_pw" \
   -e KC_HOSTNAME=http://gw-keycloak:8080 "$keycloak_image" start-dev >/dev/null
-until docker exec gw-keycloak bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080' 2>/dev/null; do sleep 2; done
+waited=0; for _ in $(seq 1 90); do docker exec gw-keycloak bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080' 2>/dev/null && { waited=1; break; }; sleep 2; done
+[ "$waited" = 1 ] || { echo "  FAIL timed out after 180 s waiting for: docker exec gw-keycloak bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080' 2>/dev/null"; exit 1; }  # bounded wait
 kcadm() { docker exec gw-keycloak /opt/keycloak/bin/kcadm.sh "$@"; }
 for _ in $(seq 1 60); do kcadm config credentials --server http://127.0.0.1:8080 --realm master --user admin --password "$kc_pw" >/dev/null 2>&1 && break; sleep 2; done
 kcadm create realms -s realm=civora-test -s enabled=true >/dev/null 2>&1
@@ -43,7 +46,7 @@ stamp "core, database and Keycloak up (realm civora-test, confidential client b2
 
 # Gateway: the CIVORA route file, rendered with this run's addresses.
 cp "$here/config.yaml" "$work/config.yaml"
-sed -e "s#@CORE@#gw-core:3000#g" -e "s#@ISSUER@#http://gw-keycloak:8080/realms/civora-test#g" \
+sed -e "s#@CORE@#gw-core:3000#g" -e "s#@KEYCLOAK@#gw-keycloak:8080#g" -e "s#@ISSUER@#http://gw-keycloak:8080/realms/civora-test#g" \
     -e "s#@CLIENT_SECRET@#$client_secret#g" "$here/routes.yaml" > "$work/apisix.yaml"
 chmod 644 "$work"/*.yaml
 docker run -d --name gw-apisix --network "$net" -v "$work/config.yaml:/usr/local/apisix/conf/config.yaml:ro" \
@@ -82,6 +85,18 @@ check "6. Server header without version" "echo \"$hdrs\" | grep -i '^server:' | 
 check "6. request id added (X-Request-Id)" "echo \"$hdrs\" | grep -qi '^x-request-id: [0-9a-f-]\{20,\}'"
 check "6. security headers (nosniff, no referrer, HSTS)" \
   "echo \"$hdrs\" | grep -qi '^x-content-type-options: nosniff' && echo \"$hdrs\" | grep -qi '^referrer-policy: no-referrer' && echo \"$hdrs\" | grep -qi '^strict-transport-security: max-age='"
+# 7. Credential stuffing (Phase 3 doc 03, R-P3-6): one client trying a password on many different accounts. Each
+#    submission names another account, so Keycloak's per-account lockout never triggers; the gateway limit does.
+check "7. login submissions for 20 different accounts from one client are passed on, the 21st gets 429" \
+  "n=0; for i in \$(seq 1 25); do c=\$(code -X POST -d \"username=stuffing\$i@example.invalid&password=Leaked-Password-1\" http://gw-apisix:9080/realms/civora-test/login-actions/authenticate); [ \$c = 429 ] && break; n=\$((n+1)); done; echo \"passed on: \$n\"; [ \$n = 20 ] && [ \$c = 429 ]"
+check "7. token endpoint limited per client (61st request in a minute: 429)" \
+  "n=0; for i in \$(seq 1 65); do c=\$(code -X POST -d grant_type=client_credentials -d client_id=nobody http://gw-apisix:9080/realms/civora-test/protocol/openid-connect/token); [ \$c = 429 ] && break; n=\$((n+1)); done; echo \"passed on: \$n\"; [ \$n = 60 ]"
+check "7. Keycloak's admin API and console are not reachable through the gateway (404)" \
+  "[ \$(code http://gw-apisix:9080/admin/master/console/) = 404 ] && [ \$(code http://gw-apisix:9080/admin/realms/civora-test/users) = 404 ]"
+check "7. Keycloak's public pages are served (discovery 200)" "[ \$(code http://gw-apisix:9080/realms/civora-test/.well-known/openid-configuration) = 200 ]"
+reg_body='{"email":"new.citizen@example.invalid"}'
+check "7. registration is public but limited per client: 10 requests in 10 minutes, the 11th gets 429" \
+  "n=0; for i in \$(seq 1 15); do c=\$(code -X POST -H 'content-type: application/json' --data '$reg_body' http://gw-apisix:9080/v1/registrations); [ \$c = 429 ] && break; [ \$c = 401 ] && { echo 'token demanded'; exit 1; }; n=\$((n+1)); done; echo \"passed on: \$n\"; [ \$n = 10 ]"
 check "gateway process runs as a non-root user" "[ \"\$(docker exec gw-apisix id -u)\" != 0 ]"
 stamp "done (fail=$fail)"
 exit $fail

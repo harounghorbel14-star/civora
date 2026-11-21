@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Prepared | 20 November 2026, at the founder's request |
-| Status | **For decision. Nothing in this document is approved.** Every ADR below stays "Proposed — awaiting founder approval" until you confirm it explicitly. Your answers are then recorded in the [readiness report](../phase-2-readiness-report.md) §4 and the [decision form](P2-D1-decision-form.csv) |
+| Status | **Decided 21 Nov 2026:** the founder approved the ADRs as recommended (P2-D1) and Phase 2 ([decision record](P2-founder-decision-record.md)). P2-D2 to P2-D5 remain founder actions. *Original status: "For decision. Nothing in this document is approved."* |
 | Relationship to earlier material | This package does not repeat the plain-language explanations in the [P2-D1 review package](P2-D1-adr-review-package.md). It adds what is needed to decide: exact ADR numbers, evidence gathered since, costs, security and operations, and what changes in the plan for each answer |
 | Cost convention | No supplier quote exists yet (Phase 1 evidence E-07), so costs are given in **units** (servers, engineer-days, licences), never as invented prices. [A] = engineering estimate |
 | Roadmap | The 15-phase roadmap and all acceptance criteria are unchanged. These decisions close part of O-AC2 ("all ADRs approved"); none starts Phase 3 |

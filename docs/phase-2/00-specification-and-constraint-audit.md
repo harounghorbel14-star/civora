@@ -4,7 +4,7 @@
 |---|---|
 | Phase | **Phase 2 — Technical Architecture** (original name and position unchanged) |
 | Started | 19 November 2026, on the founder's decision **P2-D0** (§1) |
-| Phase 1 status | **Not approved** (P1-D12 pending). Phase 1 validation stays open and is tracked separately in [../phase-1/validation-evidence-register.md](../phase-1/validation-evidence-register.md) |
+| Phase 1 status | **Not approved** (P1-D12 pending). Phase 1 validation stays open and is tracked separately in [../phase-1/validation-evidence-register.md](../phase-1/validation-evidence-register.md) *(21 Nov 2026: Phase 1 approved by the founder, P1-D12 — [doc 23](../phase-1/23-founder-approval-decisions.md) §23.6)* |
 | Purpose of this document | Restate the original Phase 2 specification word for word, list every architectural constraint from Phase 0 and Phase 1, and show that starting Phase 2 respects the roadmap rules |
 
 ## 1. Decision to start Phase 2 (P2-D0) and roadmap compliance

@@ -7,7 +7,7 @@
 | Prepared for | The founder (decision P1-D12) |
 | **FINAL STATUS** | **NOT READY — VALIDATION ITEMS REMAINING** |
 
-> **This report does not approve Phase 1.** Approval is the founder's decision (P1-D12).
+> **This report does not approve Phase 1.** Approval is the founder's decision (P1-D12). *(21 Nov 2026: the founder approved Phase 1 — [doc 23](23-founder-approval-decisions.md) §23.6. The open validation items below remain open.)*
 > - Every task that could legitimately be completed through repository analysis, research, calculation, documentation and quality assurance has been completed.
 > - The remaining items need the founder, qualified Tunisian counsel, a trademark attorney or the cooperation of financial institutions.
 > - **Phase 2 has not started, and no application code has been written.**
