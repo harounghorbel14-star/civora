@@ -417,7 +417,15 @@ async function staff(browser) {
   await submit(thief.page);
   if (await waitFor(() => visible(thief.page, '#authenticateWebAuthnButton'), 10000)) await thief.page.locator('#authenticateWebAuthnButton').click();
   check('S4 password without the enrolled security key: the browser cannot produce an assertion, no authorization code', !(await codeFrom(thief.captured, n, 8000)));
-  // Server side: a forged assertion posted straight to Keycloak's WebAuthn form is rejected.
+  // Server side: a forged assertion posted straight to Keycloak's WebAuthn form is rejected. A fresh login, stopped
+  // on the security-key page without pressing the button (otherwise the page's own script races the forgery).
+  a = authorize(thief.page, 'civora-staff', 'civora-workspace', WS_CB);
+  n = thief.captured.length;
+  await a.go();
+  await thief.page.locator('#username').fill(user);
+  await thief.page.locator('#password').fill(password);
+  await submit(thief.page);
+  await waitFor(() => visible(thief.page, '#authenticateWebAuthnButton'), 10000);
   const forged = await thief.page.evaluate(() => {
     const f = document.getElementById('webauth');
     if (!f) return false;
