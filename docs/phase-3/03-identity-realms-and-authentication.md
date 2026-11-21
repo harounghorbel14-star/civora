@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Specification items | P3-A1 realms per cell (citizens, staff) · P3-A3 pairwise subject IDs · P3-F1 passkeys, TOTP (SMS fallback: Q3-1) · P3-SEC3 brute-force and credential-stuffing protection · P3-SEC5 officer accounts require FIDO2 keys · P3-T2 auth-flow E2E (web part) |
-| Status | Built and tested locally on 21 Nov 2026 (results below). GitHub nightly job `identity-realms` added; its first result is recorded in [01 — Progress](01-progress.md) when it has run |
+| Status | Built and tested on 21 Nov 2026. Locally: all checks passed (three consecutive runs after the S4 fix, §5 D7). GitHub: nightly run 17 **green, 12 of 12 jobs**, including `identity-realms` (realms test 1 min 33 s on a fresh runner) and `dev-cell-from-scratch` with the new realms; CI runs 36 and 37 green (realm profiles checked) |
 | Identity provider | Keycloak 26.8.1, pinned by digest (`sha256:3f3c5f8e…7332`), the version Phase 2 validated (ADR-005) |
 | Data | Synthetic users only, created per test run with random passwords; nothing is stored |
 
@@ -89,6 +89,7 @@ That is where three of the defects below were found.
 | D4 | Pairwise mapper without a salt after import and after creation through the admin API; Keycloak then refuses to issue tokens for that relying party ("Salt not available") | Live check, C8 | Policy re-saves the mapper; Keycloak generates a random salt kept in its database (never in Git) | C8 (fails closed, then works); live rule |
 | D5 | Security-key enrolment failed for every key ("invalid cert path"): attestation `direct` with no trust anchors configured | S1 | Attestation `none`; restricting officers to approved key models is an open item (R-P3-5) | S1, S3 |
 | D6 | Checker treated unknown authenticators as impossible to pass (defender-favourable) | Its own negative control | Unknown authenticators are now a violation | Negative controls |
+| D7 | Test defect: the forged-assertion check (S4) raced Keycloak's own page script and failed in 1 of 2 local runs | Repeated local run | The forgery is posted from a fresh security-key page before the button is pressed | 3 consecutive local runs; nightly run 17 |
 
 ## 6. Known findings and residual risks
 
