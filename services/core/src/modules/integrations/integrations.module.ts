@@ -1,9 +1,32 @@
 import { Module } from '@nestjs/common';
+import type { LoadedPack } from '@civora/country-packs';
+import { COUNTRY_PACK } from '../../country-config/country-config.module';
+import { loadSimulatedEidConfig, SimulatedOidcEid } from './adapters/national-eid/simulated-oidc/simulated-oidc.adapter';
+import { AdapterModeError } from './adapter-registry';
+import { stdoutIntegrationLog } from './integration-log';
+import type { NationalEid } from './ports/national-eid';
+import { NATIONAL_EID } from './tokens';
 
 /**
- * Bounded context: integrations.
- * Built in: Phase 12 (adapter registry; simulated adapters earlier).
+ * Bounded context: integrations (ADR-028 adapter framework). Phase 3: the NationalEid port, simulated only.
  * Rules (ADR-001): own schema only; other modules use ./public-api.ts or domain events; no cross-module database access.
  */
-@Module({})
+@Module({
+  providers: [
+    {
+      // Null when no eID is configured in this cell. Any mode other than simulated stops the start-up (class 3).
+      provide: NATIONAL_EID,
+      inject: [COUNTRY_PACK],
+      useFactory: (loaded: LoadedPack): NationalEid | null => {
+        const mode = process.env.EID_MODE ?? 'simulated';
+        if (mode !== 'simulated') throw new AdapterModeError(`EID_MODE=${mode}: the national eID (register entry I-01, class 3) may run in simulated mode only`);
+        const cin = loaded.pack.identifiers.cin;
+        if (!cin) throw new Error('the country pack declares no national identifier (identifiers.cin)');
+        const cfg = loadSimulatedEidConfig(cin.syntheticPattern);
+        return cfg ? new SimulatedOidcEid(cfg, stdoutIntegrationLog) : null;
+      },
+    },
+  ],
+  exports: [NATIONAL_EID],
+})
 export class IntegrationsModule {}

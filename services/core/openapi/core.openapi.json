@@ -80,6 +80,23 @@
         ],
         "type": "object"
       },
+      "CompleteLink": {
+        "properties": {
+          "code": {
+            "description": "The code the eID returned to the app callback",
+            "type": "string"
+          },
+          "state": {
+            "description": "The state the eID returned to the app callback",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "state"
+        ],
+        "type": "object"
+      },
       "CreateMandate": {
         "properties": {
           "expiresAt": {
@@ -300,6 +317,53 @@
         ],
         "type": "object"
       },
+      "IdentityClaimDto": {
+        "properties": {
+          "expiresAt": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "loa": {
+            "enum": [
+              "low",
+              "substantial",
+              "high"
+            ],
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "eid-simulated",
+              "self-asserted",
+              "staff-verified"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "national-id-link",
+              "phone",
+              "email",
+              "legal-name"
+            ],
+            "type": "string"
+          },
+          "verifiedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "source",
+          "loa",
+          "verifiedAt"
+        ],
+        "type": "object"
+      },
       "InvitationDto": {
         "properties": {
           "expiresAt": {
@@ -343,6 +407,63 @@
           "email",
           "unitId",
           "role"
+        ],
+        "type": "object"
+      },
+      "LinkAttemptDto": {
+        "properties": {
+          "authorizationUrl": {
+            "description": "Send the browser here: a fresh authentication at the (simulated) national eID",
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "authorizationUrl",
+          "expiresAt"
+        ],
+        "type": "object"
+      },
+      "LinkResultDto": {
+        "properties": {
+          "authenticatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "loa": {
+            "enum": [
+              "substantial",
+              "high"
+            ],
+            "type": "string"
+          },
+          "outcome": {
+            "enum": [
+              "linked",
+              "refreshed"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "outcome",
+          "loa",
+          "authenticatedAt"
         ],
         "type": "object"
       },
@@ -746,6 +867,16 @@
         ],
         "type": "object"
       },
+      "StartLink": {
+        "properties": {
+          "locale": {
+            "description": "Language of the eID pages; default: your preferred language",
+            "example": "fr-TN",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "UnitDto": {
         "properties": {
           "id": {
@@ -846,6 +977,141 @@
         "summary": "Readiness probe",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/v1/identity/links": {
+      "get": {
+        "operationId": "listIdentityLinks",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/IdentityClaimDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "description": "No valid access token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Your verified identity claims: type, source and level only (never the identifier)",
+        "tags": [
+          "identity"
+        ]
+      },
+      "post": {
+        "operationId": "startIdentityLink",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartLink"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkAttemptDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "description": "No valid access token, or no recent sign-in (WWW-Authenticate: error=\"insufficient_user_authentication\", max_age)"
+          },
+          "403": {
+            "description": "Citizens only"
+          },
+          "429": {
+            "description": "More than 5 attempts in an hour"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Start linking your national eID identity (citizens; recent sign-in required)",
+        "tags": [
+          "identity"
+        ]
+      }
+    },
+    "/v1/identity/links/{id}:complete": {
+      "post": {
+        "operationId": "completeIdentityLink",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteLink"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkResultDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "404": {
+            "description": "No such open attempt of yours, or the state does not match, or it expired or was used (not distinguished)"
+          },
+          "409": {
+            "description": "This national identity is linked to another account, or your account to another identity"
+          },
+          "422": {
+            "description": "The eID did not confirm an identity (refused, or its answer failed verification)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Complete a link attempt with the code and state the eID returned",
+        "tags": [
+          "identity"
         ]
       }
     },

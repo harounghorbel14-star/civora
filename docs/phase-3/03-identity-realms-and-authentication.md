@@ -130,6 +130,8 @@ the application role cannot read the table). Whole suite 74/74; OpenAPI 9 paths 
 | R-P3-8 | Registrations that are never activated leave accounts without credentials (they cannot sign in; the link expires after 12 h; asking again re-sends it) | **Closed** (week 3): hourly cleanup job, [doc 05](05-organisation-invitations-cleanup.md) |
 | R-P3-9 | Activation and invitation e-mails need a mail relay in each cell | New, external: provider choice for staging/pilot (no relay in Git; `--smtp-host` per deployment, relay password from Keycloak's vault) |
 | R-P3-10 | An address that is already active receives nothing when registered again (no "you already have an account" e-mail) | New, low (usability): a notification e-mail sent by the core is possible once a relay exists (R-P3-9) |
+| R-P3-11 | Identity links (simulated eID) have no unlink and no expiry policy yet | New, low: decided with the recovery design and re-proofing (P3-SEC4, Q3-4), week 6 ([doc 06](06-simulated-eid-identity-links.md)) |
+| R-P3-12 | The key for identifier digests has no rotation procedure; rotating it needs re-linking or a re-keying job | New, low: before pilot ([doc 06](06-simulated-eid-identity-links.md)) |
 
 ## 7. Specification status
 

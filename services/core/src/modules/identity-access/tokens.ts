@@ -5,3 +5,4 @@ export const REGISTRATION_SERVICE = Symbol('REGISTRATION_SERVICE');
 export const ACCOUNT_SECURITY = Symbol('ACCOUNT_SECURITY');
 export const STEP_UP_MAX_AGE = Symbol('STEP_UP_MAX_AGE');
 export const INVITATIONS = Symbol('INVITATIONS');
+export const IDENTITY_LINKS = Symbol('IDENTITY_LINKS');

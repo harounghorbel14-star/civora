@@ -12,3 +12,4 @@
 4. [03 — Identity realms and authentication](03-identity-realms-and-authentication.md) (week 2): citizens and staff realms, passkeys, TOTP, FIDO2 for officers with approved key models, pairwise subjects, registration without account enumeration, first enrolment only by e-mailed link, login rate limits, tests in Arabic, French and English; defects found; findings.
 5. [04 — Sessions, authenticators and step-up](04-sessions-authenticators-step-up.md) (week 3): RFC 9470 step-up, `/v1/me/sessions`, `/v1/me/authenticators`, authenticator mirror.
 6. [05 — Branches, teams, staff invitations and cleanup](05-organisation-invitations-cleanup.md) (week 3): unit-scoped roles, invitations, cleanup of accounts never activated, chart identity settings.
+7. [06 — Simulated national eID and identity links](06-simulated-eid-identity-links.md) (week 3): adapter framework rules (ADR-028), the `NationalEid` port and its simulated adapter, `POST /v1/identity/links`, keyed digests only.

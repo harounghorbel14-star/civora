@@ -26,7 +26,7 @@ Status values:
 
 | ID | Integration | Owner | Current status | Directive class (1–6) | Target status | Agreement ref. | Evidence | Last updated |
 |---|---|---|---|---|---|---|---|---|
-| I-01 | Mobile ID / e-Houwiya (relying party) | MinCom / ANCE | NOT STARTED | 3 | AUTHORIZED | — | — | 2026-11-18 |
+| I-01 | Mobile ID / e-Houwiya (relying party) | MinCom / ANCE | SIMULATED (generic national-eID simulator with synthetic identities; no real connection; scheme open, Q3-2) | 3 | AUTHORIZED | — | [Phase 3 doc 06](../phase-3/06-simulated-eid-identity-links.md) | 2026-11-21 |
 | I-02 | TunTrust certificates & e-signature | ANCE/TunTrust | NOT STARTED | 3 | AUTHORIZED (commercial) | — | — | 2026-11-18 |
 | I-03 | Qualified time-stamping | ANCE/TunTrust | NOT STARTED | 3 | AUTHORIZED (commercial) | — | — | 2026-11-18 |
 | I-04 | Identity-verification vendor | Private vendor (TBD) | NOT STARTED | 3 | AUTHORIZED (commercial) | — | — | 2026-11-18 |

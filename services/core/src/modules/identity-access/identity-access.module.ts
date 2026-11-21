@@ -1,6 +1,7 @@
 import { Inject, Module, type OnApplicationShutdown } from '@nestjs/common';
 import { Pool } from 'pg';
 import { APP_CONFIG, type AppConfig } from '../../config/app-config';
+import { IntegrationsModule, NATIONAL_EID, type NationalEid } from '../integrations/public-api';
 import { IdentityGuard } from './identity.guard';
 import { IamRepository } from './iam.repository';
 import { MandatesController } from './mandates.controller';
@@ -12,16 +13,18 @@ import { AuthenticatorsController, SessionsController } from './account-security
 import { StepUpGuard } from './step-up.guard';
 import { RegistrationService } from './registration.service';
 import { RegistrationsController } from './registrations.controller';
+import { IdentityLinksController, type IdentityLinksDeps, loadIdentityDigestKey } from './identity-links.controller';
 import { loadOidcConfig, TokenVerifier } from './token-verifier';
-import { ACCOUNT_SECURITY, IAM_REPOSITORY, INVITATIONS, REGISTRATION_SERVICE, STEP_UP_MAX_AGE, TOKEN_VERIFIER } from './tokens';
+import { ACCOUNT_SECURITY, IAM_REPOSITORY, IDENTITY_LINKS, INVITATIONS, REGISTRATION_SERVICE, STEP_UP_MAX_AGE, TOKEN_VERIFIER } from './tokens';
 
 /**
- * Bounded context: identity-access (Phase 3: citizen and staff accounts, profile, mandates).
+ * Bounded context: identity-access (Phase 3: citizen and staff accounts, profile, mandates, organisation, identity links).
  * Rules (ADR-001): own schema (iam) only; other modules use ./public-api.ts or domain events; no cross-module database access.
  */
 @Module({
+  imports: [IntegrationsModule],
   controllers: [MeController, MandatesController, RegistrationsController, SessionsController, AuthenticatorsController, OrgUnitsController,
-    MyMembershipsController, InvitationsController],
+    MyMembershipsController, InvitationsController, IdentityLinksController],
   providers: [
     { provide: TOKEN_VERIFIER, useFactory: (): TokenVerifier => new TokenVerifier(loadOidcConfig()) },
     {
@@ -66,6 +69,15 @@ import { ACCOUNT_SECURITY, IAM_REPOSITORY, INVITATIONS, REGISTRATION_SERVICE, ST
         if (!admin) return null;
         const cfg = loadInvitationConfig();
         return { directory: new KeycloakStaffDirectory(new KeycloakAdmin(admin), cfg), cfg };
+      },
+    },
+    {
+      // Identity links need the national eID adapter (integrations module) and the cell's digest key.
+      provide: IDENTITY_LINKS,
+      inject: [NATIONAL_EID],
+      useFactory: (eid: NationalEid | null): IdentityLinksDeps | null => {
+        const digestKey = loadIdentityDigestKey();
+        return eid && digestKey ? { eid, digestKey } : null;
       },
     },
     { provide: STEP_UP_MAX_AGE, useFactory: (): number => loadStepUpMaxAge() },

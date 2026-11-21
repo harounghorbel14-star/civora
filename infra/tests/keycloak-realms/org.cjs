@@ -137,6 +137,12 @@ async function acceptInvitation(browser, email) {
       run.status === 0 && !(await userByEmail('civora-citizens', pendingCitizen)) && !(await userByEmail('civora-staff', pendingStaff)), run.stderr);
     check('cleanup kept every activated account (administrator, member, supervisor)',
       !!(await userByEmail('civora-staff', adminEmail)) && !!(await userByEmail('civora-staff', memberEmail)) && !!(await userByEmail('civora-staff', supEmail)));
+    const sa = async (realm) => (await admin('GET', `${realm}/users?exact=true&username=service-account-civora-core-provisioner`)).length === 1;
+    check('cleanup kept the provisioner service accounts of both realms (no e-mail, no credential, never "activated")',
+      (await sa('civora-citizens')) && (await sa('civora-staff')));
+    const after = `after.cleanup.${tag()}@example.invalid`;
+    await core(undefined, '/v1/registrations', json('POST', { email: after, locale: 'en' }));
+    check('the core still provisions after the cleanup: registration e-mail arrives', !!(await activationMail(after)));
     for (const x of [adm.ctx, mem.ctx, sup.ctx]) await x.context.close();
   } finally {
     await browser.close();

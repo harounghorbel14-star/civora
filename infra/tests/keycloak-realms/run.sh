@@ -47,7 +47,8 @@ approved="$repo/infra/keycloak/approved-keys/test-virtual-authenticator.json"
 node "$here/attestation-root.cjs" "$work/truststores/test-virtual-authenticator.pem" "$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))[0]["aaguid"])' "$approved")"
 chmod 644 "$work"/truststores/*
 kc_port=$(free_port)
-mkdir -p "$work/import" && cp "$repo"/infra/keycloak/realms/civora-*.json "$work/import/" && chmod 755 "$work/import" && chmod 644 "$work"/import/*
+mkdir -p "$work/import" && cp "$repo"/infra/keycloak/realms/civora-*.json "$repo"/infra/keycloak/simulators/sim-national-eid.json "$work/import/" \
+  && chmod 755 "$work/import" && chmod 644 "$work"/import/*
 docker run -d --name kr-keycloak --network "$net" -p "127.0.0.1:$kc_port:8080" -e KC_BOOTSTRAP_ADMIN_USERNAME=admin -e KC_BOOTSTRAP_ADMIN_PASSWORD="$kc_pw" \
   -e KC_HOSTNAME="http://localhost:$kc_port" -v "$work/import:/opt/keycloak/data/import:ro" -v "$work/truststores:/opt/keycloak/conf/truststores:ro" \
   "$keycloak_image" start-dev --import-realm >/dev/null
@@ -67,8 +68,8 @@ stamp "PostgreSQL migrated; application role civora_core_app (NOBYPASSRLS) ready
 for _ in $(seq 1 90); do curl -sf --noproxy '*' "$kc/realms/civora-staff/.well-known/openid-configuration" >/dev/null && break; sleep 2; done
 kc_log=$(docker logs kr-keycloak 2>&1) # captured first: grep -q on a pipe would end docker logs early (pipefail)
 grep -q "Realm 'civora-citizens' imported" <<<"$kc_log" && grep -q "Realm 'civora-staff' imported" <<<"$kc_log" \
-  || { echo "  FAIL realm import"; tail -20 <<<"$kc_log"; exit 1; }
-stamp "Keycloak 26.8.1 up; civora-citizens and civora-staff imported"
+  && grep -q "Realm 'sim-national-eid' imported" <<<"$kc_log" || { echo "  FAIL realm import"; tail -20 <<<"$kc_log"; exit 1; }
+stamp "Keycloak 26.8.1 up; civora-citizens, civora-staff and the SIMULATED national eID (synthetic identities) imported"
 
 KC_ADMIN_TOKEN=$(curl -sf --noproxy '*' "$kc/realms/master/protocol/openid-connect/token" -d grant_type=password -d client_id=admin-cli \
   -d username=admin --data-urlencode "password=$kc_pw" | python3 -c 'import json,sys;print(json.load(sys.stdin)["access_token"])')
@@ -88,11 +89,18 @@ for p in citizens staff; do
   else echo "$out"; fail=1; fi
 done
 
+# Simulated national eID: the core's client secret is generated here (never in Git); a random key for identifier digests.
+eid_client=$(curl -sf --noproxy '*' -H "Authorization: Bearer $KC_ADMIN_TOKEN" "$kc/admin/realms/sim-national-eid/clients?clientId=civora-core-eid" | python3 -c 'import json,sys;print(json.load(sys.stdin)[0]["id"])')
+curl -sf --noproxy '*' -X POST -H "Authorization: Bearer $KC_ADMIN_TOKEN" "$kc/admin/realms/sim-national-eid/clients/$eid_client/client-secret" \
+  | python3 -c 'import json,sys;print(json.load(sys.stdin)["value"])' > "$work/eid.secret"
+head -c 32 /dev/urandom | base64 > "$work/digest.key"
+eid_env=(EID_SIM_ISSUER="$kc/realms/sim-national-eid" EID_SIM_CLIENT_SECRET_FILE="$work/eid.secret" EID_REDIRECT_URI="https://app.civora-cell.invalid/identity/eid/callback"
+  IDENTITY_CLAIM_DIGEST_KEY_FILE="$work/digest.key")
 core_port=$(free_port)
 (cd "$repo/services/core" && CIVORA_ENV=test PORT="$core_port" DATABASE_URL="postgres://civora_core_app:$app_pw@127.0.0.1:$db_port/civora_core" \
   OIDC_ISSUER_CITIZENS="$kc/realms/civora-citizens" OIDC_ISSUER_STAFF="$kc/realms/civora-staff" \
   KEYCLOAK_PROVISIONER_SECRET_FILE="$work/provisioner.secret" KEYCLOAK_STAFF_PROVISIONER_SECRET_FILE="$work/staff-provisioner.secret" \
-  STEP_UP_MAX_AGE_SECONDS=30 exec node dist/src/main.js) >"$work/core.log" 2>&1 &
+  STEP_UP_MAX_AGE_SECONDS=30 exec env "${eid_env[@]}" node dist/src/main.js) >"$work/core.log" 2>&1 &
 core_pid=$!
 for _ in $(seq 1 60); do curl -sf --noproxy '*' "http://127.0.0.1:$core_port/health/ready" >/dev/null && break; sleep 1; done
 curl -sf --noproxy '*' "http://127.0.0.1:$core_port/health/ready" >/dev/null || { echo "  FAIL core did not start"; tail -20 "$work/core.log"; exit 1; }
@@ -112,6 +120,20 @@ KC_URL="$kc" CORE_URL="http://127.0.0.1:$core_port" MAIL_URL="$mail" KC_ADMIN_PA
   STEP_UP_MAX_AGE_SECONDS=30 CORE_DIR="$repo/services/core" OIDC_ISSUER_CITIZENS="$kc/realms/civora-citizens" OIDC_ISSUER_STAFF="$kc/realms/civora-staff" \
   KEYCLOAK_PROVISIONER_SECRET_FILE="$work/provisioner.secret" KEYCLOAK_STAFF_PROVISIONER_SECRET_FILE="$work/staff-provisioner.secret" \
   NO_PROXY="localhost,127.0.0.1,${NO_PROXY:-}" no_proxy="localhost,127.0.0.1,${no_proxy:-}" node "$here/org.cjs" || fail=1
+echo "Identity links through the SIMULATED national eID (P3-D4, P3-API6):"
+KC_URL="$kc" CORE_URL="http://127.0.0.1:$core_port" MAIL_URL="$mail" KC_ADMIN_PASSWORD="$kc_pw" ARTIFACT_DIR="${ARTIFACT_DIR:-$work/artifacts}" \
+  STEP_UP_MAX_AGE_SECONDS=30 EID_IDS_OUT="$work/eid-ids.txt" \
+  NO_PROXY="localhost,127.0.0.1,${NO_PROXY:-}" no_proxy="localhost,127.0.0.1,${no_proxy:-}" node "$here/eid.cjs" || fail=1
+if [ -s "$work/eid-ids.txt" ]; then
+  docker exec kr-db pg_dump -U civora_core -d civora_core --data-only > "$work/core-db.sql" 2>/dev/null
+  leaked=0; while read -r nid; do grep -qF "$nid" "$work/core-db.sql" "$work/core.log" && leaked=1; done < "$work/eid-ids.txt"
+  digests=$(docker exec kr-db psql -U civora_core -d civora_core -Atc "select count(*) from iam.identity_claim where claim_type = 'national-id-link'")
+  if [ "$leaked" = 0 ] && [ "${digests:-0}" -gt 0 ]; then echo "  ok   no national identifier in the core database (full dump) or the core log; $digests keyed digest(s) stored"
+  else echo "  FAIL national identifier found in the core database or log (or no digest stored)"; fail=1; fi
+  if grep -q '"context":"integration".*"outcome":"ok"' "$work/core.log" && grep -q '"context":"integration".*"outcome":"rejected"' "$work/core.log"; then
+    echo "  ok   integration log: one line per eID call (adapter, mode, purpose, outcome, latency), accepted and refused answers"
+  else echo "  FAIL integration log lines missing for the eID calls"; fail=1; fi
+else echo "  FAIL the eID test wrote no identifiers to check"; fail=1; fi
 mirrored=$(docker exec kr-db psql -U civora_core -d civora_core -Atc "select count(*) from iam.authenticator")
 if [ "${mirrored:-0}" -gt 0 ]; then echo "  ok   authenticator mirror (iam.authenticator) holds $mirrored row(s), metadata only"; else echo "  FAIL authenticator mirror is empty"; fail=1; fi
 if grep -qiE '"level":"(error|fatal)"' "$work/core.log"; then echo "  info core logged errors:"; grep -iE '"level":"(error|fatal)"' "$work/core.log" | tail -5 | sed 's/^/       /'; fi
