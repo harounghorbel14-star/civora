@@ -13,3 +13,4 @@
 5. [04 — Sessions, authenticators and step-up](04-sessions-authenticators-step-up.md) (week 3): RFC 9470 step-up, `/v1/me/sessions`, `/v1/me/authenticators`, authenticator mirror.
 6. [05 — Branches, teams, staff invitations and cleanup](05-organisation-invitations-cleanup.md) (week 3): unit-scoped roles, invitations, cleanup of accounts never activated, chart identity settings.
 7. [06 — Simulated national eID and identity links](06-simulated-eid-identity-links.md) (week 3): adapter framework rules (ADR-028), the `NationalEid` port and its simulated adapter, `POST /v1/identity/links`, keyed digests only.
+8. [07 — Institution staff SSO](07-institution-staff-sso.md) (week 3): OIDC and SAML institutions through Keycloak organisations, create-only first sign-in, security key after SSO, realm checker for brokered sign-in.

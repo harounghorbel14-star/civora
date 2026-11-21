@@ -17,6 +17,10 @@ PASSED when Keycloak would enrol it at login (its required action is enabled): w
 their own (an ALTERNATIVE step for a missing factor is simply unavailable).
 That is the first-enrolment weakness, so it is checked for every account state. Unknown authenticators or conditions
 are violations until the checker models them.
+Brokered sign-in (staff, institution SSO): the identity-provider redirector reaches only an account that the identity
+provider itself created, unless the provider's first-login flow links accounts; then the provider's post-login flow
+decides. A security key enrolled at the first SSO sign-in is by design (the institution's identity provider
+authenticated the person); every later SSO sign-in needs that key.
 """
 import copy
 import json
@@ -41,7 +45,13 @@ NEEDS = {
     "direct-grant-validate-username": None,
     "direct-grant-validate-password": "password",
     "direct-grant-validate-otp": "otp",
+    "idp-create-user-if-unique": None,
+    "idp-review-profile": None,
+    "idp-add-organization-member": None,
 }
+# First-login steps that attach a brokered identity to an ACCOUNT THAT ALREADY EXISTS (takeover risk across tenants).
+LINKING = {"idp-auto-link", "idp-confirm-link", "idp-username-password-form", "idp-email-verification", "idp-detect-existing-broker-user",
+           "idp-confirm-override-link"}
 ALLOWED_DEFAULT_ROLES = {
     "citizens": {"realm": {"citizen"}, "account": {"view-profile", "manage-account"}},
     "staff": {"realm": set(), "account": {"view-profile"}},
@@ -76,7 +86,8 @@ def can_complete(r, alias, held, account=None):
     account = (set(held) | {"password"}) if account is None else set(account)
     actions = {a.get("providerId") or a.get("alias") for a in r.get("requiredActions", []) if a.get("enabled", True)} \
         if r.get("requiredActions") else set(ENROL_ACTION.values())  # not listed: Keycloak's defaults are enabled
-    ctx = {"flows": flows_of(r), "cfgs": {c["alias"]: c.get("config", {}) for c in r.get("authenticatorConfig", [])}, "actions": actions}
+    ctx = {"flows": flows_of(r), "cfgs": {c["alias"]: c.get("config", {}) for c in r.get("authenticatorConfig", [])}, "actions": actions,
+           "idps": [i for i in r.get("identityProviders", []) if i.get("enabled", True)], "realm": r}
     return _run(alias, {"held": set(held), "account": account, "executed": set(), "identified": False}, ctx, 0)
 
 
@@ -86,6 +97,11 @@ def _authenticator(e, st, ctx, where):
         UNKNOWN.add(f"{where}/{auth}")
         return True
     need = NEEDS[auth]
+    if auth == "identity-provider-redirector":
+        ok = "external-idp" in st["held"] and any(_brokered(i, st, ctx) for i in ctx["idps"])
+        if ok:
+            st["identified"] = True
+        return ok
     if need is None:
         ok = True
     elif need == "impossible":
@@ -101,6 +117,28 @@ def _authenticator(e, st, ctx, where):
     if ok and auth in IDENTIFIES:
         st["identified"] = True
     return ok
+
+
+def first_broker_flow(r, idp):
+    return idp.get("firstBrokerLoginFlowAlias") or r.get("firstBrokerLoginFlow") or "first broker login"
+
+
+def links_accounts(r, alias):
+    """True if a first-login flow can attach the brokered identity to an existing account (the built-in one does)."""
+    if alias not in flows_of(r):
+        return True  # not in the export: Keycloak's built-in first broker login, which links by e-mail
+    return any(contains_authenticator(r, alias, a) for a in LINKING)
+
+
+def _brokered(idp, st, ctx):
+    r = ctx["realm"]
+    if "password" in st["account"] and not links_accounts(r, first_broker_flow(r, idp)):
+        return False  # a local account is never reached through the identity provider
+    post = idp.get("postBrokerLoginFlowAlias")
+    if not post:
+        return True
+    sub = {"held": st["held"], "account": st["account"], "executed": set(), "identified": True}
+    return _run(post, sub, ctx, 1)
 
 
 def _conditions_hold(flow_alias, st, ctx):
@@ -166,7 +204,8 @@ def contains_authenticator(r, alias, authenticator, depth=0):
 # (including an account that has no second factor yet).
 STATES = {
     "citizens": [{"password"}, {"password", "otp"}, {"password", "passkey"}, {"password", "otp", "passkey"}, {"passkey"}, set()],
-    "staff": [{"password"}, {"password", "security-key"}, {"password", "otp"}, {"password", "otp", "passkey"}],
+    "staff": [{"password"}, {"password", "security-key"}, {"password", "otp"}, {"password", "otp", "passkey"},
+              {"security-key"}],  # last: an account created by institution SSO, key enrolled
 }
 SERVICE_ROLES = {"realm-management": {"manage-users", "view-users", "query-users"}}
 
@@ -235,6 +274,9 @@ def _violations(r, profile, require_approved_keys=False):
         for u in c.get("redirectUris", []):
             if u.strip() in ("*", "/*") or re.match(r"^https?://\*", u):
                 v.append(f"{cid}: wildcard redirect URI {u}")
+    for f in r.get("authenticationFlows", []):
+        if len(f.get("description") or "") > 255:
+            v.append(f"flow {f.get('alias')}: description longer than 255 characters (Keycloak refuses the import)")
     for u in r.get("users", []):
         for cred in u.get("credentials", []):
             if cred.get("type") == "password" and ("value" in cred or "secretData" in cred):
@@ -320,6 +362,8 @@ def _violations(r, profile, require_approved_keys=False):
     if profile == "staff":
         if r.get("registrationAllowed"):
             v.append("self-registration must be off")
+        if int(r.get("ssoSessionMaxLifespan", 36000)) > 28800 or int(r.get("ssoSessionIdleTimeout", 1800)) > 1800:
+            v.append("staff sessions: idle at most 30 min, absolute at most 8 h (Phase 0 §10.3)")
         for state in STATES["staff"]:
             if can_complete(r, r.get("browserFlow"), {"password", "otp", "passkey", "external-idp"}, state):
                 v.append(f"browser flow can be completed without a FIDO2 security key for an account holding {'+'.join(sorted(state))} (P3-SEC5)")
@@ -346,6 +390,52 @@ def _violations(r, profile, require_approved_keys=False):
         for c in r.get("clients", []):
             if c.get("attributes", {}).get("civora.client-kind") == "first-party" and not claim_mapped(c, "tenant_id"):
                 v.append(f"{c.get('clientId')}: staff tokens need the tenant_id claim")
+        v += idp_violations(r)
+    return v
+
+
+def idp_violations(r):
+    """Institution SSO (P3-R1): every identity provider of the staff realm serves exactly one tenant."""
+    v = []
+    for idp in r.get("identityProviders", []):
+        a = idp.get("alias")
+        cfg = idp.get("config", {})
+        if not (idp.get("hideOnLogin") or cfg.get("hideOnLoginPage") == "true"):
+            v.append(f"identity provider {a}: must be hidden on the shared login page (it would list the institutions)")
+        fb = first_broker_flow(r, idp)
+        if links_accounts(r, fb):
+            v.append(f"identity provider {a}: first-login flow {fb} can link to an existing account (takeover of a local or another tenant's account)")
+        elif not contains_authenticator(r, fb, "idp-create-user-if-unique"):
+            v.append(f"identity provider {a}: first-login flow {fb} must create the account only if unique")
+        elif not contains_authenticator(r, fb, "idp-add-organization-member"):
+            v.append(f"identity provider {a}: first-login flow {fb} must add the account to the tenant's organisation")
+        if "organizationId" in idp and not idp.get("organizationId"):
+            v.append(f"identity provider {a}: must be linked to its tenant's organisation")
+        post = idp.get("postBrokerLoginFlowAlias")
+        if not post or post not in flows_of(r):
+            v.append(f"identity provider {a}: no post-login flow: the institution's sign-in alone would be enough (P3-SEC5)")
+        elif can_complete(r, post, {"external-idp", "password", "otp", "passkey"}, {"security-key"}) or not can_complete(r, post, {"security-key"}, {"security-key"}):
+            v.append(f"identity provider {a}: post-login flow {post} must require the account's security key (P3-SEC5)")
+        mps = [m for m in r.get("identityProviderMappers", []) if m.get("identityProviderAlias") == a]
+        tenant = [m for m in mps if m.get("identityProviderMapper") == "hardcoded-attribute-idp-mapper" and m.get("config", {}).get("attribute") == "tenant_id"]
+        if len(tenant) != 1 or not re.match(UUID_PATTERN, tenant[0]["config"].get("attribute.value", "")) or tenant[0]["config"].get("syncMode") != "FORCE":
+            v.append(f"identity provider {a}: needs exactly one hardcoded tenant_id mapper (a UUID, sync FORCE)")
+        for m in mps:
+            mc = m.get("config", {})
+            if m.get("identityProviderMapper") != "hardcoded-attribute-idp-mapper" and "tenant_id" in (mc.get("user.attribute"), mc.get("attribute")):
+                v.append(f"identity provider {a}: mapper {m.get('name')} lets the institution assert tenant_id")
+        if idp.get("storeToken"):
+            v.append(f"identity provider {a}: must not store the institution's tokens")
+        if idp.get("providerId") in ("oidc", "keycloak-oidc"):
+            if cfg.get("validateSignature") != "true":
+                v.append(f"identity provider {a}: OIDC signatures must be validated")
+            if cfg.get("pkceEnabled") != "true" or cfg.get("pkceMethod") != "S256":
+                v.append(f"identity provider {a}: OIDC needs PKCE S256")
+        elif idp.get("providerId") == "saml":
+            if cfg.get("validateSignature") != "true" or cfg.get("wantAssertionsSigned") != "true":
+                v.append(f"identity provider {a}: SAML responses and assertions must be signed and validated")
+        else:
+            v.append(f"identity provider {a}: protocol {idp.get('providerId')} not allowed (OIDC or SAML)")
     return v
 
 
@@ -418,7 +508,34 @@ def mutations(profile, live=False, approved=False):
         m["attestation not verified (any key accepted)"] = lambda r: r.update(webAuthnPolicyAttestationConveyancePreference="none")
         m["staff token without tenant"] = lambda r: public_app(r).update(protocolMappers=[x for x in public_app(r)["protocolMappers"]
                                                                                           if x.get("config", {}).get("claim.name") != "tenant_id"])
+        m["staff session of 10 h"] = lambda r: r.update(ssoSessionMaxLifespan=36000)
+        m["SSO: provider links to existing accounts"] = lambda r: _weak_idp(r, firstBrokerLoginFlowAlias="first broker login")
+        m["SSO: institution sign-in without the security key"] = lambda r: _weak_idp(r, postBrokerLoginFlowAlias=None)
+        m["SSO: provider listed on the login page"] = lambda r: _weak_idp(r, hideOnLogin=False)
+        m["SSO: institution asserts tenant_id"] = lambda r: _weak_idp(r, extra_mapper={"name": "t", "identityProviderMapper": "oidc-user-attribute-idp-mapper",
+                                                                                          "config": {"claim": "tenant", "user.attribute": "tenant_id"}})
+        m["SSO: no tenant mapper"] = lambda r: _weak_idp(r, tenant=False)
+        m["SSO: OIDC signatures not validated"] = lambda r: _weak_idp(r, cfg={"validateSignature": "false"})
+        m["SSO: SAML assertions unsigned"] = lambda r: _weak_idp(r, providerId="saml", cfg={"validateSignature": "true", "wantAssertionsSigned": "false"})
     return m
+
+
+def _weak_idp(r, extra_mapper=None, tenant=True, cfg=None, **kw):
+    """Adds an institution identity provider that follows every rule except the one weakened by the arguments."""
+    idp = {"alias": "weak-idp", "providerId": "oidc", "enabled": True, "hideOnLogin": True, "storeToken": False,
+           "firstBrokerLoginFlowAlias": "staff-first-broker-login", "postBrokerLoginFlowAlias": "staff-post-broker-key",
+           "config": {"validateSignature": "true", "pkceEnabled": "true", "pkceMethod": "S256"}}
+    idp.update(kw)
+    idp["config"].update(cfg or {})
+    if idp.get("postBrokerLoginFlowAlias") is None:
+        idp.pop("postBrokerLoginFlowAlias")
+    r.setdefault("identityProviders", []).append(idp)
+    mps = r.setdefault("identityProviderMappers", [])
+    if tenant:
+        mps.append({"name": "tenant", "identityProviderAlias": "weak-idp", "identityProviderMapper": "hardcoded-attribute-idp-mapper",
+                    "config": {"attribute": "tenant_id", "attribute.value": "6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b", "syncMode": "FORCE"}})
+    if extra_mapper:
+        mps.append({**extra_mapper, "identityProviderAlias": "weak-idp"})
 
 
 def _drop_pairwise_salts(r):

@@ -1,0 +1,87 @@
+{
+  "realm": "sim-bank-b-idp",
+  "displayName": "SIMULATED institution identity provider: bank B (SAML 2.0), synthetic staff only",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "resetPasswordAllowed": false,
+  "rememberMe": false,
+  "bruteForceProtected": true,
+  "failureFactor": 5,
+  "accessTokenLifespan": 60,
+  "ssoSessionIdleTimeout": 300,
+  "ssoSessionMaxLifespan": 600,
+  "internationalizationEnabled": true,
+  "supportedLocales": [
+    "ar",
+    "fr",
+    "en"
+  ],
+  "defaultLocale": "fr",
+  "clients": [
+    {
+      "clientId": "civora-staff-sp",
+      "name": "CIVORA staff realm (SAML service provider)",
+      "description": "The CIVORA staff realm as SAML service provider. Assertion consumer URL set when the tenant's SSO is configured.",
+      "enabled": true,
+      "protocol": "saml",
+      "frontchannelLogout": false,
+      "fullScopeAllowed": false,
+      "redirectUris": [
+        "http://localhost:8080/realms/civora-staff/broker/sim-bank-b/endpoint"
+      ],
+      "attributes": {
+        "saml.assertion.signature": "true",
+        "saml.server.signature": "true",
+        "saml.signature.algorithm": "RSA_SHA256",
+        "saml.client.signature": "false",
+        "saml.authnstatement": "true",
+        "saml_force_name_id_format": "true",
+        "saml_name_id_format": "persistent",
+        "saml.encrypt": "false",
+        "saml_assertion_consumer_url_post": "http://localhost:8080/realms/civora-staff/broker/sim-bank-b/endpoint"
+      },
+      "protocolMappers": [
+        {
+          "name": "email",
+          "protocol": "saml",
+          "protocolMapper": "saml-user-property-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "email",
+            "attribute.name": "email",
+            "attribute.nameformat": "Basic",
+            "friendly.name": "email"
+          }
+        },
+        {
+          "name": "firstName",
+          "protocol": "saml",
+          "protocolMapper": "saml-user-property-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "firstName",
+            "attribute.name": "firstName",
+            "attribute.nameformat": "Basic",
+            "friendly.name": "firstName"
+          }
+        },
+        {
+          "name": "lastName",
+          "protocol": "saml",
+          "protocolMapper": "saml-user-property-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "lastName",
+            "attribute.name": "lastName",
+            "attribute.nameformat": "Basic",
+            "friendly.name": "lastName"
+          }
+        }
+      ],
+      "defaultClientScopes": [],
+      "optionalClientScopes": []
+    }
+  ]
+}

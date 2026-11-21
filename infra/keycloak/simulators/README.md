@@ -6,6 +6,8 @@ and are never deployed to staging, pilot or production cells.
 
 | File | Stands in for | Used by |
 |---|---|---|
+| `sim-bank-a-idp.json` | An institution's own identity provider over OpenID Connect (P3-R1 staff SSO) | Staff realm identity provider `sim-bank-a`, set up by `infra/keycloak/configure-tenant-sso.py` ([Phase 3 doc 07](../../../docs/phase-3/07-institution-staff-sso.md)) |
+| `sim-bank-b-idp.json` | An institution's own identity provider over SAML 2.0 (P3-R1) | Staff realm identity provider `sim-bank-b`, same script |
 | `sim-national-eid.json` | National eID (register entry I-01; scheme not chosen, question Q3-2) | `services/core` integrations module, port `NationalEid`, adapter `simulated-oidc` ([Phase 3 doc 06](../../../docs/phase-3/06-simulated-eid-identity-links.md)) |
 
 Rules:

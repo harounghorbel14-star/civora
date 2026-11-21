@@ -7,6 +7,7 @@
 | Built in Phase 2 | Keycloak 26.0 in the dev cell with realm `civora-dev`: AR/FR/EN, brute-force protection, password policy, PKCE public client for the Workspace, bearer-only API client, `tenant_id` claim mapper, synthetic users with random passwords. Cedar policy model with 24 conformance cases |
 | Phase 3 update (21 Nov 2026) | The dev cell now runs Keycloak 26.8.1 (pinned) with the citizens and staff realms, a post-import policy and live conformance checks; the dev realm's password grant is denied realm-wide. See [Phase 3 doc 03](../phase-3/03-identity-realms-and-authentication.md) |
 | Phase 3 update (21 Nov 2026, eID) | Identity links through the **simulated** national eID: the core verifies the eID's signed answer itself and keeps a keyed digest of the identifier (proofing, not sign-in). Signing in with the eID through the Keycloak broker (§6.2) stays for Phase 12, authorised only. See [Phase 3 doc 06](../phase-3/06-simulated-eid-identity-links.md) |
+| Phase 3 update (21 Nov 2026, staff SSO) | Institution SSO (OIDC and SAML) through the staff realm: one Keycloak organisation and identity provider per tenant, `tenant_id` hardcoded per provider, accounts created just in time and never linked to existing ones, the CIVORA security key after every SSO sign-in. See [Phase 3 doc 07](../phase-3/07-institution-staff-sso.md) |
 | Built later | Phase 3: staff SSO, customer OTP, accounts, sessions, tenant admin. Phase 3/12: citizen accounts and eID brokering (authorised only) |
 
 ## 6.1 Identity populations
@@ -82,7 +83,7 @@ Two layers. Coarse roles come from identity; fine-grained decisions come from po
 - Workspace and web apps use the authorisation code flow with PKCE (S256). No implicit flow and no password grant: the dev realm already sets `directAccessGrantsEnabled=false`.
 - Tokens are held by a backend-for-frontend; the browser gets an HttpOnly, Secure, SameSite=strict session cookie. CSRF protection applies to state-changing requests.
 - Sensitive actions require re-authentication or step-up (`acr`/`auth_time` checked by policy). Examples: rule-pack changes, exports, user management.
-- Idle timeout 30 min; absolute session 8 h for staff (Phase 0 §10.3: max 8 h; the dev realm uses 10 h and will be aligned in Phase 3).
+- Idle timeout 30 min; absolute session 8 h for staff (Phase 0 §10.3: max 8 h). Phase 3: the staff realm is aligned (8 h, enforced by the realm checker); the legacy dev realm `civora-dev` keeps 10 h (dev only).
 
 ## 6.6 Account lifecycle
 
