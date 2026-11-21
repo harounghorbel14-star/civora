@@ -30,10 +30,11 @@ export async function createApp(opts: { logger?: LoggerService | false } = {}): 
 export function buildOpenApi(app: INestApplication, version: string): OpenAPIObject {
   const config = new DocumentBuilder()
     .setTitle('CIVORA Core API')
-    .setDescription('Phase 2 walking skeleton. Contains platform endpoints only. Synthetic data only; no production integrations.')
+    .setDescription('Platform endpoints, and from Phase 3 identity and mandates. Synthetic data only; no production integrations.')
     .setVersion(version)
     .setLicense('Proprietary — all rights reserved', 'https://docs.civora.invalid/licence')
     .addServer('http://localhost:3000', 'Local development cell')
+    .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT', description: 'Access token from the cell\'s Keycloak realm (5 minutes)' })
     .build();
   return SwaggerModule.createDocument(app, config);
 }

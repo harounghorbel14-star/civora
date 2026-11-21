@@ -37,6 +37,7 @@
     "@opentelemetry/sdk-trace": "3.0.0",
     "@opentelemetry/semantic-conventions": "1.44.0",
     "@prometheus-io/client": "0.16.1",
+    "jose": "6.2.15",
     "node-pg-migrate": "8.0.4",
     "pg": "8.23.1",
     "reflect-metadata": "0.2.2",

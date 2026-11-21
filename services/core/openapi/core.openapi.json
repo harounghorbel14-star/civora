@@ -1,6 +1,151 @@
 {
   "components": {
     "schemas": {
+      "AcceptMandate": {
+        "properties": {
+          "invitationCode": {
+            "description": "The invitation code received from the principal",
+            "type": "string"
+          }
+        },
+        "required": [
+          "invitationCode"
+        ],
+        "type": "object"
+      },
+      "AccountDto": {
+        "properties": {
+          "assuranceLevel": {
+            "enum": [
+              "AAL1",
+              "AAL2",
+              "AAL3"
+            ],
+            "type": "string"
+          },
+          "realm": {
+            "enum": [
+              "citizens",
+              "staff"
+            ],
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "suspended",
+              "closed"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "realm",
+          "status",
+          "assuranceLevel"
+        ],
+        "type": "object"
+      },
+      "CreateMandate": {
+        "properties": {
+          "expiresAt": {
+            "description": "At most 366 days after validFrom",
+            "format": "date-time",
+            "type": "string"
+          },
+          "scopes": {
+            "description": "Each scope is <domain>:<action>, domain in cases, documents, appointments, payments, benefits, action in read, submit, manage",
+            "example": [
+              "cases:read"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "validFrom": {
+            "description": "Default: now",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "scopes",
+          "expiresAt"
+        ],
+        "type": "object"
+      },
+      "CreatedMandateDto": {
+        "properties": {
+          "acceptedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "invitationCode": {
+            "description": "Give this code to the agent, once. It is not stored and cannot be shown again",
+            "type": "string"
+          },
+          "revokedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "role": {
+            "description": "Your side of the mandate",
+            "enum": [
+              "principal",
+              "agent"
+            ],
+            "type": "string"
+          },
+          "scopes": {
+            "description": "Each scope is <domain>:<action>, domain in cases, documents, appointments, payments, benefits, action in read, submit, manage",
+            "example": [
+              "cases:read",
+              "payments:submit"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "proposed",
+              "active",
+              "revoked",
+              "expired"
+            ],
+            "type": "string"
+          },
+          "validFrom": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "role",
+          "status",
+          "scopes",
+          "validFrom",
+          "expiresAt",
+          "createdAt",
+          "invitationCode"
+        ],
+        "type": "object"
+      },
       "HealthChecks": {
         "properties": {
           "countryPack": {
@@ -136,6 +281,150 @@
         ],
         "type": "object"
       },
+      "MandateDto": {
+        "properties": {
+          "acceptedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "revokedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "role": {
+            "description": "Your side of the mandate",
+            "enum": [
+              "principal",
+              "agent"
+            ],
+            "type": "string"
+          },
+          "scopes": {
+            "description": "Each scope is <domain>:<action>, domain in cases, documents, appointments, payments, benefits, action in read, submit, manage",
+            "example": [
+              "cases:read",
+              "payments:submit"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "proposed",
+              "active",
+              "revoked",
+              "expired"
+            ],
+            "type": "string"
+          },
+          "validFrom": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "role",
+          "status",
+          "scopes",
+          "validFrom",
+          "expiresAt",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "MandateEventDto": {
+        "properties": {
+          "action": {
+            "enum": [
+              "created",
+              "accepted",
+              "revoked",
+              "renounced"
+            ],
+            "type": "string"
+          },
+          "actorRole": {
+            "enum": [
+              "principal",
+              "agent"
+            ],
+            "type": "string"
+          },
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "action",
+          "actorRole",
+          "at"
+        ],
+        "type": "object"
+      },
+      "MePatch": {
+        "properties": {
+          "accessibility": {
+            "additionalProperties": true,
+            "description": "Allowed keys: textSize, highContrast, reducedMotion, simplifiedLanguage, screenReaderHints",
+            "type": "object"
+          },
+          "preferredLocale": {
+            "description": "One of the locales supported by the country pack",
+            "example": "fr-TN",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "MeResponse": {
+        "properties": {
+          "accessibility": {
+            "additionalProperties": true,
+            "example": {
+              "highContrast": true,
+              "textSize": "large"
+            },
+            "type": "object"
+          },
+          "accounts": {
+            "items": {
+              "$ref": "#/components/schemas/AccountDto"
+            },
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "preferredLocale": {
+            "example": "ar-TN",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "preferredLocale",
+          "accessibility",
+          "accounts"
+        ],
+        "type": "object"
+      },
       "PackInfo": {
         "properties": {
           "digest": {
@@ -163,11 +452,19 @@
         ],
         "type": "object"
       }
+    },
+    "securitySchemes": {
+      "bearer": {
+        "bearerFormat": "JWT",
+        "description": "Access token from the cell's Keycloak realm (5 minutes)",
+        "scheme": "bearer",
+        "type": "http"
+      }
     }
   },
   "info": {
     "contact": {},
-    "description": "Phase 2 walking skeleton. Contains platform endpoints only. Synthetic data only; no production integrations.",
+    "description": "Platform endpoints, and from Phase 3 identity and mandates. Synthetic data only; no production integrations.",
     "license": {
       "name": "Proprietary — all rights reserved",
       "url": "https://docs.civora.invalid/licence"
@@ -224,6 +521,277 @@
         "summary": "Readiness probe",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/v1/mandates": {
+      "get": {
+        "operationId": "listMandates",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MandateDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "description": "No valid access token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mandates where you are the principal or the agent",
+        "tags": [
+          "mandates"
+        ]
+      },
+      "post": {
+        "operationId": "createMandate",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMandate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedMandateDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "description": "No valid access token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Propose a mandate; returns a one-time invitation code for the agent",
+        "tags": [
+          "mandates"
+        ]
+      }
+    },
+    "/v1/mandates/{id}/events": {
+      "get": {
+        "operationId": "listMandateEvents",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MandateEventDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "404": {
+            "description": "No such mandate where you are a party"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Every action taken on a mandate, for its principal and agent (P3-AC3)",
+        "tags": [
+          "mandates"
+        ]
+      }
+    },
+    "/v1/mandates/{id}:accept": {
+      "post": {
+        "operationId": "acceptMandate",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptMandate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MandateDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "404": {
+            "description": "No such open mandate, or the code does not match (deliberately not distinguished)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Accept a mandate as the agent, with its invitation code",
+        "tags": [
+          "mandates"
+        ]
+      }
+    },
+    "/v1/mandates/{id}:revoke": {
+      "post": {
+        "operationId": "revokeMandate",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MandateDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "404": {
+            "description": "No such open mandate where you are a party"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "End a mandate: the principal revokes it, the agent renounces it",
+        "tags": [
+          "mandates"
+        ]
+      }
+    },
+    "/v1/me": {
+      "get": {
+        "operationId": "getMe",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "description": "No valid access token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The signed-in person: preferences and accounts (P3-API2)",
+        "tags": [
+          "identity"
+        ]
+      },
+      "patch": {
+        "operationId": "updateMe",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MePatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Updated"
+          },
+          "401": {
+            "description": "No valid access token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change language and accessibility preferences (P3-F3, P3-F4)",
+        "tags": [
+          "identity"
         ]
       }
     },
