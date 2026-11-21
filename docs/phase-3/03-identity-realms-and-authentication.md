@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Specification items | P3-A1 realms per cell (citizens, staff) · P3-A3 pairwise subject IDs · P3-F1 passkeys, TOTP (SMS fallback: Q3-1) · P3-SEC3 brute-force and credential-stuffing protection · P3-SEC5 officer accounts require FIDO2 keys · P3-T2 auth-flow E2E (web part) · P3-AC1 flows in AR/FR/EN (realm part) |
-| Status | Week 2 built and tested on 21 Nov 2026 (nightly run 17 green, 12/12 jobs). **Same day, second pass: the five open findings raised before approving the identity system were closed** (§9): account enumeration, first enrolment, FIDO2 attestation, credential stuffing, languages. Local evidence below; GitHub results recorded in [01 — Progress](01-progress.md) |
+| Status | Week 2 built and tested on 21 Nov 2026 (nightly run 17 green, 12/12 jobs). **Same day, second pass: the five open findings raised before approving the identity system were closed** (§9): account enumeration, first enrolment, FIDO2 attestation, credential stuffing, languages. Local evidence below. GitHub: CI run 41 and nightly run 20 green (12 of 12 jobs, including `identity-realms` with every journey and security check, and the gateway); details in [01 — Progress](01-progress.md) |
 | Identity provider | Keycloak 26.8.1, pinned by digest (`sha256:3f3c5f8e…7332`), the version Phase 2 validated (ADR-005) |
 | Data | Synthetic users only, created per test run with random passwords; nothing is stored |
 
