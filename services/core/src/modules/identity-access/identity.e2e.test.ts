@@ -159,6 +159,24 @@ describe('identity and mandates, end to end (Phase 3 week 1)', { skip: !adminUrl
     assert.equal(r.status, 503);
   });
 
+  it('database: the authenticator mirror only touches the current person (sync_authenticators, as the application role)', async () => {
+    await call('/v1/me', await sign('erin'));
+    const c = new Client({ connectionString: appDbUrl });
+    await c.connect();
+    const person = (await c.query("select iam.ensure_person('citizens', 'erin', null, null) as id")).rows[0].id;
+    await c.query('begin');
+    await c.query("select set_config('app.person_id', $1, true)", [person]);
+    const items = [{ id: 'kc-cred-1', kind: 'passkey', label: 'Phone', createdAt: null }, { id: 'kc-cred-2', kind: 'totp', label: null, createdAt: null }];
+    const n1 = (await c.query('select iam.sync_authenticators($1, $2::jsonb) as n', ['citizens', JSON.stringify(items)])).rows[0].n;
+    const n2 = (await c.query('select iam.sync_authenticators($1, $2::jsonb) as n', ['citizens', JSON.stringify(items.slice(1))])).rows[0].n;
+    const visible = (await c.query('select kind from iam.authenticator')).rows.map((r) => r.kind);
+    await c.query('commit');
+    await assert.rejects(c.query('insert into iam.authenticator (account_id, kind, keycloak_credential_id) select id, $1, $2 from iam.account limit 1', ['totp', 'x']), /permission denied/);
+    await assert.rejects(c.query('select iam.sync_authenticators($1, $2::jsonb)', ['citizens', '[]']), /no authenticated person/);
+    await c.end();
+    assert.deepEqual([n1, n2, visible], [2, 1, ['totp']]);
+  });
+
   it('database: activation e-mails per address are bounded (registration_permit, as the application role)', async () => {
     const c = new Client({ connectionString: appDbUrl });
     await c.connect();

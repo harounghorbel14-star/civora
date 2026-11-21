@@ -80,6 +80,7 @@ for p in citizens staff; do
   echo "  info civora-$p as imported, before policy: $before rule(s) not met (Keycloak's built-in defaults)"
   extra=(--smtp-host kr-mail --smtp-port 1025)
   [ "$p" = citizens ] && extra+=(--provisioner-secret-out "$work/provisioner.secret")
+  [ "$p" = staff ] && extra+=(--provisioner-secret-out "$work/staff-provisioner.secret")
   [ "$p" = staff ] && extra+=(--approved-keys "$approved")
   python3 "$repo/infra/keycloak/apply-realm-policy.py" --server "$kc" --realm "civora-$p" --profile "$p" --export "$work/$p.live.json" "${extra[@]}" | sed 's/^/  /'
   if out=$(python3 "$checker" "$work/$p.live.json" --profile "$p" --live --require-approved-keys --self-test); then
@@ -90,18 +91,24 @@ done
 core_port=$(free_port)
 (cd "$repo/services/core" && CIVORA_ENV=test PORT="$core_port" DATABASE_URL="postgres://civora_core_app:$app_pw@127.0.0.1:$db_port/civora_core" \
   OIDC_ISSUER_CITIZENS="$kc/realms/civora-citizens" OIDC_ISSUER_STAFF="$kc/realms/civora-staff" \
-  KEYCLOAK_PROVISIONER_SECRET_FILE="$work/provisioner.secret" exec node dist/src/main.js) >"$work/core.log" 2>&1 &
+  KEYCLOAK_PROVISIONER_SECRET_FILE="$work/provisioner.secret" KEYCLOAK_STAFF_PROVISIONER_SECRET_FILE="$work/staff-provisioner.secret" \
+  STEP_UP_MAX_AGE_SECONDS=30 exec node dist/src/main.js) >"$work/core.log" 2>&1 &
 core_pid=$!
 for _ in $(seq 1 60); do curl -sf --noproxy '*' "http://127.0.0.1:$core_port/health/ready" >/dev/null && break; sleep 1; done
 curl -sf --noproxy '*' "http://127.0.0.1:$core_port/health/ready" >/dev/null || { echo "  FAIL core did not start"; tail -20 "$work/core.log"; exit 1; }
 stamp "civora-core up (database role civora_core_app; issuers: the two realms; registration through the provisioner client)"
-grep -q . "$work/provisioner.secret" || { echo "  FAIL provisioner secret not written"; exit 1; }
+grep -q . "$work/provisioner.secret" && grep -q . "$work/staff-provisioner.secret" || { echo "  FAIL provisioner secrets not written"; exit 1; }
 
 echo "Journeys in ${LOCALES:-ar,fr,en} and security checks, in Chromium with virtual authenticators, and the core:"
 mkdir -p "${ARTIFACT_DIR:-$work/artifacts}"
 KC_URL="$kc" CORE_URL="http://127.0.0.1:$core_port" MAIL_URL="$mail" KC_ADMIN_PASSWORD="$kc_pw" ARTIFACT_DIR="${ARTIFACT_DIR:-$work/artifacts}" \
   NO_PROXY="localhost,127.0.0.1,${NO_PROXY:-}" no_proxy="localhost,127.0.0.1,${no_proxy:-}" node "$here/login.cjs" || fail=1
 
+echo "Sessions, authenticators and step-up through the core (week 3, step-up limit 30 s in this test):"
+KC_URL="$kc" CORE_URL="http://127.0.0.1:$core_port" MAIL_URL="$mail" KC_ADMIN_PASSWORD="$kc_pw" ARTIFACT_DIR="${ARTIFACT_DIR:-$work/artifacts}" \
+  STEP_UP_MAX_AGE_SECONDS=30 NO_PROXY="localhost,127.0.0.1,${NO_PROXY:-}" no_proxy="localhost,127.0.0.1,${no_proxy:-}" node "$here/account.cjs" || fail=1
+mirrored=$(docker exec kr-db psql -U civora_core -d civora_core -Atc "select count(*) from iam.authenticator")
+if [ "${mirrored:-0}" -gt 0 ]; then echo "  ok   authenticator mirror (iam.authenticator) holds $mirrored row(s), metadata only"; else echo "  FAIL authenticator mirror is empty"; fail=1; fi
 if grep -qiE '"level":"(error|fatal)"' "$work/core.log"; then echo "  info core logged errors:"; grep -iE '"level":"(error|fatal)"' "$work/core.log" | tail -5 | sed 's/^/       /'; fi
 stamp "$([ $fail = 0 ] && echo 'ALL CHECKS PASSED' || echo 'SOME CHECKS FAILED')"
 exit $fail

@@ -390,7 +390,7 @@
     },
     {
       "clientId": "civora-core-provisioner",
-      "name": "civora-core: creates citizen accounts and sends activation links",
+      "name": "civora-core: citizen registration, sessions and authenticators",
       "publicClient": false,
       "serviceAccountsEnabled": true,
       "standardFlowEnabled": false,

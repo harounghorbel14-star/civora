@@ -10,3 +10,4 @@
 2. [01 — Progress](01-progress.md): what is built and tested, week by week.
 3. [02 — Identity data model, token verification and mandates](02-identity-model-and-mandates.md) (week 1).
 4. [03 — Identity realms and authentication](03-identity-realms-and-authentication.md) (week 2): citizens and staff realms, passkeys, TOTP, FIDO2 for officers with approved key models, pairwise subjects, registration without account enumeration, first enrolment only by e-mailed link, login rate limits, tests in Arabic, French and English; defects found; findings.
+5. [04 — Sessions, authenticators and step-up](04-sessions-authenticators-step-up.md) (week 3): RFC 9470 step-up, `/v1/me/sessions`, `/v1/me/authenticators`, authenticator mirror.

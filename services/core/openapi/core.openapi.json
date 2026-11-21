@@ -46,6 +46,40 @@
         ],
         "type": "object"
       },
+      "AuthenticatorDto": {
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "passkey",
+              "security-key",
+              "totp"
+            ],
+            "type": "string"
+          },
+          "label": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "kind"
+        ],
+        "type": "object"
+      },
       "CreateMandate": {
         "properties": {
           "expiresAt": {
@@ -143,6 +177,45 @@
           "expiresAt",
           "createdAt",
           "invitationCode"
+        ],
+        "type": "object"
+      },
+      "EnrolRequest": {
+        "properties": {
+          "kind": {
+            "description": "Citizens: passkey or totp. Staff: security-key",
+            "enum": [
+              "passkey",
+              "totp",
+              "security-key"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "type": "object"
+      },
+      "EnrolResponse": {
+        "properties": {
+          "keycloakAction": {
+            "description": "Add kc_action=<this> to the authorization request; the ceremony happens at the identity provider",
+            "example": "webauthn-register-passwordless",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "passkey",
+              "totp",
+              "security-key"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "keycloakAction"
         ],
         "type": "object"
       },
@@ -484,6 +557,51 @@
           "email"
         ],
         "type": "object"
+      },
+      "SessionDto": {
+        "properties": {
+          "applications": {
+            "example": [
+              "civora-web"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "current": {
+            "description": "The session this access token belongs to",
+            "type": "boolean"
+          },
+          "id": {
+            "description": "Session id (opaque)",
+            "example": "-JoesOrzuMGBIpK-ezgyu2Nk",
+            "type": "string"
+          },
+          "ipAddress": {
+            "description": "Address the session was last used from (shown only to its owner)",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "lastAccessAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "current",
+          "startedAt",
+          "lastAccessAt",
+          "applications"
+        ],
+        "type": "object"
       }
     },
     "securitySchemes": {
@@ -823,6 +941,183 @@
           }
         ],
         "summary": "Change language and accessibility preferences (P3-F3, P3-F4)",
+        "tags": [
+          "identity"
+        ]
+      }
+    },
+    "/v1/me/authenticators": {
+      "get": {
+        "operationId": "listMyAuthenticators",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AuthenticatorDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "description": "No valid access token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Your passkeys, security keys and authenticator apps (never the password)",
+        "tags": [
+          "identity"
+        ]
+      },
+      "post": {
+        "operationId": "startAuthenticatorEnrolment",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnrolRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrolResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "description": "No valid access token, or no recent sign-in (WWW-Authenticate: error=\"insufficient_user_authentication\", max_age)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Start adding an authenticator: returns the identity-provider action the app runs",
+        "tags": [
+          "identity"
+        ]
+      }
+    },
+    "/v1/me/authenticators/{id}": {
+      "delete": {
+        "operationId": "removeMyAuthenticator",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed"
+          },
+          "401": {
+            "description": "No valid access token, or no recent sign-in (WWW-Authenticate: error=\"insufficient_user_authentication\", max_age)"
+          },
+          "404": {
+            "description": "No such authenticator of yours"
+          },
+          "409": {
+            "description": "It is your last way to sign in (add another first)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove one of your authenticators; refused if you could no longer sign in",
+        "tags": [
+          "identity"
+        ]
+      }
+    },
+    "/v1/me/sessions": {
+      "get": {
+        "operationId": "listMySessions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SessionDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "description": "No valid access token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Your signed-in sessions, the current one marked",
+        "tags": [
+          "identity"
+        ]
+      }
+    },
+    "/v1/me/sessions/{id}": {
+      "delete": {
+        "operationId": "endMySession",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Ended"
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "404": {
+            "description": "No such session of yours"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Sign out one of your sessions (its refresh token stops working at once; access tokens expire within 5 minutes)",
         "tags": [
           "identity"
         ]

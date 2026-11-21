@@ -167,11 +167,14 @@ services:
       # dev-cell-up.sh (apply-realm-policy.py --provisioner-secret-out); while it is empty, registration answers 503.
       KEYCLOAK_INTERNAL_URL: http://keycloak:8080
       KEYCLOAK_PROVISIONER_SECRET_FILE: /run/secrets/keycloak-provisioner
+      KEYCLOAK_STAFF_PROVISIONER_SECRET_FILE: /run/secrets/keycloak-staff-provisioner
       ACTIVATION_REDIRECT_URI: https://app.civora-cell.invalid/activated
       OTEL_EXPORTER_OTLP_ENDPOINT: http://observability:4318
       OTEL_BSP_SCHEDULE_DELAY: "1000"   # dev only: export spans within a second
     ports: ["127.0.0.1:3000:3000"]
-    volumes: ["./.generated/provisioner.secret:/run/secrets/keycloak-provisioner:ro"]
+    volumes:
+      - ./.generated/provisioner.secret:/run/secrets/keycloak-provisioner:ro
+      - ./.generated/staff-provisioner.secret:/run/secrets/keycloak-staff-provisioner:ro
     read_only: true
     tmpfs: ["/tmp"]
     cap_drop: ["ALL"]

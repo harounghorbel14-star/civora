@@ -125,6 +125,13 @@ export class IamRepository {
     return r.rows[0]!.ok;
   }
 
+  /** Refreshes the authenticator mirror (P3-DB3) for the person's account in a realm; metadata only. */
+  syncAuthenticators(personId: string, realm: string, items: { id: string; kind: string; label: string | null; createdAt: string | null }[]): Promise<void> {
+    return this.asPerson(personId, async (c) => {
+      await c.query('select iam.sync_authenticators($1, $2::jsonb)', [realm, JSON.stringify(items)]);
+    });
+  }
+
   close(): Promise<void> {
     return this.pool.end();
   }

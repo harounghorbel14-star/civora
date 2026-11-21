@@ -10,6 +10,12 @@ export interface VerifiedToken {
   subject: string;
   tenantId: string | null;
   locale: string | null;
+  /** When the person last actually authenticated (seconds since epoch); single sign-on reuse keeps the old value. */
+  authTime: number | null;
+  /** "0" when the session was reused through single sign-on, "1" when credentials were presented for this login. */
+  acr: string | null;
+  /** Keycloak session id (sid), to mark the current session. */
+  sessionId: string | null;
 }
 
 export interface OidcConfig {
@@ -98,6 +104,9 @@ export class TokenVerifier {
     if (entry.realm === 'staff' && (!tenant || !UUID.test(tenant))) throw new TokenError('staff token without a valid tenant');
     if (entry.realm === 'citizens' && payload.tenant_id !== undefined) throw new TokenError('citizen token with a tenant');
     const locale = typeof payload.locale === 'string' && /^[a-z]{2}(-[A-Z]{2})?$/.test(payload.locale) ? payload.locale : null;
-    return { realm: entry.realm, subject: payload.sub as string, tenantId: tenant, locale };
+    const authTime = typeof payload.auth_time === 'number' && Number.isFinite(payload.auth_time) ? payload.auth_time : null;
+    const acr = typeof payload.acr === 'string' && payload.acr.length <= 64 ? payload.acr : null;
+    const sessionId = typeof payload.sid === 'string' && payload.sid.length <= 128 ? payload.sid : null;
+    return { realm: entry.realm, subject: payload.sub as string, tenantId: tenant, locale, authTime, acr, sessionId };
   }
 }
