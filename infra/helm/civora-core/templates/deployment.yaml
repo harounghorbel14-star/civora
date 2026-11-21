@@ -57,6 +57,7 @@ spec:
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: {{ .Values.otel.endpoint | quote }}
             {{- end }}
+            {{- include "civora-core.identityEnv" . | nindent 12 }}
           startupProbe:
             httpGet: { path: /health, port: http }
             periodSeconds: 2
@@ -74,10 +75,12 @@ spec:
             - { name: tmp, mountPath: /tmp }
             - { name: db-secret, mountPath: /var/run/secrets/civora, readOnly: true }
             {{- include "civora-core.dbCaMount" . | nindent 12 }}
+            {{- include "civora-core.identityMount" . | nindent 12 }}
       volumes:
         - name: tmp
           emptyDir: { sizeLimit: 64Mi }
         {{- include "civora-core.dbSecretVolume" . | nindent 8 }}
+        {{- include "civora-core.identityVolume" . | nindent 8 }}
       {{- with .Values.nodeSelector }}
       nodeSelector: {{- toYaml . | nindent 8 }}
       {{- end }}

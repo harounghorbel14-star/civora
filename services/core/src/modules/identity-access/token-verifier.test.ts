@@ -30,13 +30,15 @@ describe('access-token verification (doc 06; P3-SEC1, P3-T3 token replay/forgery
 
   it('accepts a valid citizen access token', async () => {
     const v = await verifier.verify(await sign({ locale: 'fr-TN' }));
-    assert.deepEqual(v, { realm: 'citizens', subject: 'user-1', tenantId: null, locale: 'fr-TN', authTime: null, acr: null, sessionId: null });
+    assert.deepEqual(v, { realm: 'citizens', subject: 'user-1', tenantId: null, locale: 'fr-TN', authTime: null, acr: null, sessionId: null, roles: [] });
     // Step-up and sessions read auth_time, acr and sid; malformed values are ignored, never trusted.
     const t = Math.floor(Date.now() / 1000) - 10;
     const w = await verifier.verify(await sign({ auth_time: t, acr: '1', sid: 'f3a1c2d4-0000-4000-8000-000000000001' }));
     assert.deepEqual([w.authTime, w.acr, w.sessionId], [t, '1', 'f3a1c2d4-0000-4000-8000-000000000001']);
     const x = await verifier.verify(await sign({ auth_time: 'yesterday', acr: 1, sid: 'x'.repeat(500) }));
     assert.deepEqual([x.authTime, x.acr, x.sessionId], [null, null, null]);
+    const y = await verifier.verify(await sign({ realm_access: { roles: ['citizen', 'Bad Role', 42, 'tenant-admin'] } }));
+    assert.deepEqual(y.roles, ['citizen', 'tenant-admin'], 'roles: well-formed strings only');
   });
   it('accepts a staff token carrying a tenant, and refuses one without', async () => {
     assert.equal((await verifier.verify(await sign({ tenant_id: TENANT }, { iss: STAFF }))).tenantId, TENANT);

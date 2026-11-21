@@ -177,6 +177,49 @@ describe('identity and mandates, end to end (Phase 3 week 1)', { skip: !adminUrl
     assert.deepEqual([n1, n2, visible], [2, 1, ['totp']]);
   });
 
+  it('database: branches, teams and unit roles per institution (P3-R3), invitations become memberships at first sign-in', async () => {
+    const T1 = '11111111-1111-4111-8111-111111111111';
+    const T2 = '22222222-2222-4222-8222-222222222222';
+    const c = new Client({ connectionString: appDbUrl });
+    await c.connect();
+    const person = async (subject: string, tenant: string) => (await c.query("select iam.ensure_person('staff', $1, $2, null) as id", [subject, tenant])).rows[0].id;
+    const as = async <T>(who: string, tenant: string, admin: boolean, fn: () => Promise<T>): Promise<T> => {
+      await c.query('begin');
+      await c.query("select set_config('app.person_id', $1, true), set_config('app.tenant_id', $2, true), set_config('app.tenant_admin', $3, true)", [who, tenant, String(admin)]);
+      try { const r = await fn(); await c.query('commit'); return r; } catch (e) { await c.query('rollback'); throw e; }
+    };
+    const one = async (sql: string, args: unknown[] = []) => (await c.query(sql, args)).rows[0];
+    const adm1 = await person('adm-1', T1);
+    const alice = await person('alice', T1);
+    const adm2 = await person('adm-2', T2);
+    const bob = await person('bob', T2);
+    const branch = await as(adm1, T1, true, async () => (await one("select iam.create_org_unit('branch', 'Tunis branch', null) as id")).id);
+    const team = await as(adm1, T1, true, async () => (await one("select iam.create_org_unit('team', 'Claims', $1) as id", [branch])).id);
+    const team2 = await as(adm1, T1, true, async () => (await one("select iam.create_org_unit('team', 'Payments', $1) as id", [branch])).id);
+    await assert.rejects(as(alice, T1, false, () => one("select iam.create_org_unit('branch', 'Mine', null)")), /tenant administrator only/);
+    await assert.rejects(as(adm2, T2, true, () => one("select iam.create_org_unit('team', 'Intruder', $1)", [branch])), /parent must be a branch of this institution/);
+    assert.equal(await as(adm2, T2, true, async () => (await one('select count(*)::int as n from iam.org_unit')).n), 0, 'another institution sees none of these units');
+    // Invitations: carl invited into the Claims team; dave's invitation was made in T1 but he signs in under T2.
+    await as(adm1, T1, true, () => one("select iam.record_staff_invitation('carl', $1, 'member', now() + interval '1 hour')", [team]));
+    await as(adm1, T1, true, () => one("select iam.record_staff_invitation('dave', $1, 'member', now() + interval '1 hour')", [team]));
+    const carl = await person('carl', T1);
+    const dave = await person('dave', T2);
+    const carlRoles = await as(carl, T1, false, async () => (await c.query('select org_unit_id, role from iam.membership where person_id = iam.current_person()')).rows);
+    assert.deepEqual(carlRoles, [{ org_unit_id: team, role: 'member' }], 'invitation became a membership at the first sign-in');
+    assert.equal(await as(dave, T2, false, async () => (await one('select count(*)::int as n from iam.membership where person_id = iam.current_person()')).n), 0,
+      'an invitation of one institution is never applied in another');
+    // Scoped roles: a branch supervisor covers its teams; a team member does not see the team's members.
+    await as(adm1, T1, true, () => one("select iam.grant_membership($1, $2, 'supervisor')", [alice, branch]));
+    const seen = await as(alice, T1, false, async () => (await c.query('select person_id from iam.unit_members($1)', [team])).rows.map((r) => r.person_id));
+    assert.deepEqual(seen, [carl], 'the branch supervisor sees the team members');
+    await as(alice, T1, false, () => one('select count(*) from iam.unit_members($1)', [team2]));
+    await assert.rejects(as(carl, T1, false, () => one('select count(*) from iam.unit_members($1)', [team])), /tenant administrator or supervisor only/);
+    await assert.rejects(as(adm1, T1, true, () => one("select iam.grant_membership($1, $2, 'member')", [bob, team])), /not a staff member of this institution/);
+    assert.equal(await as(adm1, T1, true, async () => (await one('select iam.revoke_membership($1, $2) as ok', [carl, team])).ok), true);
+    await assert.rejects(c.query("insert into iam.org_unit (tenant_id, kind, name) values ($1, 'branch', 'direct')", [T1]), /permission denied/);
+    await c.end();
+  });
+
   it('database: activation e-mails per address are bounded (registration_permit, as the application role)', async () => {
     const c = new Client({ connectionString: appDbUrl });
     await c.connect();

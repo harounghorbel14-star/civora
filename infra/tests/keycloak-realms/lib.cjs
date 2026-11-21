@@ -131,9 +131,22 @@ function authorize(page, realm, client, redirect, extra = {}) {
     code_challenge: b64url(crypto.createHash('sha256').update(verifier).digest()), code_challenge_method: 'S256', ...extra,
   });
   // With single sign-on Keycloak redirects at once to the callback, an .invalid host: that navigation error is expected.
-  const go = () => page.goto(`${KC}/realms/${realm}/protocol/openid-connect/auth?${q}`).catch((e) => {
-    if (!/net::ERR_(NAME_NOT_RESOLVED|TUNNEL_CONNECTION_FAILED|PROXY_CONNECTION_FAILED|ABORTED)/.test(e.message)) throw e;
-  });
+  const target = `${KC}/realms/${realm}/protocol/openid-connect/auth?${q}`;
+  const go = async () => {
+    // A previous redirect to the app callback (an .invalid host) may still be ending on Chromium's error page; a
+    // navigation started meanwhile is "interrupted" (seen on a GitHub runner): wait for the page, then try again.
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      await page.waitForLoadState('load').catch(() => undefined);
+      try {
+        await page.goto(target);
+        return;
+      } catch (e) {
+        if (/net::ERR_(NAME_NOT_RESOLVED|TUNNEL_CONNECTION_FAILED|PROXY_CONNECTION_FAILED|ABORTED)/.test(e.message)) return;
+        if (!/interrupted by another navigation/.test(e.message) || attempt === 3) throw e;
+        await sleep(300);
+      }
+    }
+  };
   return { verifier, go };
 }
 async function waitFor(fn, ms = 15000) {

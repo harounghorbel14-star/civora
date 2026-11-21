@@ -109,6 +109,31 @@
         ],
         "type": "object"
       },
+      "CreateUnit": {
+        "properties": {
+          "kind": {
+            "enum": [
+              "branch",
+              "team"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "parentId": {
+            "description": "Required for a team: its branch",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "name"
+        ],
+        "type": "object"
+      },
       "CreatedMandateDto": {
         "properties": {
           "acceptedAt": {
@@ -272,6 +297,52 @@
           "environment",
           "countryPack",
           "checks"
+        ],
+        "type": "object"
+      },
+      "InvitationDto": {
+        "properties": {
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "expiresAt"
+        ],
+        "type": "object"
+      },
+      "InvitationRequest": {
+        "properties": {
+          "email": {
+            "format": "email",
+            "type": "string"
+          },
+          "locale": {
+            "example": "fr-TN",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "member",
+              "supervisor"
+            ],
+            "type": "string"
+          },
+          "unitId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "unitId",
+          "role"
         ],
         "type": "object"
       },
@@ -498,6 +569,63 @@
         ],
         "type": "object"
       },
+      "MemberDto": {
+        "properties": {
+          "grantedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "personId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "member",
+              "supervisor"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "personId",
+          "role",
+          "grantedAt"
+        ],
+        "type": "object"
+      },
+      "MembershipDto": {
+        "properties": {
+          "kind": {
+            "enum": [
+              "branch",
+              "team"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "member",
+              "supervisor"
+            ],
+            "type": "string"
+          },
+          "unitId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "unitId",
+          "kind",
+          "name",
+          "role"
+        ],
+        "type": "object"
+      },
       "PackInfo": {
         "properties": {
           "digest": {
@@ -558,6 +686,21 @@
         ],
         "type": "object"
       },
+      "RoleBody": {
+        "properties": {
+          "role": {
+            "enum": [
+              "member",
+              "supervisor"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "role"
+        ],
+        "type": "object"
+      },
       "SessionDto": {
         "properties": {
           "applications": {
@@ -600,6 +743,37 @@
           "startedAt",
           "lastAccessAt",
           "applications"
+        ],
+        "type": "object"
+      },
+      "UnitDto": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "branch",
+              "team"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "parentId": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "name"
         ],
         "type": "object"
       }
@@ -1055,6 +1229,42 @@
         ]
       }
     },
+    "/v1/me/memberships": {
+      "get": {
+        "operationId": "listMyMemberships",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MembershipDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "403": {
+            "description": "Not staff of an institution"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Your roles in the branches and teams of your institution",
+        "tags": [
+          "organisation"
+        ]
+      }
+    },
     "/v1/me/sessions": {
       "get": {
         "operationId": "listMySessions",
@@ -1156,6 +1366,228 @@
         ]
       }
     },
+    "/v1/org/units": {
+      "get": {
+        "operationId": "listUnits",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/UnitDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "403": {
+            "description": "Not staff of an institution"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Branches and teams of your institution",
+        "tags": [
+          "organisation"
+        ]
+      },
+      "post": {
+        "operationId": "createUnit",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUnit"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnitDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "description": "No valid access token, or no recent sign-in (WWW-Authenticate: error=\"insufficient_user_authentication\", max_age)"
+          },
+          "403": {
+            "description": "Not the tenant administrator"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a branch, or a team inside a branch",
+        "tags": [
+          "organisation"
+        ]
+      }
+    },
+    "/v1/org/units/{id}/members": {
+      "get": {
+        "operationId": "listUnitMembers",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MemberDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          },
+          "403": {
+            "description": "Neither the tenant administrator nor a supervisor of this unit or its branch"
+          },
+          "404": {
+            "description": "No such unit in your institution"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Members of a unit (tenant administrator, or a supervisor of the unit or its branch)",
+        "tags": [
+          "organisation"
+        ]
+      }
+    },
+    "/v1/org/units/{id}/members/{personId}": {
+      "delete": {
+        "operationId": "removeUnitRole",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "personId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed"
+          },
+          "401": {
+            "description": "No valid access token, or no recent sign-in (WWW-Authenticate: error=\"insufficient_user_authentication\", max_age)"
+          },
+          "403": {
+            "description": "Not the tenant administrator"
+          },
+          "404": {
+            "description": "No such membership"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a staff member from a unit",
+        "tags": [
+          "organisation"
+        ]
+      },
+      "put": {
+        "operationId": "setUnitRole",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "personId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Set"
+          },
+          "401": {
+            "description": "No valid access token, or no recent sign-in (WWW-Authenticate: error=\"insufficient_user_authentication\", max_age)"
+          },
+          "403": {
+            "description": "Not the tenant administrator"
+          },
+          "404": {
+            "description": "No such unit, or not a staff member of your institution"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Give a staff member of your institution a role in a unit",
+        "tags": [
+          "organisation"
+        ]
+      }
+    },
     "/v1/registrations": {
       "post": {
         "description": "The answer is the same whether the address is new, pending or already registered. Rate limited per address and per client.",
@@ -1192,6 +1624,55 @@
         "summary": "Ask for a citizen account; an activation link is e-mailed if the address can be used",
         "tags": [
           "identity"
+        ]
+      }
+    },
+    "/v1/staff/invitations": {
+      "post": {
+        "operationId": "inviteStaff",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvitationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "description": "No valid access token, or no recent sign-in (WWW-Authenticate: error=\"insufficient_user_authentication\", max_age)"
+          },
+          "403": {
+            "description": "Not the tenant administrator"
+          },
+          "404": {
+            "description": "No such unit in your institution"
+          },
+          "409": {
+            "description": "This address cannot be invited (it already has a staff account)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Invite a staff member into a unit of your institution (invitation link by e-mail)",
+        "tags": [
+          "organisation"
         ]
       }
     }

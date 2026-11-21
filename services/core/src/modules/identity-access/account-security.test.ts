@@ -6,7 +6,7 @@ import type { VerifiedToken } from './token-verifier';
 
 const now = Math.floor(Date.now() / 1000);
 const token = (over: Partial<VerifiedToken> = {}): VerifiedToken =>
-  ({ realm: 'citizens', subject: 'user-1', tenantId: null, locale: null, authTime: now, acr: '1', sessionId: 's-1', ...over });
+  ({ realm: 'citizens', subject: 'user-1', tenantId: null, locale: null, authTime: now, acr: '1', sessionId: 's-1', roles: [], ...over });
 
 class FakeDirectory implements AccountDirectory {
   sessions = new Map<string, IdpSession[]>();

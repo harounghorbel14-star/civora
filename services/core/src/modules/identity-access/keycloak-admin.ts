@@ -197,3 +197,56 @@ export class KeycloakAccountDirectory implements AccountDirectory {
     await this.admin.call('DELETE', `/users/${encodeURIComponent(userId)}/credentials/${encodeURIComponent(credentialId)}`);
   }
 }
+
+// ---------------------------------------------------------------- staff invitations (staff realm)
+
+/** Invitation link: e-mail verified by the link, security key (approved model), then password. */
+export const INVITATION_ACTIONS = ['VERIFY_EMAIL', 'webauthn-register', 'UPDATE_PASSWORD'];
+
+export interface InvitationConfig {
+  lifespanSeconds: number;
+  redirectUri: string;
+  clientId: string;
+}
+
+export function loadInvitationConfig(env: NodeJS.ProcessEnv = process.env): InvitationConfig {
+  const lifespan = Number(env.STAFF_INVITATION_LIFESPAN_SECONDS ?? 172800);
+  if (!Number.isInteger(lifespan) || lifespan < 3600 || lifespan > 604800) throw new Error('STAFF_INVITATION_LIFESPAN_SECONDS must be 3600..604800');
+  const redirectUri = env.STAFF_INVITATION_REDIRECT_URI ?? 'https://workspace.civora-cell.invalid/welcome';
+  if (new URL(redirectUri).protocol !== 'https:' && !insecureAllowed(env)) throw new Error('Keycloak and activation URLs must use https outside dev and test');
+  return { lifespanSeconds: lifespan, redirectUri, clientId: env.STAFF_INVITATION_CLIENT_ID ?? 'civora-workspace' };
+}
+
+export interface StaffDirectory {
+  /** Whether the address is already used in the staff realm (any institution). */
+  exists(email: string): Promise<boolean>;
+  create(email: string, tenantId: string, keycloakLocale: string): Promise<string>;
+  sendInvitation(userId: string): Promise<void>;
+  remove(userId: string): Promise<void>;
+}
+
+export class KeycloakStaffDirectory implements StaffDirectory {
+  constructor(private readonly admin: KeycloakAdmin, private readonly cfg: InvitationConfig) {}
+
+  async exists(email: string): Promise<boolean> {
+    return (await this.admin.json<unknown[]>('GET', `/users?exact=true&briefRepresentation=true&email=${encodeURIComponent(email)}`)).length > 0;
+  }
+
+  async create(email: string, tenantId: string, keycloakLocale: string): Promise<string> {
+    const r = await this.admin.call('POST', '/users', {
+      username: email, email, enabled: true, emailVerified: false, requiredActions: [], attributes: { tenant_id: [tenantId], locale: [keycloakLocale] },
+    });
+    const id = r.headers.get('location')?.split('/').pop();
+    if (!id) throw new Error('Keycloak admin POST /users: no location');
+    return id;
+  }
+
+  async sendInvitation(userId: string): Promise<void> {
+    const q = new URLSearchParams({ lifespan: String(this.cfg.lifespanSeconds), client_id: this.cfg.clientId, redirect_uri: this.cfg.redirectUri });
+    await this.admin.call('PUT', `/users/${encodeURIComponent(userId)}/execute-actions-email?${q}`, INVITATION_ACTIONS);
+  }
+
+  async remove(userId: string): Promise<void> {
+    await this.admin.call('DELETE', `/users/${encodeURIComponent(userId)}`);
+  }
+}

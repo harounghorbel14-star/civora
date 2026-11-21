@@ -20,18 +20,20 @@
 | 2+ | Citizen registration through the core (`POST /v1/registrations`, one answer for every address, activation link) | **Done** | 03 §9.1, E1 |
 | 2+ | Founder decisions raised | Open | Officer security-key models (AAGUIDs + vendor roots) for staging/pilot; mail relay provider for activation e-mails (R-P3-9) |
 | 3 | Step-up (A4), sessions (API3), authenticators (API4, F2), authenticator mirror (DB3) | **Done** (local) | [04](04-sessions-authenticators-step-up.md): account checks against the real realms all passed; core 82 tests; dev cell 15/15 |
-| 3 | Staff invitations and branch/team roles (R3), cleanup of unactivated accounts; simulated eID (D4, API6); staff SSO (R1) | Next | — |
+| 3 | Branch/team roles (R3), staff invitations (no administrator-known passwords), cleanup of accounts never activated (R-P3-8), chart: identity settings, Keycloak egress, cleanup CronJob | **Done** (local) | [05](05-organisation-invitations-cleanup.md): organisation checks against the real realms all passed; 85 tests across the workspace (core 67) |
+| 3 | GitHub on `c2b0039` (step-up, sessions, authenticators) | CI run 47 **green**; nightly run 21: `identity-realms` failed once in `[fr]`: a navigation to Keycloak was interrupted by Chromium's error page for the previous redirect | Test-harness race, not identity code: the helper now waits for the page and retries an interrupted navigation (`lib.cjs`); full run afterwards in ar/fr/en: 123 checks, all passed |
+| 3 | Simulated eID (D4, API6); staff SSO (R1) | Next | — |
 
 ## Completion estimate (21 Nov 2026, updated during week 3)
 
 Each of the 43 work items of the specification ([00](00-phase-3-start-and-specification-audit.md); objectives,
 dependency, time and budget lines excluded) scored by what is built **and tested**: 0, 25, 50, 75 or 100 %.
-**Phase 3: about 63 %** (27.25 of 43). Acceptance criteria: 1 of 3 met (AC3), AC1 half, AC2 not started.
+**Phase 3: about 66 %** (28.25 of 43). Acceptance criteria: 1 of 3 met (AC3), AC1 half, AC2 not started.
 Time: 2 of 6 planned weeks used. The scoring is an engineering estimate, not an acceptance decision.
 
 | Item | Done | What is missing |
 |---|---|---|
-| P3-D1 citizen and officer authentication | 75% | realm flows built and tested in ar/fr/en; app screens, step-up, staff SSO missing |
+| P3-D1 citizen and officer authentication | 75% | realm flows, step-up, staff invitations built and tested; app screens and staff SSO missing |
 | P3-D2 profile | 75% | GET/PATCH /v1/me; no app screen |
 | P3-D3 mandates | 75% | domain, API, audit events; 'acting on behalf of' UI missing |
 | P3-D4 simulated eID adapter | 0% | week 3 |
@@ -63,14 +65,14 @@ Time: 2 of 6 planned weeks used. The scoring is an engineering estimate, not an 
 | P3-SEC3 credential stuffing | 100% |  |
 | P3-SEC4 recovery re-proofing | 0% | week 6, depends on Q3-4 |
 | P3-SEC5 officers require FIDO2 | 100% | approved models: founder decision Q3-5 |
-| P3-T1 unit + integration | 75% | 74 tests; grows with each feature |
+| P3-T1 unit + integration | 75% | 85 tests (core 67 with PostgreSQL) and the realms integration run (123 checks); grows with each feature |
 | P3-T2 E2E Playwright, Detox | 50% | Playwright on realm flows in 3 languages; app screens and Detox (Q3-3) missing |
 | P3-T3 negative tests (session fixation, CSRF, token replay) | 50% | token forgery/replay, TOTP replay, forged WebAuthn done; session fixation and CSRF not yet |
 | P3-T4 mandate-scope authorisation tests | 75% | party and scope rules tested; enforcement on domain endpoints comes with them |
-| P3-AC1 all auth flows E2E in AR/FR/EN | 50% | realm flows pass in all three; sessions, step-up, eID, app screens not yet |
+| P3-AC1 all auth flows E2E in AR/FR/EN | 50% | realm flows pass in all three; sessions, step-up and invitations pass through the core (one language each); eID and app screens not yet |
 | P3-AC2 no high findings in internal security review | 0% | review in week 6 |
 | P3-AC3 mandate actions logged and visible | 100% |  |
 | P3-RISK SMS reliance, passkey usability for elderly users | 25% | password + TOTP alternative exists; assisted flows not designed |
 | P3-R1 institution staff SSO | 0% | week 3 |
 | P3-R2 customer OTP status page | 0% | week 4 |
-| P3-R3 branch/team roles | 0% | week 3 |
+| P3-R3 branch/team roles | 100% | units, scoped roles, invitations, admin API (doc 05) |

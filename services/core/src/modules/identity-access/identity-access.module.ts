@@ -5,21 +5,23 @@ import { IdentityGuard } from './identity.guard';
 import { IamRepository } from './iam.repository';
 import { MandatesController } from './mandates.controller';
 import { MeController } from './me.controller';
-import { KeycloakAccountDirectory, KeycloakAdmin, KeycloakCitizenDirectory, loadAdminConfig, loadProvisionerConfig } from './keycloak-admin';
+import { KeycloakAccountDirectory, KeycloakAdmin, KeycloakCitizenDirectory, KeycloakStaffDirectory, loadAdminConfig, loadInvitationConfig, loadProvisionerConfig } from './keycloak-admin';
+import { InvitationsController, type InvitationsDeps, MyMembershipsController, OrgUnitsController } from './org.controller';
 import { AccountSecurity, loadStepUpMaxAge } from './account-security';
 import { AuthenticatorsController, SessionsController } from './account-security.controller';
 import { StepUpGuard } from './step-up.guard';
 import { RegistrationService } from './registration.service';
 import { RegistrationsController } from './registrations.controller';
 import { loadOidcConfig, TokenVerifier } from './token-verifier';
-import { ACCOUNT_SECURITY, IAM_REPOSITORY, REGISTRATION_SERVICE, STEP_UP_MAX_AGE, TOKEN_VERIFIER } from './tokens';
+import { ACCOUNT_SECURITY, IAM_REPOSITORY, INVITATIONS, REGISTRATION_SERVICE, STEP_UP_MAX_AGE, TOKEN_VERIFIER } from './tokens';
 
 /**
  * Bounded context: identity-access (Phase 3: citizen and staff accounts, profile, mandates).
  * Rules (ADR-001): own schema (iam) only; other modules use ./public-api.ts or domain events; no cross-module database access.
  */
 @Module({
-  controllers: [MeController, MandatesController, RegistrationsController, SessionsController, AuthenticatorsController],
+  controllers: [MeController, MandatesController, RegistrationsController, SessionsController, AuthenticatorsController, OrgUnitsController,
+    MyMembershipsController, InvitationsController],
   providers: [
     { provide: TOKEN_VERIFIER, useFactory: (): TokenVerifier => new TokenVerifier(loadOidcConfig()) },
     {
@@ -54,6 +56,16 @@ import { ACCOUNT_SECURITY, IAM_REPOSITORY, REGISTRATION_SERVICE, STEP_UP_MAX_AGE
           if (cfg) directories[realm] = new KeycloakAccountDirectory(new KeycloakAdmin(cfg));
         }
         return new AccountSecurity(directories, (personId, realm, items) => repo.syncAuthenticators(personId, realm, items));
+      },
+    },
+    {
+      // Staff invitations need the staff realm's provisioner.
+      provide: INVITATIONS,
+      useFactory: (): InvitationsDeps | null => {
+        const admin = loadAdminConfig('staff');
+        if (!admin) return null;
+        const cfg = loadInvitationConfig();
+        return { directory: new KeycloakStaffDirectory(new KeycloakAdmin(admin), cfg), cfg };
       },
     },
     { provide: STEP_UP_MAX_AGE, useFactory: (): number => loadStepUpMaxAge() },

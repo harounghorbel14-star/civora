@@ -107,6 +107,11 @@ KC_URL="$kc" CORE_URL="http://127.0.0.1:$core_port" MAIL_URL="$mail" KC_ADMIN_PA
 echo "Sessions, authenticators and step-up through the core (week 3, step-up limit 30 s in this test):"
 KC_URL="$kc" CORE_URL="http://127.0.0.1:$core_port" MAIL_URL="$mail" KC_ADMIN_PASSWORD="$kc_pw" ARTIFACT_DIR="${ARTIFACT_DIR:-$work/artifacts}" \
   STEP_UP_MAX_AGE_SECONDS=30 NO_PROXY="localhost,127.0.0.1,${NO_PROXY:-}" no_proxy="localhost,127.0.0.1,${no_proxy:-}" node "$here/account.cjs" || fail=1
+echo "Branches, teams, staff invitations and cleanup through the core (week 3):"
+KC_URL="$kc" CORE_URL="http://127.0.0.1:$core_port" MAIL_URL="$mail" KC_ADMIN_PASSWORD="$kc_pw" ARTIFACT_DIR="${ARTIFACT_DIR:-$work/artifacts}" \
+  STEP_UP_MAX_AGE_SECONDS=30 CORE_DIR="$repo/services/core" OIDC_ISSUER_CITIZENS="$kc/realms/civora-citizens" OIDC_ISSUER_STAFF="$kc/realms/civora-staff" \
+  KEYCLOAK_PROVISIONER_SECRET_FILE="$work/provisioner.secret" KEYCLOAK_STAFF_PROVISIONER_SECRET_FILE="$work/staff-provisioner.secret" \
+  NO_PROXY="localhost,127.0.0.1,${NO_PROXY:-}" no_proxy="localhost,127.0.0.1,${no_proxy:-}" node "$here/org.cjs" || fail=1
 mirrored=$(docker exec kr-db psql -U civora_core -d civora_core -Atc "select count(*) from iam.authenticator")
 if [ "${mirrored:-0}" -gt 0 ]; then echo "  ok   authenticator mirror (iam.authenticator) holds $mirrored row(s), metadata only"; else echo "  FAIL authenticator mirror is empty"; fail=1; fi
 if grep -qiE '"level":"(error|fatal)"' "$work/core.log"; then echo "  info core logged errors:"; grep -iE '"level":"(error|fatal)"' "$work/core.log" | tail -5 | sed 's/^/       /'; fi

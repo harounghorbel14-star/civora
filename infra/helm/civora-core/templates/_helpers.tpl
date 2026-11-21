@@ -91,3 +91,56 @@ checkov.io/skip2: CKV_K8S_15=Images are deployed by immutable digest; IfNotPrese
 - { name: db-ca, mountPath: /var/run/secrets/civora-db-ca, readOnly: true }
 {{- end }}
 {{- end -}}
+
+{{/* Identity settings shared by the application and the cleanup job (Phase 3). */}}
+{{- define "civora-core.identityEnv" -}}
+{{- with .Values.identity }}
+{{- if .issuerCitizens }}
+- name: OIDC_ISSUER_CITIZENS
+  value: {{ .issuerCitizens | quote }}
+{{- if .keycloakInternalUrl }}
+- name: OIDC_JWKS_URL_CITIZENS
+  value: {{ printf "%s/realms/%s/protocol/openid-connect/certs" .keycloakInternalUrl (base .issuerCitizens) | quote }}
+{{- end }}
+{{- end }}
+{{- if .issuerStaff }}
+- name: OIDC_ISSUER_STAFF
+  value: {{ .issuerStaff | quote }}
+{{- if .keycloakInternalUrl }}
+- name: OIDC_JWKS_URL_STAFF
+  value: {{ printf "%s/realms/%s/protocol/openid-connect/certs" .keycloakInternalUrl (base .issuerStaff) | quote }}
+{{- end }}
+{{- end }}
+{{- if .keycloakInternalUrl }}
+- name: KEYCLOAK_INTERNAL_URL
+  value: {{ .keycloakInternalUrl | quote }}
+{{- end }}
+{{- if .provisionerSecret }}
+- name: KEYCLOAK_PROVISIONER_SECRET_FILE
+  value: /var/run/secrets/civora-keycloak/citizens
+- name: KEYCLOAK_STAFF_PROVISIONER_SECRET_FILE
+  value: /var/run/secrets/civora-keycloak/staff
+{{- end }}
+{{- if .activationRedirectUri }}
+- name: ACTIVATION_REDIRECT_URI
+  value: {{ .activationRedirectUri | quote }}
+{{- end }}
+{{- if .invitationRedirectUri }}
+- name: STAFF_INVITATION_REDIRECT_URI
+  value: {{ .invitationRedirectUri | quote }}
+{{- end }}
+{{- end }}
+{{- end -}}
+
+{{- define "civora-core.identityMount" -}}
+{{- if .Values.identity.provisionerSecret }}
+- { name: keycloak-provisioner, mountPath: /var/run/secrets/civora-keycloak, readOnly: true }
+{{- end }}
+{{- end -}}
+
+{{- define "civora-core.identityVolume" -}}
+{{- if .Values.identity.provisionerSecret }}
+- name: keycloak-provisioner
+  secret: { secretName: {{ .Values.identity.provisionerSecret }}, defaultMode: 0440 }
+{{- end }}
+{{- end -}}

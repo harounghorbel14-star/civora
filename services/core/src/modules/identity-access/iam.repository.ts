@@ -9,6 +9,20 @@ export interface PersonView {
   accounts: { realm: string; status: string; assuranceLevel: string }[];
 }
 
+export interface StaffContext {
+  personId: string;
+  tenantId: string;
+  tenantAdmin: boolean;
+}
+
+export interface OrgUnitRow {
+  id: string;
+  parentId: string | null;
+  kind: 'branch' | 'team';
+  name: string;
+  createdAt: Date;
+}
+
 export interface MandateRow {
   id: string;
   principal_id: string;
@@ -123,6 +137,50 @@ export class IamRepository {
   async registrationPermit(digest: Buffer, minIntervalMinutes: number): Promise<boolean> {
     const r = await this.pool.query<{ ok: boolean }>("select iam.registration_permit($1, make_interval(mins => $2)) as ok", [digest, minIntervalMinutes]);
     return r.rows[0]!.ok;
+  }
+
+  /**
+   * A staff request: person, tenant and whether the caller administers the tenant are set for this transaction only,
+   * from the verified token (the database functions decide with them; row-level security filters by tenant).
+   */
+  async asStaff<T>(staff: StaffContext, fn: (c: PoolClient) => Promise<T>): Promise<T> {
+    return this.asPerson(staff.personId, async (c) => {
+      await c.query("select set_config('app.tenant_id', $1, true), set_config('app.tenant_admin', $2, true)", [staff.tenantId, staff.tenantAdmin ? 'true' : 'false']);
+      return fn(c);
+    });
+  }
+
+  listUnits(staff: StaffContext): Promise<OrgUnitRow[]> {
+    return this.asStaff(staff, async (c) => (await c.query<OrgUnitRow>(
+      'select id, parent_id as "parentId", kind, name, created_at as "createdAt" from iam.org_unit order by kind, name limit 1000')).rows);
+  }
+
+  createUnit(staff: StaffContext, kind: string, name: string, parentId: string | null): Promise<string> {
+    return this.asStaff(staff, async (c) => (await c.query<{ id: string }>('select iam.create_org_unit($1, $2, $3) as id', [kind, name, parentId])).rows[0]!.id);
+  }
+
+  unitMembers(staff: StaffContext, unitId: string): Promise<{ personId: string; role: string; grantedAt: Date }[]> {
+    return this.asStaff(staff, async (c) => (await c.query(
+      'select person_id as "personId", role, granted_at as "grantedAt" from iam.unit_members($1)', [unitId])).rows);
+  }
+
+  grantMembership(staff: StaffContext, personId: string, unitId: string, role: string): Promise<void> {
+    return this.asStaff(staff, async (c) => { await c.query('select iam.grant_membership($1, $2, $3)', [personId, unitId, role]); });
+  }
+
+  revokeMembership(staff: StaffContext, personId: string, unitId: string): Promise<boolean> {
+    return this.asStaff(staff, async (c) => (await c.query<{ ok: boolean }>('select iam.revoke_membership($1, $2) as ok', [personId, unitId])).rows[0]!.ok);
+  }
+
+  recordInvitation(staff: StaffContext, subject: string, unitId: string, role: string, expiresAt: Date): Promise<string> {
+    return this.asStaff(staff, async (c) => (await c.query<{ id: string }>(
+      'select iam.record_staff_invitation($1, $2, $3, $4) as id', [subject, unitId, role, expiresAt])).rows[0]!.id);
+  }
+
+  myMemberships(staff: StaffContext): Promise<{ unitId: string; kind: string; name: string; role: string }[]> {
+    return this.asStaff(staff, async (c) => (await c.query(
+      `select u.id as "unitId", u.kind, u.name, m.role from iam.membership m join iam.org_unit u on u.id = m.org_unit_id
+        where m.person_id = iam.current_person() order by u.kind, u.name`)).rows);
   }
 
   /** Refreshes the authenticator mirror (P3-DB3) for the person's account in a realm; metadata only. */

@@ -33,6 +33,24 @@ databaseTls:
 otel:
   endpoint: ""                # e.g. http://otel-collector.observability:4318
 
+# Identity (Phase 3, doc phase-3/03-04): the realms' public issuers, Keycloak as reached inside the cell (keys and admin
+# API), and an existing Secret with the provisioner client secrets (keys: citizens, staff), written by External Secrets
+# from OpenBao after apply-realm-policy.py --provisioner-secret-out. Empty issuers: identity endpoints answer 503.
+identity:
+  issuerCitizens: ""          # e.g. https://auth.staging.civora.invalid/realms/civora-citizens
+  issuerStaff: ""             # e.g. https://auth.staging.civora.invalid/realms/civora-staff
+  keycloakInternalUrl: ""     # e.g. https://keycloak-service.keycloak.svc:8443
+  provisionerSecret: ""       # Secret name; empty = registration, sessions, authenticators and invitations answer 503
+  activationRedirectUri: ""   # citizens' app page after activation
+  invitationRedirectUri: ""   # staff workspace page after an invitation
+
+# Hourly removal of accounts never activated (Phase 3 R-P3-8); needs identity.provisionerSecret.
+cleanup:
+  enabled: false
+  schedule: "17 * * * *"
+  citizensMinutes: 1440
+  staffMinutes: 10080
+
 resources:
   requests: { cpu: 100m, memory: 192Mi }
   limits: { memory: 384Mi }
@@ -55,6 +73,8 @@ networkPolicy:
   databasePodSelector: {}                   # in-cluster PostgreSQL pods (dev and rehearsal only)
   databaseNamespace: ""                     # defaults to the release namespace
   otelNamespace: observability
+  keycloakNamespace: keycloak               # token signing keys and the admin API (Phase 3)
+  keycloakPorts: [8443]
 
 service:
   port: 80
