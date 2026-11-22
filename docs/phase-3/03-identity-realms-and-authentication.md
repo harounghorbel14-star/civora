@@ -133,7 +133,7 @@ the application role cannot read the table). Whole suite 74/74; OpenAPI 9 paths 
 | R-P3-11 | Identity links (simulated eID) have no unlink and no expiry policy yet | New, low: decided with the recovery design and re-proofing (P3-SEC4, Q3-4), week 6 ([doc 06](06-simulated-eid-identity-links.md)) |
 | R-P3-12 | The key for identifier digests has no rotation procedure; rotating it needs re-linking or a re-keying job | New, low: before pilot ([doc 06](06-simulated-eid-identity-links.md)) |
 | R-P3-13 | Institution SSO: roles and units are not taken from the institution's groups (mover); the tenant administrator sets them | New, low: week 4 or Phase 6 ([doc 07](07-institution-staff-sso.md)) |
-| R-P3-14 | Institution SSO: no back-channel logout, so a leaver's open session lasts until the session limit (idle 30 min, at most 8 h) unless ended by the tenant administrator or operator | New, medium: OIDC back-channel logout and SAML single logout per institution before pilot ([doc 07](07-institution-staff-sso.md)) |
+| R-P3-14 | Institution SSO: no back-channel logout, so a leaver's open session lasts until the session limit (idle 30 min, at most 8 h) unless ended by the tenant administrator or operator | New, medium, **pilot gate PG-1** ([doc 08](08-pilot-gate.md)): OIDC back-channel logout and SAML single logout per institution must be in place and tested before any pilot ([doc 07](07-institution-staff-sso.md)) |
 
 ## 7. Specification status
 

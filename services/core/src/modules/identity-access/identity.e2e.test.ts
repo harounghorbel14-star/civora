@@ -132,6 +132,27 @@ describe('identity and mandates, end to end (Phase 3 week 1)', { skip: !adminUrl
     assert.equal((await call(`/v1/mandates/${id}/events`, bob)).body.length, 3, 'the agent sees the same record');
   });
 
+  it('acting on behalf of (P3-F6): only the agent of an active mandate; recorded and visible to the principal', async () => {
+    const pia = await sign('pia');
+    const abe = await sign('abe');
+    const expiresAt = new Date(Date.now() + 7 * 86_400_000).toISOString();
+    const created = await call('/v1/mandates', pia, { method: 'POST', body: { scopes: ['cases:read', 'payments:submit'], expiresAt } });
+    assert.equal(created.status, 201);
+    const id = created.body.id as string;
+    assert.equal((await call(`/v1/mandates/${id}:act`, abe, { method: 'POST' })).status, 404, 'not before the agent accepts');
+    assert.equal((await call(`/v1/mandates/${id}:accept`, abe, { method: 'POST', body: { invitationCode: created.body.invitationCode } })).status, 200);
+    const acted = await call(`/v1/mandates/${id}:act`, abe, { method: 'POST' });
+    assert.equal(acted.status, 200);
+    assert.deepEqual(acted.body.scopes, ['cases:read', 'payments:submit']);
+    assert.equal(acted.body.mandateId, id);
+    assert.equal((await call(`/v1/mandates/${id}:act`, pia, { method: 'POST' })).status, 404, 'the principal cannot act under their own mandate');
+    assert.equal((await call(`/v1/mandates/${id}:act`, await sign('eve'), { method: 'POST' })).status, 404, 'nor anyone else');
+    const seen = await call(`/v1/mandates/${id}/events`, pia);
+    assert.deepEqual(seen.body.map((e: { action: string; actorRole: string }) => `${e.action}:${e.actorRole}`), ['created:principal', 'accepted:agent', 'acted:agent']);
+    assert.equal((await call(`/v1/mandates/${id}:revoke`, pia, { method: 'POST' })).status, 200);
+    assert.equal((await call(`/v1/mandates/${id}:act`, abe, { method: 'POST' })).status, 404, 'not after the principal revokes');
+  });
+
   it('refuses delegation of identity or mandates, unknown scopes and over-long mandates', async () => {
     const alice = await sign('alice');
     const r = await call('/v1/mandates', alice, { method: 'POST', body: { scopes: ['mandates:manage', 'cases:read'], expiresAt: new Date(Date.now() + 400 * 86_400_000).toISOString() } });
@@ -285,6 +306,33 @@ describe('identity and mandates, end to end (Phase 3 week 1)', { skip: !adminUrl
     const r = await call('/v1/identity/links', old, { method: 'POST', body: {} });
     assert.equal(r.status, 401);
     assert.match(r.headers.get('www-authenticate') ?? '', /insufficient_user_authentication/);
+  });
+
+  it('status page (P3-R2), database as the application role: 3 codes per reference, 5 tries, single use, bound to the reference', async () => {
+    const c = new Client({ connectionString: appDbUrl });
+    await c.connect();
+    const { randomUUID } = await import('node:crypto');
+    const ref = Buffer.alloc(32, 1);
+    const other = Buffer.alloc(32, 2);
+    const code = (n: number) => Buffer.alloc(32, n);
+    const create = async (id: string, deliverable = true, r = ref) => (await c.query('select iam.create_status_challenge($1, $2, $3, $4) as s', [id, r, code(9), deliverable])).rows[0].s as boolean;
+    const verify = async (id: string, k: number, r = ref) => (await c.query('select iam.verify_status_challenge($1, $2, $3) as ok', [id, r, code(k)])).rows[0].ok as boolean;
+    const ids = [randomUUID(), randomUUID(), randomUUID(), randomUUID()];
+    const sends = [];
+    for (const id of ids) sends.push(await create(id));
+    assert.deepEqual(sends, [true, true, true, false], 'a fourth code within 15 minutes is not sent');
+    assert.equal(await verify(ids[3]!, 9), false, 'a challenge whose code was not sent never verifies');
+    assert.equal(await verify(ids[0]!, 9, other), false, 'bound to its reference');
+    assert.equal(await verify(ids[0]!, 9), true);
+    assert.equal(await verify(ids[0]!, 9), false, 'single use');
+    for (let i = 0; i < 5; i++) assert.equal(await verify(ids[1]!, 1), false);
+    assert.equal(await verify(ids[1]!, 9), false, 'after 5 wrong tries even the right code fails');
+    const unknown = randomUUID();
+    assert.equal(await create(unknown, false, other), false, 'unknown reference: a challenge, no code');
+    assert.equal(await verify(unknown, 9, other), false);
+    await assert.rejects(c.query('select count(*) from iam.status_challenge'), /permission denied/);
+    await c.end();
+    assert.equal((await call('/v1/status-access', undefined, { method: 'POST', body: { reference: 'SYN-RC-1-00001' } })).status, 503, 'no case directory in this cell: 503');
   });
 
   it('database: activation e-mails per address are bounded (registration_permit, as the application role)', async () => {

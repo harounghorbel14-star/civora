@@ -14,3 +14,6 @@
 6. [05 — Branches, teams, staff invitations and cleanup](05-organisation-invitations-cleanup.md) (week 3): unit-scoped roles, invitations, cleanup of accounts never activated, chart identity settings.
 7. [06 — Simulated national eID and identity links](06-simulated-eid-identity-links.md) (week 3): adapter framework rules (ADR-028), the `NationalEid` port and its simulated adapter, `POST /v1/identity/links`, keyed digests only.
 8. [07 — Institution staff SSO](07-institution-staff-sso.md) (week 3): OIDC and SAML institutions through Keycloak organisations, create-only first sign-in, security key after SSO, realm checker for brokered sign-in.
+9. [08 — Pilot gate](08-pilot-gate.md): identity requirements that must be closed before any pilot (PG-1: institution back-channel logout, R-P3-14).
+10. [09 — Citizen web app, acting on behalf of, status page](09-citizen-web-app.md) (week 4): backend-for-frontend in Arabic, French and English, customer one-time codes, web E2E.
+11. [10 — Mobile shell and Detox plan](10-mobile-shell-and-detox-plan.md) (week 4): decisions for the mobile app and how Detox will run.

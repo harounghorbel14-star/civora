@@ -26,32 +26,36 @@
 | 3 | Simulated national eID (D4), identity links (API6), keyed digests in `iam.identity_claim` (DB4); ADR-028 adapter rules in code; dev cell with the simulator | **Done** (local) | [06](06-simulated-eid-identity-links.md): whole realms run 142 checks, all passed (eID, leak scan of the core database and log); 110 tests across the workspace (core 92); dev cell 16/16. The first run found a defect in the week-3 cleanup (it removed Keycloak service accounts; merged in PR #6, CronJob off by default): fixed, [05 §5](05-organisation-invitations-cleanup.md) |
 | 3 | GitHub on `154a477` (simulated eID, identity links, cleanup fix) | CI run 51 **green**; nightly run 24 **green, 12 of 12 jobs** | Merged into `main`: PR #7 (`62acec5`) |
 | 3 | Institution staff SSO (R1): OIDC and SAML institutions through Keycloak organisations, create-only first sign-in, security key after every SSO sign-in, tenant hardcoded per provider; realm checker models brokered sign-in; staff session aligned to 8 h | **Done** (local) | [07](07-institution-staff-sso.md): whole realms run 161 checks, all passed (12 SSO checks); 7 new negative controls |
-| 4 | Web E2E in AR/FR/EN (T2, AC1), "acting on behalf of" UI (F6), mobile shell + Detox plan (Q3-3), customer OTP status page (R2) | Next | — |
+| 3 | GitHub on `acd9075` (institution SSO) | CI run 54 **green**; nightly run 25 **green** | Merged into `main`: PR #8 (`515a0f0`) |
+| 4 | Pilot gate for identity, R-P3-14 blocking (PG-1) | **Done** | [08](08-pilot-gate.md) |
+| 4 | Citizen web app (backend-for-frontend) in AR/FR/EN; acting on behalf of (F6); customer status page with one-time codes (R2); messaging port (simulated e-mail); web E2E (T2, AC1) | **Done** (local) | [09](09-citizen-web-app.md): whole realms run 199 checks, all passed (38 web app checks); 139 tests (core 99, web 22); gateway 19/19; dev cell 17/17 |
+| 4 | Mobile shell + Detox plan (Q3-3) | **Plan done**; the app is built with its emulator job | [10](10-mobile-shell-and-detox-plan.md) |
+| 5 | Negative tests (T3), mandate-scope tests (T4), ASVS L3 checklist (SEC1), rate limits review (SEC2) | Next | — |
 
 ## Completion estimate (21 Nov 2026, updated during week 3)
 
 Each of the 43 work items of the specification ([00](00-phase-3-start-and-specification-audit.md); objectives,
 dependency, time and budget lines excluded) scored by what is built **and tested**: 0, 25, 50, 75 or 100 %.
-**Phase 3: about 74 %** (31.75 of 43). Acceptance criteria: 1 of 3 met (AC3), AC1 half, AC2 not started.
-Time: 3 of 6 planned weeks used (week 3 complete). The scoring is an engineering estimate, not an acceptance decision.
+**Phase 3: about 84 %** (36.0 of 43). Acceptance criteria: 1 of 3 met (AC3), AC1 three quarters, AC2 not started.
+Time: 4 of 6 planned weeks used (week 4 complete; the mobile app is built with its emulator job, doc 10). The scoring is an engineering estimate, not an acceptance decision.
 
 | Item | Done | What is missing |
 |---|---|---|
-| P3-D1 citizen and officer authentication | 75% | realm flows, step-up, staff invitations and institution SSO built and tested; app screens missing |
-| P3-D2 profile | 75% | GET/PATCH /v1/me; no app screen |
-| P3-D3 mandates | 75% | domain, API, audit events; 'acting on behalf of' UI missing |
+| P3-D1 citizen and officer authentication | 100% | realm flows, step-up, invitations, institution SSO, and the citizen web app (doc 09); officers use Keycloak's pages, the Workspace screens come in Phase 6 |
+| P3-D2 profile | 100% | GET/PATCH /v1/me and the preferences screen in three languages (doc 09) |
+| P3-D3 mandates | 100% | domain, API, audit events, screens, acting on behalf (doc 09) |
 | P3-D4 simulated eID adapter | 100% | port NationalEid, simulated-oidc adapter, ADR-028 mode rules, simulator realm (doc 06) |
 | P3-D5 account recovery design | 0% | week 6 |
 | P3-A1 realms per cell | 100% |  |
-| P3-A2 OIDC to apps | 50% | clients with PKCE and audience; no app integrated yet |
+| P3-A2 OIDC to apps | 75% | citizen web app as a backend-for-frontend (doc 09); the mobile client comes with the mobile app (doc 10) |
 | P3-A3 pairwise subject IDs | 100% |  |
 | P3-A4 step-up flows | 100% | RFC 9470 step-up on sensitive actions (doc 04) |
 | P3-F1 passkeys, TOTP, SMS fallback | 75% | SMS fallback waits on Q3-1 |
 | P3-F2 device management | 100% | list, add (Keycloak action), remove with last-way protection (doc 04) |
-| P3-F3 language preference | 75% | stored and validated; applied in app screens in week 4 |
-| P3-F4 accessibility preferences | 75% | stored and validated; applied in app screens in week 4 |
+| P3-F3 language preference | 100% | stored, validated and applied in the web app (ar/fr/en, right to left) |
+| P3-F4 accessibility preferences | 100% | stored, validated and applied in the web app (text size, contrast, motion) |
 | P3-F5 mandates | 100% |  |
-| P3-F6 'acting on behalf of' UI | 0% | week 4 |
+| P3-F6 'acting on behalf of' UI | 100% | banner, scopes, stop; recorded and visible to the principal (doc 09) |
 | P3-DB1 iam.person | 100% |  |
 | P3-DB2 iam.account | 100% |  |
 | P3-DB3 iam.authenticator (mirror) | 100% | mirror refreshed through iam.sync_authenticators (doc 04) |
@@ -69,14 +73,14 @@ Time: 3 of 6 planned weeks used (week 3 complete). The scoring is an engineering
 | P3-SEC3 credential stuffing | 100% |  |
 | P3-SEC4 recovery re-proofing | 0% | week 6, depends on Q3-4 |
 | P3-SEC5 officers require FIDO2 | 100% | approved models: founder decision Q3-5 |
-| P3-T1 unit + integration | 75% | 110 tests (core 92 with PostgreSQL) and the realms integration run; grows with each feature |
-| P3-T2 E2E Playwright, Detox | 50% | Playwright on realm flows in 3 languages; app screens and Detox (Q3-3) missing |
-| P3-T3 negative tests (session fixation, CSRF, token replay) | 50% | token forgery/replay, TOTP replay, forged WebAuthn done; session fixation and CSRF not yet |
+| P3-T1 unit + integration | 75% | 139 tests (core 99 with PostgreSQL, web 22) and the realms integration run (199 checks); grows with each feature |
+| P3-T2 E2E Playwright, Detox | 75% | Playwright through the web app in three languages (doc 09); Detox planned, needs its emulator job (doc 10) |
+| P3-T3 negative tests (session fixation, CSRF, token replay) | 75% | token forgery/replay, TOTP replay, forged WebAuthn, session id rotation, CSRF on server actions done; full week-5 suite still to run |
 | P3-T4 mandate-scope authorisation tests | 75% | party and scope rules tested; enforcement on domain endpoints comes with them |
-| P3-AC1 all auth flows E2E in AR/FR/EN | 50% | realm flows pass in all three; sessions, step-up, invitations and eID links pass through the core (eID pages in all three); app screens not yet |
+| P3-AC1 all auth flows E2E in AR/FR/EN | 75% | realm flows and the web app journeys pass in all three; step-up, passkey, mandates and eID through the web app, staff SSO and invitations run in one language each |
 | P3-AC2 no high findings in internal security review | 0% | review in week 6 |
 | P3-AC3 mandate actions logged and visible | 100% |  |
 | P3-RISK SMS reliance, passkey usability for elderly users | 25% | password + TOTP alternative exists; assisted flows not designed |
 | P3-R1 institution staff SSO | 100% | OIDC and SAML institutions, tenant from configuration, key after SSO, no account linking (doc 07) |
-| P3-R2 customer OTP status page | 0% | week 4 |
+| P3-R2 customer OTP status page | 100% | reference + code to the contact on file, no enumeration, simulated e-mail (SMS: Q3-1) (doc 09) |
 | P3-R3 branch/team roles | 100% | units, scoped roles, invitations, admin API (doc 05) |

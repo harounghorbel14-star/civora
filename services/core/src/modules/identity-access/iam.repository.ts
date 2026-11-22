@@ -132,6 +132,14 @@ export class IamRepository {
   }
 
   /** Mandate actions, visible to both parties (P3-AC3); empty when the caller is not a party. */
+  /** Starts acting under a mandate (P3-F6): the agent of an active, unexpired mandate only; recorded as an event. */
+  actUnderMandate(personId: string, id: string): Promise<{ scopes: string[]; expiresAt: Date } | null> {
+    return this.asPerson(personId, async (c) => {
+      const r = await c.query<{ scopes: string[]; expires_at: Date }>('select * from iam.act_under_mandate($1)', [id]);
+      return r.rows[0] ? { scopes: r.rows[0].scopes, expiresAt: r.rows[0].expires_at } : null;
+    });
+  }
+
   mandateEvents(personId: string, id: string): Promise<{ action: string; actorRole: 'principal' | 'agent'; at: Date }[]> {
     return this.asPerson(personId, async (c) => {
       const r = await c.query(
@@ -228,6 +236,15 @@ export class IamRepository {
     return this.asPerson(personId, async (c) => (await c.query<IdentityClaimView>(
       `select claim_type as type, source, loa, verified_at as "verifiedAt", expires_at as "expiresAt"
          from iam.identity_claim order by claim_type, source`)).rows);
+  }
+
+  /** Status-page challenges (P3-R2): no person; the functions decide whether a code may be sent and whether it is right. */
+  async createStatusChallenge(id: string, referenceDigest: Buffer, codeDigest: Buffer, deliverable: boolean): Promise<boolean> {
+    return (await this.pool.query<{ send: boolean }>('select iam.create_status_challenge($1, $2, $3, $4) as send', [id, referenceDigest, codeDigest, deliverable])).rows[0]!.send;
+  }
+
+  async verifyStatusChallenge(id: string, referenceDigest: Buffer, codeDigest: Buffer): Promise<boolean> {
+    return (await this.pool.query<{ ok: boolean }>('select iam.verify_status_challenge($1, $2, $3) as ok', [id, referenceDigest, codeDigest])).rows[0]!.ok;
   }
 
   close(): Promise<void> {

@@ -1,0 +1,27 @@
+/** One-time notices after an action (?notice=...): an allow-list of message keys, never text from the URL. */
+export type Tone = 'success' | 'info' | 'warning' | 'danger';
+export const NOTICES: Record<string, { key: string; tone: Tone }> = {
+  saved: { key: 'profile.saved', tone: 'success' },
+  stepUp: { key: 'stepUp.notice', tone: 'warning' },
+  stepUpDone: { key: 'stepUp.confirmed', tone: 'success' },
+  actionDone: { key: 'notice.actionDone', tone: 'success' },
+  cancelled: { key: 'notice.cancelled', tone: 'info' },
+  signInFailed: { key: 'notice.signInFailed', tone: 'danger' },
+  signedOut: { key: 'auth.signedOut', tone: 'info' },
+  sessionEnded: { key: 'security.session.ended', tone: 'success' },
+  removed: { key: 'security.removed', tone: 'success' },
+  lastWay: { key: 'security.lastWay', tone: 'warning' },
+  eidLinked: { key: 'identity.done', tone: 'success' },
+  eidRejected: { key: 'identity.error.rejected', tone: 'danger' },
+  eidConflict: { key: 'identity.error.conflict', tone: 'danger' },
+  eidUnavailable: { key: 'identity.error.unavailable', tone: 'warning' },
+  eidTooMany: { key: 'identity.error.tooMany', tone: 'warning' },
+  mandateAccepted: { key: 'mandates.accepted', tone: 'success' },
+  mandateNotFound: { key: 'mandates.notFound', tone: 'danger' },
+  mandateRevoked: { key: 'mandates.revoked', tone: 'success' },
+  actingStarted: { key: 'acting.started', tone: 'info' },
+  actingStopped: { key: 'acting.stopped', tone: 'success' },
+  actingUnavailable: { key: 'acting.unavailable', tone: 'danger' },
+  invalid: { key: 'error.invalid', tone: 'danger' },
+  error: { key: 'error.generic', tone: 'danger' },
+};

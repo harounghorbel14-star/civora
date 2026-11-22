@@ -30,9 +30,15 @@ class AcceptMandate {
   @ApiProperty({ description: 'The invitation code received from the principal' }) invitationCode!: string;
 }
 class MandateEventDto {
-  @ApiProperty({ enum: ['created', 'accepted', 'revoked', 'renounced'] }) action!: string;
+  @ApiProperty({ enum: ['created', 'accepted', 'revoked', 'renounced', 'acted'] }) action!: string;
   @ApiProperty({ enum: ['principal', 'agent'] }) actorRole!: string;
   @ApiProperty({ format: 'date-time' }) at!: string;
+}
+
+class ActingDto {
+  @ApiProperty({ format: 'uuid' }) mandateId!: string;
+  @ApiProperty({ type: [String], example: ['cases:read'] }) scopes!: string[];
+  @ApiProperty({ format: 'date-time' }) expiresAt!: string;
 }
 
 function toDto(m: MandateRow, me: string): MandateDto {
@@ -111,6 +117,17 @@ export class MandatesController {
     const me = req.identity!.personId;
     if (!(await this.repo.revokeMandate(me, id))) throw new NotFoundException();
     return toDto((await this.repo.getMandate(me, id))!, me);
+  }
+
+  @Post(':id\\:act')
+  @HttpCode(200)
+  @ApiOperation({ operationId: 'actUnderMandate', summary: 'Start acting on behalf of the principal (P3-F6); recorded and visible to both parties' })
+  @ApiOkResponse({ type: ActingDto })
+  @ApiNotFoundResponse({ description: 'No active, unexpired mandate where you are the agent' })
+  async act(@Req() req: IdentifiedRequest, @Param('id', new ParseUUIDPipe()) id: string): Promise<ActingDto> {
+    const r = await this.repo.actUnderMandate(req.identity!.personId, id);
+    if (!r) throw new NotFoundException();
+    return { mandateId: id, scopes: r.scopes, expiresAt: r.expiresAt.toISOString() };
   }
 
   @Get(':id/events')

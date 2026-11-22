@@ -181,6 +181,10 @@ services:
       EID_SIM_CLIENT_SECRET_FILE: /run/secrets/eid-sim-client
       EID_REDIRECT_URI: https://app.civora-cell.invalid/identity/eid/callback
       IDENTITY_CLAIM_DIGEST_KEY_FILE: /run/secrets/identity-digest-key
+      # Customer status page (Phase 3 doc 09): synthetic cases; one-time codes by the simulated e-mail channel to the mail catcher.
+      SYNTHETIC_CASES: "on"
+      MESSAGING_SMTP_HOST: mail
+      MESSAGING_SMTP_PORT: "1025"
       OTEL_EXPORTER_OTLP_ENDPOINT: http://observability:4318
       OTEL_BSP_SCHEDULE_DELAY: "1000"   # dev only: export spans within a second
     ports: ["127.0.0.1:3000:3000"]

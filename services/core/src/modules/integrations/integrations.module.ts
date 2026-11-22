@@ -4,11 +4,13 @@ import { COUNTRY_PACK } from '../../country-config/country-config.module';
 import { loadSimulatedEidConfig, SimulatedOidcEid } from './adapters/national-eid/simulated-oidc/simulated-oidc.adapter';
 import { AdapterModeError } from './adapter-registry';
 import { stdoutIntegrationLog } from './integration-log';
+import { loadSimulatedSmtpConfig, SimulatedSmtpChannel } from './adapters/messaging/simulated-smtp/simulated-smtp.adapter';
+import type { MessagingChannel } from './ports/messaging';
 import type { NationalEid } from './ports/national-eid';
-import { NATIONAL_EID } from './tokens';
+import { MESSAGING, NATIONAL_EID } from './tokens';
 
 /**
- * Bounded context: integrations (ADR-028 adapter framework). Phase 3: the NationalEid port, simulated only.
+ * Bounded context: integrations (ADR-028 adapter framework). Phase 3: NationalEid and MessagingChannel ports, simulated only.
  * Rules (ADR-001): own schema only; other modules use ./public-api.ts or domain events; no cross-module database access.
  */
 @Module({
@@ -26,7 +28,15 @@ import { NATIONAL_EID } from './tokens';
         return cfg ? new SimulatedOidcEid(cfg, stdoutIntegrationLog) : null;
       },
     },
+    {
+      // E-mail to a person: simulated (dev/test mail catcher) until a provider is authorised (register M-02, Q3-6).
+      provide: MESSAGING,
+      useFactory: (): MessagingChannel | null => {
+        const cfg = loadSimulatedSmtpConfig();
+        return cfg ? new SimulatedSmtpChannel(cfg, stdoutIntegrationLog) : null;
+      },
+    },
   ],
-  exports: [NATIONAL_EID],
+  exports: [NATIONAL_EID, MESSAGING],
 })
 export class IntegrationsModule {}

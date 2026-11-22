@@ -127,5 +127,7 @@ describe('NationalEid contract: simulated-oidc adapter (P3-D4)', () => {
     assert.equal(loadSimulatedEidConfig('^99[0-9]{6}$', { ...env, CIVORA_ENV: 'test' })!.clientId, 'civora-core-eid');
     assert.throws(() => loadSimulatedEidConfig('^99[0-9]{6}$', { ...env, CIVORA_ENV: 'prod' }), /https/);
     assert.throws(() => loadSimulatedEidConfig('^99[0-9]{6}$', { ...env, CIVORA_ENV: 'test', EID_REDIRECT_URI: 'http://app.invalid/cb' }), /https/);
+    assert.equal(loadSimulatedEidConfig('^99[0-9]{6}$', { ...env, CIVORA_ENV: 'test', EID_REDIRECT_URI: 'http://localhost:3100/identity/eid/callback' })!.redirectUri, 'http://localhost:3100/identity/eid/callback');
+    assert.throws(() => loadSimulatedEidConfig('^99[0-9]{6}$', { ...env, CIVORA_ENV: 'prod', EID_SIM_ISSUER: 'https://eid.invalid/realms/x', EID_REDIRECT_URI: 'http://localhost:3100/cb' }), /https/);
   });
 });

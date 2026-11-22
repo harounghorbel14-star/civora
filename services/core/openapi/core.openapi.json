@@ -46,6 +46,33 @@
         ],
         "type": "object"
       },
+      "ActingDto": {
+        "properties": {
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "mandateId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "scopes": {
+            "example": [
+              "cases:read"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "mandateId",
+          "scopes",
+          "expiresAt"
+        ],
+        "type": "object"
+      },
       "AuthenticatorDto": {
         "properties": {
           "createdAt": {
@@ -77,6 +104,23 @@
         "required": [
           "id",
           "kind"
+        ],
+        "type": "object"
+      },
+      "Challenge": {
+        "properties": {
+          "challengeId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "challengeId",
+          "expiresAt"
         ],
         "type": "object"
       },
@@ -619,7 +663,8 @@
               "created",
               "accepted",
               "revoked",
-              "renounced"
+              "renounced",
+              "acted"
             ],
             "type": "string"
           },
@@ -774,6 +819,36 @@
         ],
         "type": "object"
       },
+      "PublicStatusDto": {
+        "properties": {
+          "institution": {
+            "type": "string"
+          },
+          "reference": {
+            "type": "string"
+          },
+          "since": {
+            "format": "date",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "received",
+              "in-analysis",
+              "information-requested",
+              "decided"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "reference",
+          "institution",
+          "status",
+          "since"
+        ],
+        "type": "object"
+      },
       "RegistrationAccepted": {
         "properties": {
           "status": {
@@ -877,6 +952,24 @@
         },
         "type": "object"
       },
+      "StartRequest": {
+        "properties": {
+          "locale": {
+            "description": "Language of the message with the code",
+            "example": "fr-TN",
+            "type": "string"
+          },
+          "reference": {
+            "description": "Case reference (letters, digits, dashes)",
+            "example": "SYN-RC-1-00001",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reference"
+        ],
+        "type": "object"
+      },
       "UnitDto": {
         "properties": {
           "id": {
@@ -905,6 +998,24 @@
           "id",
           "kind",
           "name"
+        ],
+        "type": "object"
+      },
+      "VerifyRequest": {
+        "properties": {
+          "code": {
+            "description": "The 6-digit code sent to the contact on file",
+            "example": "123456",
+            "type": "string"
+          },
+          "reference": {
+            "example": "SYN-RC-1-00001",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reference",
+          "code"
         ],
         "type": "object"
       }
@@ -1278,6 +1389,48 @@
           }
         ],
         "summary": "Accept a mandate as the agent, with its invitation code",
+        "tags": [
+          "mandates"
+        ]
+      }
+    },
+    "/v1/mandates/{id}:act": {
+      "post": {
+        "operationId": "actUnderMandate",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActingDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "404": {
+            "description": "No active, unexpired mandate where you are the agent"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Start acting on behalf of the principal (P3-F6); recorded and visible to both parties",
         "tags": [
           "mandates"
         ]
@@ -1939,6 +2092,85 @@
         "summary": "Invite a staff member into a unit of your institution (invitation link by e-mail)",
         "tags": [
           "organisation"
+        ]
+      }
+    },
+    "/v1/status-access": {
+      "post": {
+        "operationId": "startStatusAccess",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Challenge"
+                }
+              }
+            },
+            "description": "Always the same answer for a well-formed reference"
+          },
+          "400": {
+            "description": "Malformed reference (format only)"
+          }
+        },
+        "summary": "Ask for a one-time code for a case (sent to the contact on file, if the case exists)",
+        "tags": [
+          "status"
+        ]
+      }
+    },
+    "/v1/status-access/{id}:verify": {
+      "post": {
+        "operationId": "verifyStatusAccess",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicStatusDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "404": {
+            "description": "Wrong, expired, used or exhausted code, or no such case (deliberately not distinguished)"
+          }
+        },
+        "summary": "Show the case status with the one-time code",
+        "tags": [
+          "status"
         ]
       }
     }
