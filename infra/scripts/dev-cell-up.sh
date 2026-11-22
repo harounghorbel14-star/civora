@@ -112,6 +112,8 @@ check "registration answers 202 and the activation e-mail arrives (dev mail catc
 check "core identity configured (/v1/me without a token: 401, not 503)" "test \"\$(curl -s -o /dev/null -w '%{http_code}' localhost:3000/v1/me)\" = 401"
 check "SIMULATED national eID realm answers; the core's eID adapter is configured (simulated mode)" \
   "curl -fsS localhost:8080/realms/sim-national-eid/.well-known/openid-configuration | grep -q '\"issuer\":\"http://localhost:8080/realms/sim-national-eid\"' && test -s .generated/eid-sim-client.secret && ! docker compose logs core 2>&1 | grep -qi 'AdapterModeError'"
+check "customer status page answers 202 for a synthetic case reference (code to the mail catcher)" \
+  "test \"\$(curl -s -o /dev/null -w '%{http_code}' -H 'content-type: application/json' -d '{\"reference\":\"SYN-RC-1-00001\",\"locale\":\"fr-TN\"}' localhost:3000/v1/status-access)\" = 202"
 check "redis auth required"                  "docker compose exec -T redis redis-cli ping | grep -q NOAUTH"
 check "object store rejects anonymous"       "! curl -fsS localhost:8333/"
 check "openbao unsealed"                     "curl -fsS localhost:8200/v1/sys/health | grep -q '\"sealed\":false'"

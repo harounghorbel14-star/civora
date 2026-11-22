@@ -13,7 +13,7 @@ const { WEB_CB, LANG, check, info, stamp, claims, sleep, admin, activationMail, 
   pageLanguage } = lib;
 
 const SIM = 'sim-national-eid';
-const EID_CB = 'https://app.civora-cell.invalid/identity/eid/callback';
+const EID_CB = process.env.EID_REDIRECT_URI || 'https://app.civora-cell.invalid/identity/eid/callback';
 const STEP_UP = Number(process.env.STEP_UP_MAX_AGE_SECONDS || 30);
 const post = (body) => ({ method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
 const created = [];
@@ -47,6 +47,9 @@ async function eidRoundTrip(browser, token, who, locale) {
   const start = await core(token, '/v1/identity/links', post(locale ? { locale } : {}));
   if (start.status !== 201) return { start };
   const ctx = await newContext(browser);
+  // The eID returns to the app's callback (redirected requests escape route handlers, so read from request events). The
+  // web app gets the request too but has no session in this browser, so it never uses this test's code.
+  ctx.context.on('request', (r) => { if (r.url().startsWith(EID_CB)) ctx.captured.push(r.url()); });
   await ctx.page.goto(start.body.authorizationUrl).catch(() => undefined);
   await waitFor(() => visible(ctx.page, '#username'), 10000);
   const page = await pageLanguage(ctx.page);
@@ -128,12 +131,12 @@ const complete = (token, id, code, state) => core(token, `/v1/identity/links/${i
     check('old sign-in: 401 (insufficient_user_authentication)', r.status === 401, r.raw);
   } finally {
     await browser.close();
-    if (process.env.EID_IDS_OUT) fs.writeFileSync(process.env.EID_IDS_OUT, created.join('\n') + '\n');
+    if (process.env.EID_IDS_OUT) fs.appendFileSync(process.env.EID_IDS_OUT, created.join('\n') + '\n');
   }
   stamp(lib.failures() ? `${lib.failures()} check(s) FAILED` : 'all eID link checks passed');
   process.exit(lib.failures() ? 1 : 0);
 })().catch((e) => {
   console.error(`  FAIL ${e.stack || e}`);
-  if (process.env.EID_IDS_OUT) fs.writeFileSync(process.env.EID_IDS_OUT, created.join('\n') + '\n');
+  if (process.env.EID_IDS_OUT) fs.appendFileSync(process.env.EID_IDS_OUT, created.join('\n') + '\n');
   process.exit(1);
 });

@@ -1,7 +1,8 @@
 import { Inject, Module, type OnApplicationShutdown } from '@nestjs/common';
 import { Pool } from 'pg';
 import { APP_CONFIG, type AppConfig } from '../../config/app-config';
-import { IntegrationsModule, NATIONAL_EID, type NationalEid } from '../integrations/public-api';
+import { CASE_STATUS_DIRECTORY, CasesModule, type CaseStatusDirectory } from '../cases/public-api';
+import { IntegrationsModule, MESSAGING, type MessagingChannel, NATIONAL_EID, type NationalEid } from '../integrations/public-api';
 import { IdentityGuard } from './identity.guard';
 import { IamRepository } from './iam.repository';
 import { MandatesController } from './mandates.controller';
@@ -14,17 +15,19 @@ import { StepUpGuard } from './step-up.guard';
 import { RegistrationService } from './registration.service';
 import { RegistrationsController } from './registrations.controller';
 import { IdentityLinksController, type IdentityLinksDeps, loadIdentityDigestKey } from './identity-links.controller';
+import { StatusAccess } from './status-access';
+import { StatusAccessController } from './status-access.controller';
 import { loadOidcConfig, TokenVerifier } from './token-verifier';
-import { ACCOUNT_SECURITY, IAM_REPOSITORY, IDENTITY_LINKS, INVITATIONS, REGISTRATION_SERVICE, STEP_UP_MAX_AGE, TOKEN_VERIFIER } from './tokens';
+import { ACCOUNT_SECURITY, IAM_REPOSITORY, IDENTITY_LINKS, INVITATIONS, STATUS_ACCESS, REGISTRATION_SERVICE, STEP_UP_MAX_AGE, TOKEN_VERIFIER } from './tokens';
 
 /**
  * Bounded context: identity-access (Phase 3: citizen and staff accounts, profile, mandates, organisation, identity links).
  * Rules (ADR-001): own schema (iam) only; other modules use ./public-api.ts or domain events; no cross-module database access.
  */
 @Module({
-  imports: [IntegrationsModule],
+  imports: [IntegrationsModule, CasesModule],
   controllers: [MeController, MandatesController, RegistrationsController, SessionsController, AuthenticatorsController, OrgUnitsController,
-    MyMembershipsController, InvitationsController, IdentityLinksController],
+    MyMembershipsController, InvitationsController, IdentityLinksController, StatusAccessController],
   providers: [
     { provide: TOKEN_VERIFIER, useFactory: (): TokenVerifier => new TokenVerifier(loadOidcConfig()) },
     {
@@ -79,6 +82,17 @@ import { ACCOUNT_SECURITY, IAM_REPOSITORY, IDENTITY_LINKS, INVITATIONS, REGISTRA
         const digestKey = loadIdentityDigestKey();
         return eid && digestKey ? { eid, digestKey } : null;
       },
+    },
+    {
+      // Customer status page: needs the case directory (cases module), e-mail (integrations module) and the database.
+      provide: STATUS_ACCESS,
+      inject: [IAM_REPOSITORY, CASE_STATUS_DIRECTORY, MESSAGING],
+      useFactory: (repo: IamRepository | null, directory: CaseStatusDirectory | null, messaging: MessagingChannel | null): StatusAccess | null =>
+        repo && directory && messaging ? new StatusAccess({
+          directory, messaging,
+          challenges: { create: (...a) => repo.createStatusChallenge(...a), verify: (...a) => repo.verifyStatusChallenge(...a) },
+          log: (entry) => process.stdout.write(JSON.stringify({ ts: new Date().toISOString(), service: 'civora-core', context: 'status-access', ...entry }) + '\n'),
+        }) : null,
     },
     { provide: STEP_UP_MAX_AGE, useFactory: (): number => loadStepUpMaxAge() },
     IdentityGuard,

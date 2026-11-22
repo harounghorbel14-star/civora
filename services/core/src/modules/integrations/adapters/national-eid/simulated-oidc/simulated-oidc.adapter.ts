@@ -38,7 +38,10 @@ export function loadSimulatedEidConfig(syntheticPattern: string, env: NodeJS.Pro
   const redirectUri = env.EID_REDIRECT_URI;
   if (!issuer || !clientSecret || !redirectUri) return null;
   for (const u of [issuer, env.EID_SIM_INTERNAL_URL ?? issuer, redirectUri]) {
-    if (new URL(u).protocol !== 'https:' && !(insecureAllowed(env) && u !== redirectUri)) throw new Error('eID URLs must use https (the simulator may use http in dev and test only)');
+    const url = new URL(u);
+    const local = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+    // http only in dev and test: for the simulator, and for an app callback on this machine.
+    if (url.protocol !== 'https:' && !(insecureAllowed(env) && (u !== redirectUri || local))) throw new Error('eID URLs must use https (the simulator and a localhost app may use http in dev and test only)');
   }
   const maxAuthAgeSeconds = Number(env.EID_MAX_AUTH_AGE_SECONDS ?? 600);
   if (!Number.isInteger(maxAuthAgeSeconds) || maxAuthAgeSeconds < 60 || maxAuthAgeSeconds > 3600) throw new Error('EID_MAX_AUTH_AGE_SECONDS must be 60..3600');

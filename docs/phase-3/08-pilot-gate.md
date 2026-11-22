@@ -16,6 +16,7 @@
 | PG-4 | Q3-6 / R-P3-9: mail relay for activation and invitation e-mails | No relay, no activation: citizens and invited staff cannot get their first credential | Provider chosen; relay set per cell (`--smtp-host`, password in Keycloak's vault); a registration e-mail received in staging | Founder (provider) | Open |
 | PG-5 | Q3-2: national eID scheme and authorisation | Without it only the simulator exists (register entry I-01, class 3); a pilot must not present simulated identity proofing as real | Either an authorisation and a production adapter (class 1 or 2), or the pilot explicitly runs without eID links | Founder / authority | Open |
 | PG-6 | Q3-1: SMS provider (fallback, and customer codes for the status page if SMS is chosen) | P3-F1 lists SMS as a fallback; R2 codes need a channel to the customer | Provider and legal basis chosen, or the pilot runs with e-mail codes only, recorded as a decision | Founder | Open |
+| PG-7 | Web app sessions in a shared store ([doc 09](09-citizen-web-app.md)) | The citizen web app keeps its sessions in process memory: one replica only; a restart signs everyone out | Sessions in the cell's Valkey (encrypted at rest, same limits), tested with two replicas and a restart | Engineering | Open |
 
 ## Rules
 

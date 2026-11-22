@@ -56,6 +56,16 @@ routes:
     plugins:
       limit-count: { count: 10, time_window: 600, key_type: var, key: remote_addr, rejected_code: 429, policy: local }
     upstream: { type: roundrobin, nodes: { "@CORE@": 1 } }
+  # Customer access to the status page (Phase 3 P3-R2) is public (no account) and answers the same for every reference;
+  # bounded per client address against guessing references and codes (the core also bounds codes per reference and
+  # tries per code).
+  - id: status-access
+    uris: [/v1/status-access, /v1/status-access/*]
+    methods: [POST]
+    priority: 20
+    plugins:
+      limit-count: { count: 20, time_window: 600, key_type: var, key: remote_addr, rejected_code: 429, policy: local }
+    upstream: { type: roundrobin, nodes: { "@CORE@": 1 } }
   - id: api-v1
     uri: /v1/*
     methods: [GET, POST, PUT, PATCH, DELETE]

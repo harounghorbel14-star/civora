@@ -18,16 +18,16 @@ repo="$(cd "$here/../../.." && pwd)"
 keycloak_image="docker.io/keycloak/keycloak@sha256:3f3c5f8e03c614774b4bd9173b88391fefa4153bfc010d8012d59ad825377332" # 26.8.1
 mail_image="docker.io/axllent/mailpit@sha256:9b3a463be15354c0f0eba91697d80e3e0d8a5623ef0e627cacc836bc17fd5231" # v1.33.0 (2026-10-31)
 net=civora-realms-test
-work="$(mktemp -d)"; start=$(date +%s); core_pid=""
+work="$(mktemp -d)"; start=$(date +%s); core_pid=""; web_pid=""
 stamp() { echo "[$(( $(date +%s) - start ))s] $*"; }
 remove() { docker rm -fv kr-keycloak kr-db kr-mail >/dev/null 2>&1 || true; docker network rm "$net" >/dev/null 2>&1 || true; }
-cleanup() { [ -n "$core_pid" ] && kill "$core_pid" 2>/dev/null || true; [[ "${KEEP:-0}" == 1 ]] || remove; rm -rf "$work"; }
+cleanup() { [ -n "$core_pid" ] && kill "$core_pid" 2>/dev/null || true; [ -n "$web_pid" ] && kill "$web_pid" 2>/dev/null || true; [[ "${KEEP:-0}" == 1 ]] || remove; rm -rf "$work"; }
 trap cleanup EXIT
 rnd() { head -c 48 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c "$1"; }
 free_port() { python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1])'; }
 fail=0
-# PARTS (development only; CI runs everything): comma-separated subset of login,account,org,eid,sso.
-part() { [[ ",${PARTS:-login,account,org,eid,sso}," == *",$1,"* ]]; }
+# PARTS (development only; CI runs everything): comma-separated subset of login,account,org,eid,sso,web.
+part() { [[ ",${PARTS:-login,account,org,eid,sso,web}," == *",$1,"* ]]; }
 checker="$repo/infra/scripts/check-realm-security.py"
 
 echo "Realm files (Git):"
@@ -42,7 +42,7 @@ remove
 docker network create "$net" >/dev/null
 db_pw=$(rnd 24); app_pw=$(rnd 24); kc_pw=$(rnd 24)
 docker run -d --name kr-db -p 127.0.0.1::5432 -e POSTGRES_PASSWORD="$db_pw" -e POSTGRES_USER=civora_core -e POSTGRES_DB=civora_core postgres:16-alpine >/dev/null
-docker run -d --name kr-mail --network "$net" -p 127.0.0.1::8025 "$mail_image" >/dev/null
+docker run -d --name kr-mail --network "$net" -p 127.0.0.1::8025 -p 127.0.0.1::1025 "$mail_image" >/dev/null
 # TEST ONLY trust anchor: the virtual authenticator's attestation certificate stands in for a vendor root.
 mkdir -p "$work/truststores" && chmod 755 "$work/truststores"
 approved="$repo/infra/keycloak/approved-keys/test-virtual-authenticator.json"
@@ -56,6 +56,7 @@ docker run -d --name kr-keycloak --network "$net" -p "127.0.0.1:$kc_port:8080" -
   "$keycloak_image" start-dev --import-realm >/dev/null
 kc="http://localhost:$kc_port"
 mail="http://127.0.0.1:$(docker port kr-mail 8025/tcp | head -1 | sed 's/.*://')"
+mail_smtp=$(docker port kr-mail 1025/tcp | head -1 | sed 's/.*://')
 
 db_port=$(docker port kr-db 5432/tcp | head -1 | sed 's/.*://')
 waited=0; for _ in $(seq 1 120); do docker exec kr-db pg_isready -U civora_core >/dev/null 2>&1 && { waited=1; break; }; sleep 1; done
@@ -97,8 +98,16 @@ eid_client=$(curl -sf --noproxy '*' -H "Authorization: Bearer $KC_ADMIN_TOKEN" "
 curl -sf --noproxy '*' -X POST -H "Authorization: Bearer $KC_ADMIN_TOKEN" "$kc/admin/realms/sim-national-eid/clients/$eid_client/client-secret" \
   | python3 -c 'import json,sys;print(json.load(sys.stdin)["value"])' > "$work/eid.secret"
 head -c 32 /dev/urandom | base64 > "$work/digest.key"
-eid_env=(EID_SIM_ISSUER="$kc/realms/sim-national-eid" EID_SIM_CLIENT_SECRET_FILE="$work/eid.secret" EID_REDIRECT_URI="https://app.civora-cell.invalid/identity/eid/callback"
-  IDENTITY_CLAIM_DIGEST_KEY_FILE="$work/digest.key")
+# The citizen web app (apps/web) receives the eID's answer; its callback is registered at the simulator.
+web_port=$(free_port); web="http://localhost:$web_port"
+eid_cb="$web/identity/eid/callback"
+curl -sf --noproxy '*' -H "Authorization: Bearer $KC_ADMIN_TOKEN" "$kc/admin/realms/sim-national-eid/clients/$eid_client" \
+  | python3 -c 'import json,sys; c=json.load(sys.stdin); c["redirectUris"]=[sys.argv[1]]; print(json.dumps(c))' "$eid_cb" \
+  | curl -sf --noproxy '*' -X PUT -H "Authorization: Bearer $KC_ADMIN_TOKEN" -H 'content-type: application/json' --data @- "$kc/admin/realms/sim-national-eid/clients/$eid_client"
+eid_env=(EID_SIM_ISSUER="$kc/realms/sim-national-eid" EID_SIM_CLIENT_SECRET_FILE="$work/eid.secret" EID_REDIRECT_URI="$eid_cb"
+  IDENTITY_CLAIM_DIGEST_KEY_FILE="$work/digest.key"
+  # Customer status page (P3-R2): synthetic cases; one-time codes by the simulated e-mail channel to the mail catcher.
+  SYNTHETIC_CASES=on MESSAGING_SMTP_HOST=127.0.0.1 MESSAGING_SMTP_PORT="$mail_smtp")
 core_port=$(free_port)
 (cd "$repo/services/core" && CIVORA_ENV=test PORT="$core_port" DATABASE_URL="postgres://civora_core_app:$app_pw@127.0.0.1:$db_port/civora_core" \
   OIDC_ISSUER_CITIZENS="$kc/realms/civora-citizens" OIDC_ISSUER_STAFF="$kc/realms/civora-staff" \
@@ -109,6 +118,14 @@ for _ in $(seq 1 60); do curl -sf --noproxy '*' "http://127.0.0.1:$core_port/hea
 curl -sf --noproxy '*' "http://127.0.0.1:$core_port/health/ready" >/dev/null || { echo "  FAIL core did not start"; tail -20 "$work/core.log"; exit 1; }
 stamp "civora-core up (database role civora_core_app; issuers: the two realms; registration through the provisioner client)"
 grep -q . "$work/provisioner.secret" && grep -q . "$work/staff-provisioner.secret" || { echo "  FAIL provisioner secrets not written"; exit 1; }
+if part web; then
+  (cd "$repo/apps/web" && CIVORA_ENV=test APP_ORIGIN="$web" OIDC_ISSUER="$kc/realms/civora-citizens" CORE_URL="http://127.0.0.1:$core_port" \
+    NEXT_TELEMETRY_DISABLED=1 exec node_modules/.bin/next start -p "$web_port" -H 127.0.0.1) >"$work/web.log" 2>&1 &
+  web_pid=$!
+  waited=0; for _ in $(seq 1 60); do curl -sf --noproxy '*' -o /dev/null "$web/en" && { waited=1; break; }; sleep 1; done
+  [ "$waited" = 1 ] || { echo "  FAIL web app did not start"; tail -20 "$work/web.log"; exit 1; }  # bounded wait
+  stamp "citizen web app up (Next.js, backend-for-frontend) at $web"
+fi
 
 echo "Journeys in ${LOCALES:-ar,fr,en} and security checks, in Chromium with virtual authenticators, and the core:"
 mkdir -p "${ARTIFACT_DIR:-$work/artifacts}"
@@ -126,16 +143,21 @@ part org && { KC_URL="$kc" CORE_URL="http://127.0.0.1:$core_port" MAIL_URL="$mai
 part sso && echo "Institution staff SSO through simulated OIDC and SAML identity providers (P3-R1):"
 part sso && { KC_URL="$kc" CORE_URL="http://127.0.0.1:$core_port" MAIL_URL="$mail" KC_ADMIN_PASSWORD="$kc_pw" ARTIFACT_DIR="${ARTIFACT_DIR:-$work/artifacts}" \
   REPO_DIR="$repo" WORK_DIR="$work" NO_PROXY="localhost,127.0.0.1,${NO_PROXY:-}" no_proxy="localhost,127.0.0.1,${no_proxy:-}" node "$here/sso.cjs" || fail=1; }
+part web && echo "Citizen web app in ${LOCALES:-ar,fr,en}: journeys, status page, mandates and acting on behalf, eID, web security (week 4):"
+part web && { KC_URL="$kc" CORE_URL="http://127.0.0.1:$core_port" MAIL_URL="$mail" KC_ADMIN_PASSWORD="$kc_pw" WEB_URL="$web" REPO_DIR="$repo" \
+  STEP_UP_MAX_AGE_SECONDS=30 EID_IDS_OUT="$work/eid-ids.txt" ARTIFACT_DIR="${ARTIFACT_DIR:-$work/artifacts}" \
+  NO_PROXY="localhost,127.0.0.1,${NO_PROXY:-}" no_proxy="localhost,127.0.0.1,${no_proxy:-}" node "$here/web.cjs" || fail=1; }
 if part eid; then
 echo "Identity links through the SIMULATED national eID (P3-D4, P3-API6):"
 KC_URL="$kc" CORE_URL="http://127.0.0.1:$core_port" MAIL_URL="$mail" KC_ADMIN_PASSWORD="$kc_pw" ARTIFACT_DIR="${ARTIFACT_DIR:-$work/artifacts}" \
-  STEP_UP_MAX_AGE_SECONDS=30 EID_IDS_OUT="$work/eid-ids.txt" \
+  STEP_UP_MAX_AGE_SECONDS=30 EID_IDS_OUT="$work/eid-ids.txt" EID_REDIRECT_URI="$eid_cb" \
   NO_PROXY="localhost,127.0.0.1,${NO_PROXY:-}" no_proxy="localhost,127.0.0.1,${no_proxy:-}" node "$here/eid.cjs" || fail=1
 if [ -s "$work/eid-ids.txt" ]; then
   docker exec kr-db pg_dump -U civora_core -d civora_core --data-only > "$work/core-db.sql" 2>/dev/null
-  leaked=0; while read -r nid; do grep -qF "$nid" "$work/core-db.sql" "$work/core.log" && leaked=1; done < "$work/eid-ids.txt"
+  logs=("$work/core-db.sql" "$work/core.log"); [ -f "$work/web.log" ] && logs+=("$work/web.log")
+  leaked=0; while read -r nid; do [ -n "$nid" ] || continue; grep -qF "$nid" "${logs[@]}" && leaked=1; done < "$work/eid-ids.txt"
   digests=$(docker exec kr-db psql -U civora_core -d civora_core -Atc "select count(*) from iam.identity_claim where claim_type = 'national-id-link'")
-  if [ "$leaked" = 0 ] && [ "${digests:-0}" -gt 0 ]; then echo "  ok   no national identifier in the core database (full dump) or the core log; $digests keyed digest(s) stored"
+  if [ "$leaked" = 0 ] && [ "${digests:-0}" -gt 0 ]; then echo "  ok   no national identifier in the core database (full dump), the core log or the web app log; $digests keyed digest(s) stored"
   else echo "  FAIL national identifier found in the core database or log (or no digest stored)"; fail=1; fi
   if grep -q '"context":"integration".*"outcome":"ok"' "$work/core.log" && grep -q '"context":"integration".*"outcome":"rejected"' "$work/core.log"; then
     echo "  ok   integration log: one line per eID call (adapter, mode, purpose, outcome, latency), accepted and refused answers"
