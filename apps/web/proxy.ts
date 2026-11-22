@@ -5,6 +5,14 @@ import { NextResponse, type NextRequest } from 'next/server';
  * path for the language switcher, and a correlation id. Static security headers are in next.config.ts.
  */
 export function proxy(request: NextRequest): NextResponse {
+  // Resource isolation (ASVS 5.0 V3.5.8): another site may link to a page (a top-level GET navigation, e.g. the return
+  // from Keycloak or the eID), nothing else: no embedding, no scripts or images, no form posts, no fetches.
+  if (request.headers.get('sec-fetch-site') === 'cross-site') {
+    const dest = request.headers.get('sec-fetch-dest');
+    if (!(request.method === 'GET' && request.headers.get('sec-fetch-mode') === 'navigate' && (dest === null || dest === 'document'))) {
+      return new NextResponse(null, { status: 403 });
+    }
+  }
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
   const dev = process.env.NODE_ENV === 'development';
   const issuer = process.env.OIDC_ISSUER ? new URL(process.env.OIDC_ISSUER).origin : '';
@@ -22,6 +30,9 @@ export function proxy(request: NextRequest): NextResponse {
     `form-action 'self' ${issuer} ${extraForm}`.trim(),
     "frame-ancestors 'none'",
     ...(https ? ['upgrade-insecure-requests'] : []),
+    // Violations are reported to this app (ASVS 5.0 V3.4.7); app/csp-report keeps the directive and origins only.
+    'report-uri /csp-report',
+    'report-to csp',
   ].join('; ');
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-nonce', nonce);
@@ -30,6 +41,9 @@ export function proxy(request: NextRequest): NextResponse {
   if (!requestHeaders.get('x-request-id')) requestHeaders.set('x-request-id', crypto.randomUUID());
   const response = NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set('content-security-policy', csp);
+  response.headers.set('reporting-endpoints', 'csp="/csp-report"');
+  // HSTS on every response over https (ASVS 5.0 V3.4.1): two years, sub-domains, ready for the preload list.
+  if (https) response.headers.set('strict-transport-security', 'max-age=63072000; includeSubDomains; preload');
   return response;
 }
 

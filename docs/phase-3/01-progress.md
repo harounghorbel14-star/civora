@@ -30,14 +30,14 @@
 | 4 | Pilot gate for identity, R-P3-14 blocking (PG-1) | **Done** | [08](08-pilot-gate.md) |
 | 4 | Citizen web app (backend-for-frontend) in AR/FR/EN; acting on behalf of (F6); customer status page with one-time codes (R2); messaging port (simulated e-mail); web E2E (T2, AC1) | **Done** (local) | [09](09-citizen-web-app.md): whole realms run 199 checks, all passed (38 web app checks); 139 tests (core 99, web 22); gateway 19/19; dev cell 17/17 |
 | 4 | Mobile shell + Detox plan (Q3-3) | **Plan done**; the app is built with its emulator job | [10](10-mobile-shell-and-detox-plan.md) |
-| 5 | Negative tests (T3), mandate-scope tests (T4), ASVS L3 checklist (SEC1), rate limits review (SEC2) | Next | — |
+| 5 | Mandate scopes as Cedar policies (T4); negative tests (T3); ASVS 5.0 L3 assessment of the identity system (SEC1) with fixes (password deny list and context words, session ending with step-up and "end all others", web app resource isolation, CSP reports, HSTS); rate limits on every route (SEC2); every flow in AR/FR/EN (AC1) | **Done** (local) | [11](11-security-verification.md): whole realms run **254 checks, all passed** (22 negative, 58 web app); 154 unit and database tests; gateway 20/20; dev cell 17/17; ASVS: 121 of 143 applicable met |
 
-## Completion estimate (21 Nov 2026, updated during week 3)
+## Completion estimate (22 Nov 2026, updated after week 5)
 
 Each of the 43 work items of the specification ([00](00-phase-3-start-and-specification-audit.md); objectives,
 dependency, time and budget lines excluded) scored by what is built **and tested**: 0, 25, 50, 75 or 100 %.
-**Phase 3: about 84 %** (36.0 of 43). Acceptance criteria: 1 of 3 met (AC3), AC1 three quarters, AC2 not started.
-Time: 4 of 6 planned weeks used (week 4 complete; the mobile app is built with its emulator job, doc 10). The scoring is an engineering estimate, not an acceptance decision.
+**Phase 3: about 87 %** (37.25 of 43). Acceptance criteria: 2 of 3 met (AC1, AC3), AC2 not started (week 6).
+Time: 5 of 6 planned weeks used (week 5 complete; the mobile app is built with its emulator job, doc 10). The scoring is an engineering estimate, not an acceptance decision.
 
 | Item | Done | What is missing |
 |---|---|---|
@@ -68,16 +68,16 @@ Time: 4 of 6 planned weeks used (week 4 complete; the mobile app is built with i
 | P3-API4 authenticators | 100% | doc 04 |
 | P3-API5 mandates | 100% |  |
 | P3-API6 identity links (simulated eID) | 100% | start (step-up), complete, list (doc 06) |
-| P3-SEC1 ASVS L3 | 25% | controls in place; no formal ASVS assessment yet (week 5) |
-| P3-SEC2 rate limits | 75% | gateway limits on login, token, registration, API; full endpoint review week 5 |
+| P3-SEC1 ASVS L3 | 75% | assessment done (doc 11): 121 of 143 applicable L1–L3 requirements met in V3, V6–V10; gaps G1–G5 planned (notifications, recovery, adaptive controls, PAR/DPoP/private_key_jwt, HSTS preload) |
+| P3-SEC2 rate limits | 75% | every route reviewed and limited, checked by the gateway test (doc 11 §5); open: per-person and per-tenant quotas (R-P3-15), the web app's edge route (ADR-030, PG-8) |
 | P3-SEC3 credential stuffing | 100% |  |
 | P3-SEC4 recovery re-proofing | 0% | week 6, depends on Q3-4 |
 | P3-SEC5 officers require FIDO2 | 100% | approved models: founder decision Q3-5 |
 | P3-T1 unit + integration | 75% | 139 tests (core 99 with PostgreSQL, web 22) and the realms integration run (199 checks); grows with each feature |
 | P3-T2 E2E Playwright, Detox | 75% | Playwright through the web app in three languages (doc 09); Detox planned, needs its emulator job (doc 10) |
-| P3-T3 negative tests (session fixation, CSRF, token replay) | 75% | token forgery/replay, TOTP replay, forged WebAuthn, session id rotation, CSRF on server actions done; full week-5 suite still to run |
-| P3-T4 mandate-scope authorisation tests | 75% | party and scope rules tested; enforcement on domain endpoints comes with them |
-| P3-AC1 all auth flows E2E in AR/FR/EN | 75% | realm flows and the web app journeys pass in all three; step-up, passkey, mandates and eID through the web app, staff SSO and invitations run in one language each |
+| P3-T3 negative tests (session fixation, CSRF, token replay) | 100% | 22 attack checks (N1–N22, doc 11 §6) besides the earlier forgery, replay and WebAuthn checks |
+| P3-T4 mandate-scope authorisation tests | 100% | Cedar policies with 20 decision cases and 8 negative controls; the core answers permissions from them (doc 11 §7); domain endpoints use the same engine when they arrive |
+| P3-AC1 all auth flows E2E in AR/FR/EN | 100% | every flow in each of the three languages (doc 11 §8) |
 | P3-AC2 no high findings in internal security review | 0% | review in week 6 |
 | P3-AC3 mandate actions logged and visible | 100% |  |
 | P3-RISK SMS reliance, passkey usability for elderly users | 25% | password + TOTP alternative exists; assisted flows not designed |

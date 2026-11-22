@@ -17,3 +17,4 @@
 9. [08 — Pilot gate](08-pilot-gate.md): identity requirements that must be closed before any pilot (PG-1: institution back-channel logout, R-P3-14).
 10. [09 — Citizen web app, acting on behalf of, status page](09-citizen-web-app.md) (week 4): backend-for-frontend in Arabic, French and English, customer one-time codes, web E2E.
 11. [10 — Mobile shell and Detox plan](10-mobile-shell-and-detox-plan.md) (week 4): decisions for the mobile app and how Detox will run.
+12. [11 — Security verification](11-security-verification.md) (week 5): ASVS 5.0 L1–L3 assessment of the identity system (153 requirements), fixes, rate-limit review, negative tests, mandate scopes in Cedar, every flow in three languages.

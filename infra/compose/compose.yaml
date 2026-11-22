@@ -104,6 +104,7 @@ services:
       - ./keycloak/civora-dev-realm.json:/opt/keycloak/data/import/civora-dev-realm.json:ro
       - ../keycloak/realms/civora-citizens.json:/opt/keycloak/data/import/civora-citizens.json:ro
       - ../keycloak/realms/civora-staff.json:/opt/keycloak/data/import/civora-staff.json:ro
+      - ../keycloak/password-deny-list/civora-deny.txt:/opt/keycloak/data/password-blacklists/civora-deny.txt:ro
       # SIMULATED national eID (synthetic identities only; dev cell and tests, never staging or production).
       - ../keycloak/simulators/sim-national-eid.json:/opt/keycloak/data/import/sim-national-eid.json:ro
     depends_on:

@@ -37,7 +37,10 @@ function service(s: AccountSecurity | null, realm: 'citizens' | 'staff'): Accoun
   return s;
 }
 
-/** The signed-in person's sessions (P3-API3). Ending a session needs no step-up: it only ever protects the person. */
+/**
+ * The signed-in person's sessions (P3-API3). Ending sessions needs a recent sign-in (ASVS 5.0 V7.5.2: "having
+ * authenticated again"): otherwise a stolen session could sign the owner out everywhere.
+ */
 @ApiTags('identity')
 @ApiBearerAuth()
 @ApiUnauthorizedResponse({ description: 'No valid access token' })
@@ -53,8 +56,17 @@ export class SessionsController {
     return service(this.security, req.identity!.realm).listSessions(req.identity!);
   }
 
+  @Delete()
+  @RequireStepUp()
+  @ApiOperation({ operationId: 'endMyOtherSessions', summary: 'Sign out every other session (after changing a way to sign in, or when a device is lost); this one stays' })
+  @ApiOkResponse({ description: 'Number of sessions ended', schema: { type: 'object', properties: { ended: { type: 'integer' } }, required: ['ended'] } })
+  async removeOthers(@Req() req: IdentifiedRequest): Promise<{ ended: number }> {
+    return { ended: await service(this.security, req.identity!.realm).removeOtherSessions(req.identity!) };
+  }
+
   @Delete(':id')
   @HttpCode(204)
+  @RequireStepUp()
   @ApiOperation({ operationId: 'endMySession', summary: 'Sign out one of your sessions (its refresh token stops working at once; access tokens expire within 5 minutes)' })
   @ApiNoContentResponse({ description: 'Ended' })
   @ApiNotFoundResponse({ description: 'No such session of yours' })

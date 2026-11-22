@@ -92,6 +92,15 @@ export class AccountSecurity {
     await dir.deleteSession(sessionId);
     return 'removed';
   }
+
+  /** Ends every session of the person except the one this token belongs to (ASVS 5.0 V7.4.3, V7.5.2). */
+  async removeOtherSessions(token: VerifiedToken): Promise<number> {
+    if (!token.sessionId) return 0; // without a session id the current session cannot be told apart: end nothing
+    const dir = this.dir(token.realm);
+    const others = (await dir.listSessions(token.subject)).filter((s) => s.id !== token.sessionId);
+    for (const s of others) await dir.deleteSession(s.id);
+    return others.length;
+  }
 }
 
 function authenticatorViews(creds: IdpCredential[]): AuthenticatorView[] {

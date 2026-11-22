@@ -201,12 +201,14 @@ async function activate(page, link) {
   await page.goto(link);
   await Promise.all([page.waitForNavigation(), page.locator('a[href*="login-actions"]').first().click()]);
   const seen = [];
+  const langs = []; // the language of each Keycloak page on the way
   let secret = null;
   const password = pw();
   for (let i = 0; i < 5; i++) {
     const step = (await visible(page, '#totp')) ? 'TOTP' : (await visible(page, '#registerWebAuthn')) ? 'SECURITY-KEY' : (await visible(page, '#password-new')) ? 'PASSWORD' : null;
     if (!step) break;
     seen.push(step);
+    langs.push((await pageLanguage(page).catch(() => ({}))).lang);
     if (step === 'TOTP') {
       if (await visible(page, '#mode-manual')) await page.locator('#mode-manual').click();
       secret = (await page.locator('#kc-totp-secret-key').innerText()).trim();
@@ -221,7 +223,7 @@ async function activate(page, link) {
     }
     await sleep(300);
   }
-  return { seen, secret, password };
+  return { seen, secret, password, langs };
 }
 
 /** Signs in through the browser; returns the token response. prompt=login forces a fresh sign-in. */

@@ -1,9 +1,10 @@
 import { BadRequestException, Body, Controller, Get, HttpCode, Inject, NotFoundException, Param, ParseUUIDPipe, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiProperty, ApiPropertyOptional, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
+import { MANDATE_ACTIONS as POLICY_ACTIONS, type PolicyEngine } from '@civora/policies';
 import { IdentityGuard, type IdentifiedRequest } from './identity.guard';
 import { newInvitationCode, type IamRepository, type MandateRow } from './iam.repository';
 import { effectiveStatus, MANDATE_ACTIONS, MANDATE_DOMAINS, mandateProblems } from './mandate-rules';
-import { IAM_REPOSITORY } from './tokens';
+import { IAM_REPOSITORY, POLICY_ENGINE } from './tokens';
 
 const SCOPE_HELP = `Each scope is <domain>:<action>, domain in ${MANDATE_DOMAINS.join(', ')}, action in ${MANDATE_ACTIONS.join(', ')}`;
 
@@ -33,6 +34,16 @@ class MandateEventDto {
   @ApiProperty({ enum: ['created', 'accepted', 'revoked', 'renounced', 'acted'] }) action!: string;
   @ApiProperty({ enum: ['principal', 'agent'] }) actorRole!: string;
   @ApiProperty({ format: 'date-time' }) at!: string;
+}
+
+class PermissionDto {
+  @ApiProperty({ example: 'cases:read' }) action!: string;
+  @ApiProperty() allowed!: boolean;
+}
+class PermissionsDto {
+  @ApiProperty({ format: 'uuid' }) mandateId!: string;
+  @ApiProperty({ enum: ['principal', 'agent'] }) role!: string;
+  @ApiProperty({ type: [PermissionDto] }) permissions!: PermissionDto[];
 }
 
 class ActingDto {
@@ -66,7 +77,7 @@ function toDto(m: MandateRow, me: string): MandateDto {
 @UseGuards(IdentityGuard)
 @Controller('v1/mandates')
 export class MandatesController {
-  constructor(@Inject(IAM_REPOSITORY) private readonly repo: IamRepository) {}
+  constructor(@Inject(IAM_REPOSITORY) private readonly repo: IamRepository, @Inject(POLICY_ENGINE) private readonly policies: PolicyEngine) {}
 
   @Post()
   @ApiOperation({ operationId: 'createMandate', summary: 'Propose a mandate; returns a one-time invitation code for the agent' })
@@ -128,6 +139,26 @@ export class MandatesController {
     const r = await this.repo.actUnderMandate(req.identity!.personId, id);
     if (!r) throw new NotFoundException();
     return { mandateId: id, scopes: r.scopes, expiresAt: r.expiresAt.toISOString() };
+  }
+
+  @Get(':id/permissions')
+  @ApiOperation({ operationId: 'mandatePermissions', summary: 'What the caller may do when acting under this mandate (Cedar policies, ADR-006; P3-T4)' })
+  @ApiOkResponse({ type: PermissionsDto })
+  @ApiNotFoundResponse({ description: 'No such mandate where you are a party' })
+  async permissions(@Req() req: IdentifiedRequest, @Param('id', new ParseUUIDPipe()) id: string): Promise<PermissionsDto> {
+    const me = req.identity!.personId;
+    const m = await this.repo.getMandate(me, id);
+    if (!m) throw new NotFoundException();
+    const now = new Date();
+    const facts = {
+      id: m.id, principal: m.principal_id, agent: m.agent_id ?? '', scopes: m.scopes,
+      active: effectiveStatus(m.status, m.expires_at, now) === 'active' && m.valid_from.getTime() <= now.getTime(),
+    };
+    return {
+      mandateId: m.id,
+      role: m.principal_id === me ? 'principal' : 'agent',
+      permissions: POLICY_ACTIONS.map((action) => ({ action, allowed: this.policies.mandateDecision({ actor: me, action, owner: m.principal_id, mandate: facts }).allowed })),
+    };
   }
 
   @Get(':id/events')

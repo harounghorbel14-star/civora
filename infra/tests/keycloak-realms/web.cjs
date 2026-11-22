@@ -65,6 +65,30 @@ async function keycloakSignIn(page, who) {
   return [...done].join('+');
 }
 
+/**
+ * Keycloak's pages until `selector` shows: an application-initiated action (adding a passkey) first asks for a
+ * re-authentication when the sign-in is older than the realm's limit (30 s in this test).
+ */
+async function keycloakUntil(page, who, selector) {
+  const until = Date.now() + 25000;
+  const done = new Set();
+  while (Date.now() < until && !(await visible(page, selector))) {
+    if (!done.has('password') && await visible(page, '#password')) {
+      if (await visible(page, '#username')) await page.locator('#username').fill(who.email);
+      await page.locator('#password').fill(who.password);
+      done.add('password');
+      await submit(page);
+    } else if (!done.has('otp') && await visible(page, '#otp')) {
+      await page.locator('#otp').fill(await freshTotp(who.secret));
+      done.add('otp');
+      await submit(page);
+    } else {
+      await sleep(250);
+    }
+  }
+  return { shown: await visible(page, selector), steps: [...done].join('+') || 'none' };
+}
+
 async function webSignIn(x, lang, who) {
   await x.page.goto(`${WEB}/${lang}`);
   await x.page.locator('[data-testid=sign-in]').first().click();
@@ -161,34 +185,61 @@ async function signOutChecks(x, lang, who) {
     const signedIn = {};
     for (const [i, lang] of LOCALES.entries()) signedIn[lang] = await journey(browser, lang, i);
 
-    stamp('[en] authenticators through the web app: a passkey via Keycloak; removal needs a recent sign-in (step-up)');
-    const { x, who } = signedIn.en ?? signedIn[LOCALES[0]];
-    const lang = signedIn.en ? 'en' : LOCALES[0];
-    await addAuthenticator(x.page, 'internal');
-    await x.page.goto(`${WEB}/${lang}/security`);
-    await x.page.locator('[data-testid=add-passkey]').click();
-    if (await waitFor(() => visible(x.page, '#registerWebAuthn'), 10000)) await x.page.locator('#registerWebAuthn').click();
-    await waitFor(async () => (await notice(x.page)) === 'actionDone', 15000);
-    let kinds = await x.page.locator('[data-testid=authenticators] > li').evaluateAll((els) => els.map((e) => e.getAttribute('data-kind')).sort());
-    check('add a passkey: Keycloak\'s registration, back on the security page, passkey listed', kinds.join() === 'passkey,totp', String(kinds));
-    const before = (await sessionCookie(x))?.value;
-    info(`waiting ${STEP_UP + 2} s for the sign-in to become older than the step-up limit`);
+    // Ways to sign in, in every language: a passkey through Keycloak's registration; then, once all sign-ins are older
+    // than the step-up limit, a removal that asks "confirm it is you" (one wait for all languages).
+    const before = {};
+    for (const lang of LOCALES) {
+      stamp(`[${lang}] authenticators through the web app: a passkey via Keycloak`);
+      const { x, who } = signedIn[lang];
+      await addAuthenticator(x.page, 'internal');
+      await x.page.goto(`${WEB}/${lang}/security`);
+      await x.page.locator('[data-testid=add-passkey]').click();
+      // Adding a way to sign in needs a recent sign-in (step-up): after the three journeys this one is older than the
+      // limit, so the app first asks to confirm it is you, then the addition goes to Keycloak.
+      const first = await waitFor(async () => ((await notice(x.page)) === 'stepUp' ? 'stepUp' : x.page.url().startsWith(KC) ? 'keycloak' : null), 10000);
+      if (first === 'stepUp') {
+        await x.page.locator('[data-testid=step-up]').click();
+        await x.page.waitForURL((u) => u.href.startsWith(KC), { timeout: 10000 }).catch(() => undefined);
+        await keycloakSignIn(x.page, who);
+        await waitFor(async () => (await notice(x.page)) === 'stepUpDone', 15000);
+        await x.page.locator('[data-testid=add-passkey]').click();
+      }
+      await x.page.waitForURL((u) => u.href.startsWith(KC), { timeout: 10000 }).catch(() => undefined);
+      if ((await keycloakUntil(x.page, who, '#registerWebAuthn')).shown) {
+        const kcLang = (await pageLanguage(x.page)).lang;
+        await x.page.locator('#registerWebAuthn').click();
+        before[lang] = { kcLang };
+      }
+      await waitFor(async () => (await notice(x.page)) === 'actionDone', 15000);
+      const kinds = await x.page.locator('[data-testid=authenticators] > li').evaluateAll((els) => els.map((e) => e.getAttribute('data-kind')).sort());
+      check(`[${lang}] add a passkey (${first === 'stepUp' ? 'after confirming it is you' : 'recent sign-in'}): Keycloak's registration in ${lang}, back on the security page, passkey listed`,
+        kinds.join() === 'passkey,totp' && before[lang]?.kcLang === lang, `${kinds} ${before[lang]?.kcLang} ${first} ${x.page.url().slice(0, 120)}`);
+      before[lang] = { ...before[lang], cookie: (await sessionCookie(x))?.value };
+    }
+    info(`waiting ${STEP_UP + 2} s for the sign-ins to become older than the step-up limit`);
     await sleep((STEP_UP + 2) * 1000);
-    await x.page.locator('[data-testid=remove-totp]').click();
-    await waitFor(async () => (await notice(x.page)) === 'stepUp', 10000);
-    check('removing with an old sign-in: "confirm it is you" (the core answered insufficient_user_authentication)', (await notice(x.page)) === 'stepUp');
-    await x.page.locator('[data-testid=step-up]').click();
-    await x.page.waitForURL((u) => u.href.startsWith(KC), { timeout: 10000 }).catch(() => undefined);
-    const steps = await keycloakSignIn(x.page, who);
-    await waitFor(async () => (await notice(x.page)) === 'stepUpDone', 15000);
-    check(`re-authentication at Keycloak (${steps}) returns to the security page`, (await notice(x.page)) === 'stepUpDone', x.page.url().slice(0, 160));
-    const after = (await sessionCookie(x))?.value;
-    await x.page.locator('[data-testid=remove-totp]').click();
-    await waitFor(async () => (await notice(x.page)) === 'removed', 10000);
-    kinds = await x.page.locator('[data-testid=authenticators] > li').evaluateAll((els) => els.map((e) => e.getAttribute('data-kind')));
-    check('after re-authentication the removal works; a new session id was issued (no fixation)', kinds.join() === 'passkey' && !!before && !!after && before !== after, `${kinds} ${before !== after}`);
+    for (const lang of LOCALES) {
+      stamp(`[${lang}] removal needs a recent sign-in (step-up)`);
+      const { x, who } = signedIn[lang];
+      await x.page.locator('[data-testid=remove-totp]').click();
+      await waitFor(async () => (await notice(x.page)) === 'stepUp', 10000);
+      const prompt = await x.page.locator('[data-notice]').first().textContent().catch(() => '');
+      check(`[${lang}] removing with an old sign-in: "confirm it is you" in ${lang} (the core answered insufficient_user_authentication)`, (await notice(x.page)) === 'stepUp' && LANG[lang].script.test(prompt ?? ''));
+      await x.page.locator('[data-testid=step-up]').click();
+      await x.page.waitForURL((u) => u.href.startsWith(KC), { timeout: 10000 }).catch(() => undefined);
+      const steps = await keycloakSignIn(x.page, who);
+      await waitFor(async () => (await notice(x.page)) === 'stepUpDone', 15000);
+      check(`[${lang}] re-authentication at Keycloak (${steps}) returns to the security page`, (await notice(x.page)) === 'stepUpDone', x.page.url().slice(0, 160));
+      const after = (await sessionCookie(x))?.value;
+      await x.page.locator('[data-testid=remove-totp]').click();
+      await waitFor(async () => (await notice(x.page)) === 'removed', 10000);
+      const kinds = await x.page.locator('[data-testid=authenticators] > li').evaluateAll((els) => els.map((e) => e.getAttribute('data-kind')));
+      check(`[${lang}] after re-authentication the removal works; a new session id was issued (no fixation)`, kinds.join() === 'passkey' && !!before[lang].cookie && !!after && before[lang].cookie !== after, `${kinds}`);
+    }
 
     stamp('web security: cookies, tokens, server actions from another origin, Content Security Policy');
+    const lang = LOCALES.includes('en') ? 'en' : LOCALES[0];
+    const { x } = signedIn[lang];
     const sc = await sessionCookie(x);
     check('session cookie: HttpOnly, SameSite=Strict, Secure, path /, no lifetime (ends with the browser)',
       sc && sc.httpOnly && sc.sameSite === 'Strict' && sc.secure && sc.path === '/' && sc.expires === -1, JSON.stringify({ ...sc, value: undefined }));
@@ -211,69 +262,73 @@ async function signOutChecks(x, lang, who) {
     const forged = await fetch(`${WEB}/${lang}`, { method: 'POST', body: form, redirect: 'manual', headers: { cookie: `${sc.name}=${sc.value}`, origin: 'http://attacker.invalid' } });
     const still = await fetch(`${WEB}/${lang}/security`, { headers: { cookie: `${sc.name}=${sc.value}` }, redirect: 'manual' });
     check('a server action posted from another origin (CSRF) is refused; the session survives', !!actionField && forged.status >= 400 && still.status === 200, `${actionField} ${forged.status} ${still.status}`);
-    for (const l of LOCALES) if (l !== lang && signedIn[l]) await signOutChecks(signedIn[l].x, l, signedIn[l].who);
-    await signOutChecks(x, lang, who);
+    for (const l of LOCALES) await signOutChecks(signedIn[l].x, l, signedIn[l].who);
 
-    stamp('[fr] mandates and acting on behalf of the principal (P3-F6)');
-    const ml = LOCALES.includes('fr') ? 'fr' : LOCALES[0];
-    const principal = await citizen(browser, ml);
-    const agent = await citizen(browser, ml);
-    const p = await newContext(browser, ml);
-    const a = await newContext(browser, ml);
-    await webSignIn(p, ml, principal);
-    await webSignIn(a, ml, agent);
-    await p.page.goto(`${WEB}/${ml}/mandates`);
-    await p.page.locator('[data-scope="cases:read"]').check();
-    await p.page.locator('[data-scope="payments:read"]').check();
-    await p.page.locator('[data-testid=mandate-submit]').click();
-    await waitFor(() => visible(p.page, '[data-testid=mandate-code]'), 10000);
-    const mandateId = await p.page.locator('[data-testid=mandate-id]').textContent();
-    const code = await p.page.locator('[data-testid=mandate-invitation]').textContent();
-    await p.page.reload();
-    const shownOnce = !(await visible(p.page, '[data-testid=mandate-code]'));
-    check('the principal gives a mandate: id and one-time code shown once (not in the URL, gone after reload)', /^[0-9a-f-]{36}$/.test(mandateId ?? '') && /^[A-Za-z0-9_-]{43}$/.test(code ?? '') && shownOnce && !p.page.url().includes(code));
-    await a.page.goto(`${WEB}/${ml}/mandates`);
-    await a.page.locator('[data-testid=accept-id]').fill(mandateId);
-    await a.page.locator('[data-testid=accept-code]').fill(code);
-    await a.page.locator('[data-testid=accept-submit]').click();
-    await waitFor(async () => (await notice(a.page)) === 'mandateAccepted', 10000);
-    await a.page.locator(`[data-mandate="${mandateId}"] [data-testid=act]`).click();
-    await waitFor(() => visible(a.page, '[data-testid=acting-banner]'), 10000);
-    const banner = await a.page.locator('[data-testid=acting-banner]').textContent();
-    check(`the agent accepts and acts on behalf of the principal: banner with the scopes in ${ml}`, /dossiers/.test(banner ?? '') || LANG[ml].script.test(banner ?? ''), banner);
-    await p.page.goto(`${WEB}/${ml}/mandates`);
-    const events = await p.page.locator(`[data-mandate="${mandateId}"] [data-action]`).evaluateAll((els) => els.map((e) => e.getAttribute('data-action')));
-    check('the principal sees it in the mandate\'s history (created, accepted, acted)', events.join() === 'created,accepted,acted', String(events));
-    await a.page.locator('[data-testid=stop-acting]').click();
-    await waitFor(async () => (await notice(a.page)) === 'actingStopped', 10000);
-    check('the agent stops acting: banner gone', !(await visible(a.page, '[data-testid=acting-banner]')));
-    await p.page.locator(`[data-mandate="${mandateId}"] [data-testid=revoke]`).click();
-    await waitFor(async () => (await notice(p.page)) === 'mandateRevoked', 10000);
-    await a.page.goto(`${WEB}/${ml}/mandates`);
-    check('after the principal revokes, the agent can no longer act', !(await visible(a.page, `[data-mandate="${mandateId}"] [data-testid=act]`)));
+    const opened = [];
+    for (const ml of LOCALES) {
+      stamp(`[${ml}] mandates and acting on behalf of the principal (P3-F6)`);
+      const principal = await citizen(browser, ml);
+      const agent = await citizen(browser, ml);
+      const p = await newContext(browser, ml);
+      const a = await newContext(browser, ml);
+      opened.push(p, a);
+      await webSignIn(p, ml, principal);
+      await webSignIn(a, ml, agent);
+      await p.page.goto(`${WEB}/${ml}/mandates`);
+      await p.page.locator('[data-scope="cases:read"]').check();
+      await p.page.locator('[data-scope="payments:read"]').check();
+      await p.page.locator('[data-testid=mandate-submit]').click();
+      await waitFor(() => visible(p.page, '[data-testid=mandate-code]'), 10000);
+      const mandateId = await p.page.locator('[data-testid=mandate-id]').textContent();
+      const code = await p.page.locator('[data-testid=mandate-invitation]').textContent();
+      await p.page.reload();
+      const shownOnce = !(await visible(p.page, '[data-testid=mandate-code]'));
+      check(`[${ml}] the principal gives a mandate: id and one-time code shown once (not in the URL, gone after reload)`, /^[0-9a-f-]{36}$/.test(mandateId ?? '') && /^[A-Za-z0-9_-]{43}$/.test(code ?? '') && shownOnce && !p.page.url().includes(code));
+      await a.page.goto(`${WEB}/${ml}/mandates`);
+      await a.page.locator('[data-testid=accept-id]').fill(mandateId);
+      await a.page.locator('[data-testid=accept-code]').fill(code);
+      await a.page.locator('[data-testid=accept-submit]').click();
+      await waitFor(async () => (await notice(a.page)) === 'mandateAccepted', 10000);
+      await a.page.locator(`[data-mandate="${mandateId}"] [data-testid=act]`).click();
+      await waitFor(() => visible(a.page, '[data-testid=acting-banner]'), 10000);
+      const banner = await a.page.locator('[data-testid=acting-banner]').textContent();
+      check(`[${ml}] the agent accepts and acts on behalf of the principal: banner with the scopes in ${ml}`, LANG[ml].script.test(banner ?? '') && (banner ?? '').includes(mandateId.slice(0, 8)), banner);
+      await p.page.goto(`${WEB}/${ml}/mandates`);
+      const events = await p.page.locator(`[data-mandate="${mandateId}"] [data-action]`).evaluateAll((els) => els.map((e) => e.getAttribute('data-action')));
+      check(`[${ml}] the principal sees it in the mandate's history (created, accepted, acted)`, events.join() === 'created,accepted,acted', String(events));
+      await a.page.locator('[data-testid=stop-acting]').click();
+      await waitFor(async () => (await notice(a.page)) === 'actingStopped', 10000);
+      check(`[${ml}] the agent stops acting: banner gone`, !(await visible(a.page, '[data-testid=acting-banner]')));
+      await p.page.locator(`[data-mandate="${mandateId}"] [data-testid=revoke]`).click();
+      await waitFor(async () => (await notice(p.page)) === 'mandateRevoked', 10000);
+      await a.page.goto(`${WEB}/${ml}/mandates`);
+      check(`[${ml}] after the principal revokes, the agent can no longer act`, !(await visible(a.page, `[data-mandate="${mandateId}"] [data-testid=act]`)));
+    }
 
-    stamp('[ar] identity link through the web app and the SIMULATED eID');
-    const il = LOCALES.includes('ar') ? 'ar' : LOCALES[0];
-    const owner = await citizen(browser, il);
-    const nationalId = `99${String(crypto.randomInt(0, 1_000_000)).padStart(6, '0')}`;
-    const eidUser = { username: `eid.web.${tag()}`, password: pw() };
-    await admin('POST', 'sim-national-eid/users', { username: eidUser.username, enabled: true, attributes: { national_id: [nationalId], loa: ['substantial'] }, credentials: [{ type: 'password', value: eidUser.password, temporary: false }] });
-    createdEid.push(nationalId);
-    const e = await newContext(browser, il);
-    await webSignIn(e, il, owner);
-    await e.page.goto(`${WEB}/${il}/identity`);
-    const simulatedNotice = await e.page.locator('.notice-info').first().textContent();
-    await e.page.locator('[data-testid=eid-link]').click();
-    await waitFor(() => visible(e.page, '#username'), 10000);
-    const eidPage = await pageLanguage(e.page);
-    await e.page.locator('#username').fill(eidUser.username);
-    await e.page.locator('#password').fill(eidUser.password);
-    await submit(e.page);
-    await waitFor(async () => (await notice(e.page)) === 'eidLinked', 15000);
-    const linked = await e.page.locator('[data-testid=identity-state]').getAttribute('data-linked');
-    check(`the page says the eID is simulated; the simulator in ${il}; back on the app: linked (level substantial)`,
-      LANG[il].script.test(simulatedNotice ?? '') && eidPage.lang === il && linked === 'yes', JSON.stringify({ eidPage, linked }));
-    for (const ctx of [p, a, e]) await ctx.context.close();
+    for (const il of LOCALES) {
+      stamp(`[${il}] identity link through the web app and the SIMULATED eID`);
+      const owner = await citizen(browser, il);
+      const nationalId = `99${String(crypto.randomInt(0, 1_000_000)).padStart(6, '0')}`;
+      const eidUser = { username: `eid.web.${tag()}`, password: pw() };
+      await admin('POST', 'sim-national-eid/users', { username: eidUser.username, enabled: true, attributes: { national_id: [nationalId], loa: ['substantial'] }, credentials: [{ type: 'password', value: eidUser.password, temporary: false }] });
+      createdEid.push(nationalId);
+      const e = await newContext(browser, il);
+      opened.push(e);
+      await webSignIn(e, il, owner);
+      await e.page.goto(`${WEB}/${il}/identity`);
+      const simulatedNotice = await e.page.locator('.notice-info').first().textContent();
+      await e.page.locator('[data-testid=eid-link]').click();
+      await waitFor(() => visible(e.page, '#username'), 10000);
+      const eidPage = await pageLanguage(e.page);
+      await e.page.locator('#username').fill(eidUser.username);
+      await e.page.locator('#password').fill(eidUser.password);
+      await submit(e.page);
+      await waitFor(async () => (await notice(e.page)) === 'eidLinked', 15000);
+      const linked = await e.page.locator('[data-testid=identity-state]').getAttribute('data-linked');
+      check(`[${il}] the page says the eID is simulated; the simulator in ${il}; back on the app: linked (level substantial)`,
+        LANG[il].script.test(simulatedNotice ?? '') && eidPage.lang === il && linked === 'yes', JSON.stringify({ eidPage, linked }));
+    }
+    for (const ctx of opened) await ctx.context.close();
   } finally {
     await browser.close();
     if (process.env.EID_IDS_OUT && createdEid.length) fs.appendFileSync(process.env.EID_IDS_OUT, createdEid.join('\n') + '\n');

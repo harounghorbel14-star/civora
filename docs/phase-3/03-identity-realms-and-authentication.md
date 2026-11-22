@@ -134,6 +134,7 @@ the application role cannot read the table). Whole suite 74/74; OpenAPI 9 paths 
 | R-P3-12 | The key for identifier digests has no rotation procedure; rotating it needs re-linking or a re-keying job | New, low: before pilot ([doc 06](06-simulated-eid-identity-links.md)) |
 | R-P3-13 | Institution SSO: roles and units are not taken from the institution's groups (mover); the tenant administrator sets them | New, low: week 4 or Phase 6 ([doc 07](07-institution-staff-sso.md)) |
 | R-P3-14 | Institution SSO: no back-channel logout, so a leaver's open session lasts until the session limit (idle 30 min, at most 8 h) unless ended by the tenant administrator or operator | New, medium, **pilot gate PG-1** ([doc 08](08-pilot-gate.md)): OIDC back-channel logout and SAML single logout per institution must be in place and tested before any pilot ([doc 07](07-institution-staff-sso.md)) |
+| R-P3-15 | Limits on authenticated endpoints are per client address only: one person can create many mandates, a tenant administrator many invitations (e-mails), up to 20 requests a minute | New, low ([doc 11 §5](11-security-verification.md)): per-person and per-tenant quotas in week 6 |
 
 ## 7. Specification status
 

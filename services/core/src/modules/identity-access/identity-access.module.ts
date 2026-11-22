@@ -1,5 +1,6 @@
 import { Inject, Module, type OnApplicationShutdown } from '@nestjs/common';
 import { Pool } from 'pg';
+import { PolicyEngine } from '@civora/policies';
 import { APP_CONFIG, type AppConfig } from '../../config/app-config';
 import { CASE_STATUS_DIRECTORY, CasesModule, type CaseStatusDirectory } from '../cases/public-api';
 import { IntegrationsModule, MESSAGING, type MessagingChannel, NATIONAL_EID, type NationalEid } from '../integrations/public-api';
@@ -18,7 +19,7 @@ import { IdentityLinksController, type IdentityLinksDeps, loadIdentityDigestKey 
 import { StatusAccess } from './status-access';
 import { StatusAccessController } from './status-access.controller';
 import { loadOidcConfig, TokenVerifier } from './token-verifier';
-import { ACCOUNT_SECURITY, IAM_REPOSITORY, IDENTITY_LINKS, INVITATIONS, STATUS_ACCESS, REGISTRATION_SERVICE, STEP_UP_MAX_AGE, TOKEN_VERIFIER } from './tokens';
+import { ACCOUNT_SECURITY, IAM_REPOSITORY, IDENTITY_LINKS, INVITATIONS, POLICY_ENGINE, STATUS_ACCESS, REGISTRATION_SERVICE, STEP_UP_MAX_AGE, TOKEN_VERIFIER } from './tokens';
 
 /**
  * Bounded context: identity-access (Phase 3: citizen and staff accounts, profile, mandates, organisation, identity links).
@@ -94,6 +95,8 @@ import { ACCOUNT_SECURITY, IAM_REPOSITORY, IDENTITY_LINKS, INVITATIONS, STATUS_A
           log: (entry) => process.stdout.write(JSON.stringify({ ts: new Date().toISOString(), service: 'civora-core', context: 'status-access', ...entry }) + '\n'),
         }) : null,
     },
+    // Cedar policies (ADR-006), validated in strict mode at start-up: invalid policies stop the core (fail closed).
+    { provide: POLICY_ENGINE, useFactory: (): PolicyEngine => PolicyEngine.load() },
     { provide: STEP_UP_MAX_AGE, useFactory: (): number => loadStepUpMaxAge() },
     IdentityGuard,
     StepUpGuard,

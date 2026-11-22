@@ -46,12 +46,14 @@ export interface PendingLogin {
 
 export const newId = (): string => randomBytes(32).toString('base64url');
 const PENDING_MS = 10 * 60_000;
+/** Pending sign-ins kept at most (a flood of /auth/login cannot exhaust memory; the oldest go first). */
+const MAX_PENDING = 10_000;
 
 export class MemorySessionStore {
   private readonly sessions = new Map<string, Session>();
   private readonly pending = new Map<string, PendingLogin>();
 
-  constructor(private readonly opts: { idleMs: number; maxMs: number; now?: () => number }) {}
+  constructor(private readonly opts: { idleMs: number; maxMs: number; now?: () => number; maxPending?: number }) {}
 
   private now(): number {
     return (this.opts.now ?? Date.now)();
@@ -59,6 +61,11 @@ export class MemorySessionStore {
 
   create(subject: string, tokens: Tokens): Session {
     const t = this.now();
+    // Oldest first (insertion order): drop the sessions past their absolute limit at the head of the map.
+    for (const [k, v] of this.sessions) {
+      if (t > v.absoluteExpiresAt || t > v.tokens.refreshExpiresAt) this.sessions.delete(k);
+      else break;
+    }
     const s: Session = { id: newId(), subject, tokens, createdAt: t, lastSeenAt: t, absoluteExpiresAt: t + this.opts.maxMs };
     this.sessions.set(s.id, s);
     return s;
@@ -91,9 +98,16 @@ export class MemorySessionStore {
   }
 
   putPending(p: Omit<PendingLogin, 'createdAt'>): string {
+    const t = this.now();
+    const cap = this.opts.maxPending ?? MAX_PENDING;
+    // Oldest first: drop expired entries and, under a flood, the oldest beyond the cap. Stops at the first entry kept,
+    // so the cost does not grow with the number of pending sign-ins.
+    for (const [k, v] of this.pending) {
+      if (t - v.createdAt > PENDING_MS || this.pending.size >= cap) this.pending.delete(k);
+      else break;
+    }
     const id = newId();
-    this.pending.set(id, { ...p, createdAt: this.now() });
-    for (const [k, v] of this.pending) if (this.now() - v.createdAt > PENDING_MS) this.pending.delete(k);
+    this.pending.set(id, { ...p, createdAt: t });
     return id;
   }
 
@@ -107,6 +121,10 @@ export class MemorySessionStore {
 
   get size(): number {
     return this.sessions.size;
+  }
+
+  get pendingSize(): number {
+    return this.pending.size;
   }
 }
 

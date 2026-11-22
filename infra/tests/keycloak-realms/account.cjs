@@ -55,19 +55,32 @@ const json = (body) => ({ method: 'POST', headers: { 'content-type': 'applicatio
     const totpId = r.body.find?.((x) => x.kind === 'totp')?.id;
 
     stamp('sessions (P3-API3)');
+    const PASSKEY_AGAIN = { realm: 'civora-citizens', client: 'civora-web', cb: WEB_CB, passkey: true, extra: { prompt: 'login' } };
+    const TOTP_DEVICE = { realm: 'civora-citizens', client: 'civora-web', cb: WEB_CB, email, password: act.password, secret: act.secret };
     const b = await newContext(browser); // a second device: password + authenticator app
-    const tb = await signIn(b, { realm: 'civora-citizens', client: 'civora-web', cb: WEB_CB, email, password: act.password, secret: act.secret });
-    r = await core(t1.access_token, '/v1/me/sessions');
+    let tb = await signIn(b, TOTP_DEVICE);
+    // Ending sessions needs a recent sign-in (ASVS 5.0 V7.5.2). The second device waited for a new authenticator-app
+    // code (codes are single use), so this device signs in again with its passkey first.
+    let ta = await signIn(a, PASSKEY_AGAIN);
+    const sidA = ta.access_token ? claims(ta.access_token).sid : null;
+    r = await core(ta.access_token, '/v1/me/sessions');
     const mine = Array.isArray(r.body) ? r.body : [];
     check('GET sessions: both devices listed, only this one marked current, with the application',
-      r.status === 200 && mine.length === 2 && mine.filter((x) => x.current).map((x) => x.id).join() === c1.sid && mine.every((x) => x.applications.includes('civora-web')), r.raw);
-    r = await core(t1.access_token, `/v1/me/sessions/${officerSession}`, { method: 'DELETE' });
+      r.status === 200 && mine.length === 2 && mine.filter((x) => x.current).map((x) => x.id).join() === sidA && mine.every((x) => x.applications.includes('civora-web')), r.raw);
+    r = await core(ta.access_token, `/v1/me/sessions/${officerSession}`, { method: 'DELETE' });
     check('end someone else\'s session (an officer\'s): 404, and it stays active', r.status === 404 && (await core(ot.access_token, '/v1/me/sessions')).body.some?.((x) => x.id === officerSession), r.status);
-    r = await core(t1.access_token, `/v1/me/sessions/${claims(tb.access_token).sid}`, { method: 'DELETE' });
-    const refused = await form(`${KC}/realms/civora-citizens/protocol/openid-connect/token`, { grant_type: 'refresh_token', client_id: 'civora-web', refresh_token: tb.refresh_token });
-    check('end the other device\'s session: 204; its refresh token is refused at once', r.status === 204 && refused.body.error === 'invalid_grant', `${r.status} ${JSON.stringify(refused.body)}`);
-    r = await core(t1.access_token, '/v1/me/sessions');
-    check('afterwards only the current session is listed', r.status === 200 && r.body.length === 1 && r.body[0].current, r.raw);
+    r = await core(ta.access_token, '/v1/me/sessions', { method: 'DELETE' });
+    let refused = await form(`${KC}/realms/civora-citizens/protocol/openid-connect/token`, { grant_type: 'refresh_token', client_id: 'civora-web', refresh_token: tb.refresh_token });
+    let left = await core(ta.access_token, '/v1/me/sessions');
+    check('"sign out everywhere else" (DELETE /v1/me/sessions): the other device\'s session ends, its refresh token is refused at once; this one stays',
+      r.status === 200 && r.body.ended === 1 && refused.body.error === 'invalid_grant' && left.body.length === 1 && left.body[0].current, `${r.raw} ${left.raw}`);
+    tb = await signIn(b, TOTP_DEVICE);
+    ta = await signIn(a, PASSKEY_AGAIN);
+    r = await core(ta.access_token, `/v1/me/sessions/${claims(tb.access_token).sid}`, { method: 'DELETE' });
+    refused = await form(`${KC}/realms/civora-citizens/protocol/openid-connect/token`, { grant_type: 'refresh_token', client_id: 'civora-web', refresh_token: tb.refresh_token });
+    check('end one session (the other device\'s): 204; its refresh token is refused at once', r.status === 204 && refused.body.error === 'invalid_grant', `${r.status} ${JSON.stringify(refused.body)}`);
+    left = await core(ta.access_token, '/v1/me/sessions');
+    check('afterwards only the current session is listed', left.status === 200 && left.body.length === 1 && left.body[0].current, left.raw);
 
     stamp('step-up (P3-A4, RFC 9470)');
     // Single sign-on reuse: a new token without presenting credentials has acr "0" and does not count as a sign-in.
@@ -84,6 +97,8 @@ const json = (body) => ({ method: 'POST', headers: { 'content-type': 'applicatio
     await sleep(wait);
     r = await core(t1.access_token, `/v1/me/authenticators/${totpId}`, { method: 'DELETE' });
     check('sensitive action with a sign-in older than max_age: 401', r.status === 401, r.status);
+    r = await core(t1.access_token, '/v1/me/sessions', { method: 'DELETE' });
+    check('ending sessions with a sign-in older than max_age: 401 as well (ASVS V7.5.2)', r.status === 401, r.status);
     const uid = (await admin('GET', `civora-citizens/users?exact=true&email=${encodeURIComponent(email)}`))[0].id;
     check('nothing was removed by the refused requests', (await credentialTypes('civora-citizens', uid)).join() === 'otp,password,webauthn-passwordless');
     const t3 = await signIn(a, { realm: 'civora-citizens', client: 'civora-web', cb: WEB_CB, passkey: true, extra: { prompt: 'login' } });

@@ -15,6 +15,9 @@ routes:
   - id: health
     uri: /health
     methods: [GET, HEAD]
+    # Every public route has a limit (Phase 3 doc 11 §5); probes inside the cell reach the pods directly.
+    plugins:
+      limit-count: { count: 60, time_window: 60, key_type: var, key: remote_addr, rejected_code: 429, policy: local }
     upstream: { type: roundrobin, nodes: { "@CORE@": 1 } }
   # --- Identity provider (Phase 3 doc 03, R-P3-6): Keycloak's public endpoints only through the gateway. ---
   # Credential stuffing tries one password on many accounts, which per-account lockout does not see: login submissions
@@ -46,6 +49,8 @@ routes:
   - id: keycloak-resources
     uri: /resources/*                # login page styles and scripts
     methods: [GET, HEAD]
+    plugins:                         # a login page loads about 15 resources; generous for many people behind one address
+      limit-count: { count: 600, time_window: 60, key_type: var, key: remote_addr, rejected_code: 429, policy: local }
     upstream: { type: roundrobin, nodes: { "@KEYCLOAK@": 1 } }
   # Citizen registration is public (no token yet) and answers the same for every address; bounded per client address
   # against mass account creation and e-mail flooding (the core also bounds e-mails per address).

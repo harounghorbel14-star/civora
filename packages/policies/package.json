@@ -1,0 +1,22 @@
+{
+  "name": "@civora/policies",
+  "version": "0.1.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "description": "Cedar authorisation policies of CIVORA (ADR-006) with their schema and conformance cases; the evaluator used by civora-core.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node scripts/generate-mandate-policies.mjs --check && node --test \"dist/**/*.test.js\""
+  },
+  "dependencies": {
+    "@cedar-policy/cedar-wasm": "4.14.0"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "@types/node": "22.20.5"
+  },
+  "files": ["dist", "policies", "cases", "!dist/**/*.test.*"]
+}
