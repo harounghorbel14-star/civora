@@ -242,10 +242,11 @@ async function securityChecks(browser, citizen, officer) {
     const r = await form(`${KC}/realms/${realm2}/protocol/openid-connect/token`, { grant_type: 'password', client_id: client, username: email, password });
     check(`C7 password grant refused (${realm2}, client ${client})`, !r.body.access_token, JSON.stringify(r.body));
   }
-  await admin('POST', 'civora-staff/clients', { clientId: `misconfigured-${tag()}`, publicClient: true, directAccessGrantsEnabled: true, standardFlowEnabled: false });
-  const mis = (await admin('GET', 'civora-staff/clients?search=true&clientId=misconfigured-')).at(-1).clientId;
+  const misId = await admin('POST', 'civora-staff/clients', { clientId: `misconfigured-${tag()}`, publicClient: true, directAccessGrantsEnabled: true, standardFlowEnabled: false });
+  const mis = (await admin('GET', `civora-staff/clients/${misId}`)).clientId;
   const r = await form(`${KC}/realms/civora-staff/protocol/openid-connect/token`, { grant_type: 'password', client_id: mis, username: officer.email, password: officer.password });
   check('S5 a client misconfigured to allow the password grant is still refused by the realm (deny flow)', !r.body.access_token, JSON.stringify(r.body));
+  await admin('DELETE', `civora-staff/clients/${misId}`); // later live conformance checks must see the realm as deployed
 
   // S4 officer password without the enrolled key; forged assertion posted to Keycloak.
   const thief = await newContext(browser);

@@ -20,12 +20,14 @@ mail_image="docker.io/axllent/mailpit@sha256:9b3a463be15354c0f0eba91697d80e3e0d8
 net=civora-realms-test
 work="$(mktemp -d)"; start=$(date +%s); core_pid=""
 stamp() { echo "[$(( $(date +%s) - start ))s] $*"; }
-remove() { docker rm -f kr-keycloak kr-db kr-mail >/dev/null 2>&1 || true; docker network rm "$net" >/dev/null 2>&1 || true; }
+remove() { docker rm -fv kr-keycloak kr-db kr-mail >/dev/null 2>&1 || true; docker network rm "$net" >/dev/null 2>&1 || true; }
 cleanup() { [ -n "$core_pid" ] && kill "$core_pid" 2>/dev/null || true; [[ "${KEEP:-0}" == 1 ]] || remove; rm -rf "$work"; }
 trap cleanup EXIT
 rnd() { head -c 48 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c "$1"; }
 free_port() { python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1])'; }
 fail=0
+# PARTS (development only; CI runs everything): comma-separated subset of login,account,org,eid,sso.
+part() { [[ ",${PARTS:-login,account,org,eid,sso}," == *",$1,"* ]]; }
 checker="$repo/infra/scripts/check-realm-security.py"
 
 echo "Realm files (Git):"
@@ -47,7 +49,7 @@ approved="$repo/infra/keycloak/approved-keys/test-virtual-authenticator.json"
 node "$here/attestation-root.cjs" "$work/truststores/test-virtual-authenticator.pem" "$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))[0]["aaguid"])' "$approved")"
 chmod 644 "$work"/truststores/*
 kc_port=$(free_port)
-mkdir -p "$work/import" && cp "$repo"/infra/keycloak/realms/civora-*.json "$repo"/infra/keycloak/simulators/sim-national-eid.json "$work/import/" \
+mkdir -p "$work/import" && cp "$repo"/infra/keycloak/realms/civora-*.json "$repo"/infra/keycloak/simulators/sim-*.json "$work/import/" \
   && chmod 755 "$work/import" && chmod 644 "$work"/import/*
 docker run -d --name kr-keycloak --network "$net" -p "127.0.0.1:$kc_port:8080" -e KC_BOOTSTRAP_ADMIN_USERNAME=admin -e KC_BOOTSTRAP_ADMIN_PASSWORD="$kc_pw" \
   -e KC_HOSTNAME="http://localhost:$kc_port" -v "$work/import:/opt/keycloak/data/import:ro" -v "$work/truststores:/opt/keycloak/conf/truststores:ro" \
@@ -68,8 +70,9 @@ stamp "PostgreSQL migrated; application role civora_core_app (NOBYPASSRLS) ready
 for _ in $(seq 1 90); do curl -sf --noproxy '*' "$kc/realms/civora-staff/.well-known/openid-configuration" >/dev/null && break; sleep 2; done
 kc_log=$(docker logs kr-keycloak 2>&1) # captured first: grep -q on a pipe would end docker logs early (pipefail)
 grep -q "Realm 'civora-citizens' imported" <<<"$kc_log" && grep -q "Realm 'civora-staff' imported" <<<"$kc_log" \
-  && grep -q "Realm 'sim-national-eid' imported" <<<"$kc_log" || { echo "  FAIL realm import"; tail -20 <<<"$kc_log"; exit 1; }
-stamp "Keycloak 26.8.1 up; civora-citizens, civora-staff and the SIMULATED national eID (synthetic identities) imported"
+  && grep -q "Realm 'sim-national-eid' imported" <<<"$kc_log" && grep -q "Realm 'sim-bank-a-idp' imported" <<<"$kc_log" \
+  && grep -q "Realm 'sim-bank-b-idp' imported" <<<"$kc_log" || { echo "  FAIL realm import"; tail -20 <<<"$kc_log"; exit 1; }
+stamp "Keycloak 26.8.1 up; civora-citizens, civora-staff and the SIMULATORS (national eID, two institution identity providers; synthetic) imported"
 
 KC_ADMIN_TOKEN=$(curl -sf --noproxy '*' "$kc/realms/master/protocol/openid-connect/token" -d grant_type=password -d client_id=admin-cli \
   -d username=admin --data-urlencode "password=$kc_pw" | python3 -c 'import json,sys;print(json.load(sys.stdin)["access_token"])')
@@ -109,17 +112,21 @@ grep -q . "$work/provisioner.secret" && grep -q . "$work/staff-provisioner.secre
 
 echo "Journeys in ${LOCALES:-ar,fr,en} and security checks, in Chromium with virtual authenticators, and the core:"
 mkdir -p "${ARTIFACT_DIR:-$work/artifacts}"
-KC_URL="$kc" CORE_URL="http://127.0.0.1:$core_port" MAIL_URL="$mail" KC_ADMIN_PASSWORD="$kc_pw" ARTIFACT_DIR="${ARTIFACT_DIR:-$work/artifacts}" \
-  NO_PROXY="localhost,127.0.0.1,${NO_PROXY:-}" no_proxy="localhost,127.0.0.1,${no_proxy:-}" node "$here/login.cjs" || fail=1
+part login && { KC_URL="$kc" CORE_URL="http://127.0.0.1:$core_port" MAIL_URL="$mail" KC_ADMIN_PASSWORD="$kc_pw" ARTIFACT_DIR="${ARTIFACT_DIR:-$work/artifacts}" \
+  NO_PROXY="localhost,127.0.0.1,${NO_PROXY:-}" no_proxy="localhost,127.0.0.1,${no_proxy:-}" node "$here/login.cjs" || fail=1; }
 
-echo "Sessions, authenticators and step-up through the core (week 3, step-up limit 30 s in this test):"
-KC_URL="$kc" CORE_URL="http://127.0.0.1:$core_port" MAIL_URL="$mail" KC_ADMIN_PASSWORD="$kc_pw" ARTIFACT_DIR="${ARTIFACT_DIR:-$work/artifacts}" \
-  STEP_UP_MAX_AGE_SECONDS=30 NO_PROXY="localhost,127.0.0.1,${NO_PROXY:-}" no_proxy="localhost,127.0.0.1,${no_proxy:-}" node "$here/account.cjs" || fail=1
-echo "Branches, teams, staff invitations and cleanup through the core (week 3):"
-KC_URL="$kc" CORE_URL="http://127.0.0.1:$core_port" MAIL_URL="$mail" KC_ADMIN_PASSWORD="$kc_pw" ARTIFACT_DIR="${ARTIFACT_DIR:-$work/artifacts}" \
+part account && echo "Sessions, authenticators and step-up through the core (week 3, step-up limit 30 s in this test):"
+part account && { KC_URL="$kc" CORE_URL="http://127.0.0.1:$core_port" MAIL_URL="$mail" KC_ADMIN_PASSWORD="$kc_pw" ARTIFACT_DIR="${ARTIFACT_DIR:-$work/artifacts}" \
+  STEP_UP_MAX_AGE_SECONDS=30 NO_PROXY="localhost,127.0.0.1,${NO_PROXY:-}" no_proxy="localhost,127.0.0.1,${no_proxy:-}" node "$here/account.cjs" || fail=1; }
+part org && echo "Branches, teams, staff invitations and cleanup through the core (week 3):"
+part org && { KC_URL="$kc" CORE_URL="http://127.0.0.1:$core_port" MAIL_URL="$mail" KC_ADMIN_PASSWORD="$kc_pw" ARTIFACT_DIR="${ARTIFACT_DIR:-$work/artifacts}" \
   STEP_UP_MAX_AGE_SECONDS=30 CORE_DIR="$repo/services/core" OIDC_ISSUER_CITIZENS="$kc/realms/civora-citizens" OIDC_ISSUER_STAFF="$kc/realms/civora-staff" \
   KEYCLOAK_PROVISIONER_SECRET_FILE="$work/provisioner.secret" KEYCLOAK_STAFF_PROVISIONER_SECRET_FILE="$work/staff-provisioner.secret" \
-  NO_PROXY="localhost,127.0.0.1,${NO_PROXY:-}" no_proxy="localhost,127.0.0.1,${no_proxy:-}" node "$here/org.cjs" || fail=1
+  NO_PROXY="localhost,127.0.0.1,${NO_PROXY:-}" no_proxy="localhost,127.0.0.1,${no_proxy:-}" node "$here/org.cjs" || fail=1; }
+part sso && echo "Institution staff SSO through simulated OIDC and SAML identity providers (P3-R1):"
+part sso && { KC_URL="$kc" CORE_URL="http://127.0.0.1:$core_port" MAIL_URL="$mail" KC_ADMIN_PASSWORD="$kc_pw" ARTIFACT_DIR="${ARTIFACT_DIR:-$work/artifacts}" \
+  REPO_DIR="$repo" WORK_DIR="$work" NO_PROXY="localhost,127.0.0.1,${NO_PROXY:-}" no_proxy="localhost,127.0.0.1,${no_proxy:-}" node "$here/sso.cjs" || fail=1; }
+if part eid; then
 echo "Identity links through the SIMULATED national eID (P3-D4, P3-API6):"
 KC_URL="$kc" CORE_URL="http://127.0.0.1:$core_port" MAIL_URL="$mail" KC_ADMIN_PASSWORD="$kc_pw" ARTIFACT_DIR="${ARTIFACT_DIR:-$work/artifacts}" \
   STEP_UP_MAX_AGE_SECONDS=30 EID_IDS_OUT="$work/eid-ids.txt" \
@@ -134,8 +141,9 @@ if [ -s "$work/eid-ids.txt" ]; then
     echo "  ok   integration log: one line per eID call (adapter, mode, purpose, outcome, latency), accepted and refused answers"
   else echo "  FAIL integration log lines missing for the eID calls"; fail=1; fi
 else echo "  FAIL the eID test wrote no identifiers to check"; fail=1; fi
-mirrored=$(docker exec kr-db psql -U civora_core -d civora_core -Atc "select count(*) from iam.authenticator")
-if [ "${mirrored:-0}" -gt 0 ]; then echo "  ok   authenticator mirror (iam.authenticator) holds $mirrored row(s), metadata only"; else echo "  FAIL authenticator mirror is empty"; fail=1; fi
+fi
+part account && mirrored=$(docker exec kr-db psql -U civora_core -d civora_core -Atc "select count(*) from iam.authenticator")
+part account && if [ "${mirrored:-0}" -gt 0 ]; then echo "  ok   authenticator mirror (iam.authenticator) holds $mirrored row(s), metadata only"; else echo "  FAIL authenticator mirror is empty"; fail=1; fi
 if grep -qiE '"level":"(error|fatal)"' "$work/core.log"; then echo "  info core logged errors:"; grep -iE '"level":"(error|fatal)"' "$work/core.log" | tail -5 | sed 's/^/       /'; fi
 stamp "$([ $fail = 0 ] && echo 'ALL CHECKS PASSED' || echo 'SOME CHECKS FAILED')"
 exit $fail

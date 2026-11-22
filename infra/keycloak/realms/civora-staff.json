@@ -19,7 +19,7 @@
   "revokeRefreshToken": true,
   "refreshTokenMaxReuse": 0,
   "ssoSessionIdleTimeout": 1800,
-  "ssoSessionMaxLifespan": 36000,
+  "ssoSessionMaxLifespan": 28800,
   "internationalizationEnabled": true,
   "supportedLocales": [
     "ar",
@@ -35,7 +35,7 @@
   "registrationAllowed": false,
   "attributes": {
     "civora.profile": "staff",
-    "civora.purpose": "Staff of the institutions (tenants) of one cell, and officers (P3-A1). Every account needs a FIDO2 security key (P3-SEC5), enrolled from an e-mailed invitation before the password; institution SSO brokering in week 3 (P3-R1)."
+    "civora.purpose": "Staff of the institutions (tenants) of one cell, and officers (P3-A1). Every account needs a FIDO2 security key (P3-SEC5): local accounts enrol it from an e-mailed invitation before the password; institution SSO accounts (P3-R1) enrol it at their first sign-in through the institution's identity provider."
   },
   "webAuthnPolicyRpEntityName": "CIVORA Workspace",
   "webAuthnPolicySignatureAlgorithms": [
@@ -49,7 +49,7 @@
   "authenticationFlows": [
     {
       "alias": "staff-browser",
-      "description": "Password + FIDO2 security key, always; an account without a key is refused",
+      "description": "Password + FIDO2 security key, always; an account without a key is refused. Institution SSO (kc_idp_hint) goes to the tenant's identity provider, then the security key (staff-post-broker-key)",
       "providerId": "basic-flow",
       "topLevel": true,
       "builtIn": false,
@@ -60,6 +60,13 @@
           "authenticatorFlow": false,
           "userSetupAllowed": false,
           "priority": 10
+        },
+        {
+          "authenticator": "identity-provider-redirector",
+          "requirement": "ALTERNATIVE",
+          "authenticatorFlow": false,
+          "userSetupAllowed": false,
+          "priority": 15
         },
         {
           "flowAlias": "staff-forms",
@@ -161,6 +168,46 @@
           "priority": 10,
           "userSetupAllowed": false,
           "authenticatorFlow": false
+        }
+      ]
+    },
+    {
+      "alias": "staff-first-broker-login",
+      "description": "First SSO sign-in: creates the account only if no account has that username or e-mail, adds it to the institution's organisation; never links to an existing account (no takeover)",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "idp-create-user-if-unique",
+          "requirement": "REQUIRED",
+          "authenticatorFlow": false,
+          "userSetupAllowed": false,
+          "priority": 10,
+          "authenticatorConfig": "staff-broker-create-unique"
+        },
+        {
+          "authenticator": "idp-add-organization-member",
+          "requirement": "REQUIRED",
+          "authenticatorFlow": false,
+          "userSetupAllowed": false,
+          "priority": 20
+        }
+      ]
+    },
+    {
+      "alias": "staff-post-broker-key",
+      "description": "After every sign-in through an institution's identity provider: the CIVORA security key (P3-SEC5); enrolled at the first SSO sign-in (approved models only)",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "webauthn-authenticator",
+          "requirement": "REQUIRED",
+          "authenticatorFlow": false,
+          "userSetupAllowed": false,
+          "priority": 10
         }
       ]
     }
@@ -371,6 +418,12 @@
       "config": {
         "denyErrorMessage": "civoraNoSecurityKey"
       }
+    },
+    {
+      "alias": "staff-broker-create-unique",
+      "config": {
+        "require.password.update.after.registration": "false"
+      }
     }
   ],
   "displayNameHtml": "${civoraRealmName}",
@@ -402,5 +455,7 @@
         ]
       }
     }
-  ]
+  ],
+  "organizationsEnabled": true,
+  "firstBrokerLoginFlow": "staff-first-broker-login"
 }

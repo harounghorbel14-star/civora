@@ -24,18 +24,20 @@
 | 3 | GitHub on `c2b0039` (step-up, sessions, authenticators) | CI run 47 **green**; nightly run 21: `identity-realms` failed once in `[fr]`: a navigation to Keycloak was interrupted by Chromium's error page for the previous redirect | Test-harness race, not identity code: the helper now waits for the page and retries an interrupted navigation (`lib.cjs`); full run afterwards in ar/fr/en: 123 checks, all passed |
 | 3 | GitHub on `f36a50c` (branches, teams, invitations, cleanup) | CI run 48 **green**; nightly run 23 **green, 12 of 12 jobs** (identity realms with the organisation checks) | Merged into `main`: PR #6 (`2f06576`) |
 | 3 | Simulated national eID (D4), identity links (API6), keyed digests in `iam.identity_claim` (DB4); ADR-028 adapter rules in code; dev cell with the simulator | **Done** (local) | [06](06-simulated-eid-identity-links.md): whole realms run 142 checks, all passed (eID, leak scan of the core database and log); 110 tests across the workspace (core 92); dev cell 16/16. The first run found a defect in the week-3 cleanup (it removed Keycloak service accounts; merged in PR #6, CronJob off by default): fixed, [05 §5](05-organisation-invitations-cleanup.md) |
-| 3 | Staff SSO (R1) | Next | — |
+| 3 | GitHub on `154a477` (simulated eID, identity links, cleanup fix) | CI run 51 **green**; nightly run 24 **green, 12 of 12 jobs** | Merged into `main`: PR #7 (`62acec5`) |
+| 3 | Institution staff SSO (R1): OIDC and SAML institutions through Keycloak organisations, create-only first sign-in, security key after every SSO sign-in, tenant hardcoded per provider; realm checker models brokered sign-in; staff session aligned to 8 h | **Done** (local) | [07](07-institution-staff-sso.md): whole realms run 161 checks, all passed (12 SSO checks); 7 new negative controls |
+| 4 | Web E2E in AR/FR/EN (T2, AC1), "acting on behalf of" UI (F6), mobile shell + Detox plan (Q3-3), customer OTP status page (R2) | Next | — |
 
 ## Completion estimate (21 Nov 2026, updated during week 3)
 
 Each of the 43 work items of the specification ([00](00-phase-3-start-and-specification-audit.md); objectives,
 dependency, time and budget lines excluded) scored by what is built **and tested**: 0, 25, 50, 75 or 100 %.
-**Phase 3: about 72 %** (30.75 of 43). Acceptance criteria: 1 of 3 met (AC3), AC1 half, AC2 not started.
-Time: 2 of 6 planned weeks used. The scoring is an engineering estimate, not an acceptance decision.
+**Phase 3: about 74 %** (31.75 of 43). Acceptance criteria: 1 of 3 met (AC3), AC1 half, AC2 not started.
+Time: 3 of 6 planned weeks used (week 3 complete). The scoring is an engineering estimate, not an acceptance decision.
 
 | Item | Done | What is missing |
 |---|---|---|
-| P3-D1 citizen and officer authentication | 75% | realm flows, step-up, staff invitations built and tested; app screens and staff SSO missing |
+| P3-D1 citizen and officer authentication | 75% | realm flows, step-up, staff invitations and institution SSO built and tested; app screens missing |
 | P3-D2 profile | 75% | GET/PATCH /v1/me; no app screen |
 | P3-D3 mandates | 75% | domain, API, audit events; 'acting on behalf of' UI missing |
 | P3-D4 simulated eID adapter | 100% | port NationalEid, simulated-oidc adapter, ADR-028 mode rules, simulator realm (doc 06) |
@@ -75,6 +77,6 @@ Time: 2 of 6 planned weeks used. The scoring is an engineering estimate, not an 
 | P3-AC2 no high findings in internal security review | 0% | review in week 6 |
 | P3-AC3 mandate actions logged and visible | 100% |  |
 | P3-RISK SMS reliance, passkey usability for elderly users | 25% | password + TOTP alternative exists; assisted flows not designed |
-| P3-R1 institution staff SSO | 0% | week 3 |
+| P3-R1 institution staff SSO | 100% | OIDC and SAML institutions, tenant from configuration, key after SSO, no account linking (doc 07) |
 | P3-R2 customer OTP status page | 0% | week 4 |
 | P3-R3 branch/team roles | 100% | units, scoped roles, invitations, admin API (doc 05) |
