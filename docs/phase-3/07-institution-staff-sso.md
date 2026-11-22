@@ -47,7 +47,7 @@
 | # | Point | Owner |
 |---|---|---|
 | R-P3-13 (new, low) | Roles and units from the institution's groups (mover) are not mapped; the tenant administrator sets them | Week 4 or Phase 6 (Workspace) |
-| R-P3-14 (new, medium) | No back-channel logout from institutions: a leaver's open CIVORA session lasts until the session limit (staff: idle 30 min, at most 8 h) unless ended by the tenant administrator or the operator | Before pilot: OIDC back-channel logout and SAML single logout per institution |
+| R-P3-14 (new, medium) | No back-channel logout from institutions: a leaver's open CIVORA session lasts until the session limit (staff: idle 30 min, at most 8 h) unless ended by the tenant administrator or the operator | **Pilot gate PG-1** ([doc 08](08-pilot-gate.md)): OIDC back-channel logout and SAML single logout per institution, tested, before any pilot |
 | — | Real institutions' identity providers (metadata, certificates, domains) come with each tenant's onboarding | Per tenant |
 
 ## 5. Test evidence (21 Nov 2026)
