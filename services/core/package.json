@@ -26,7 +26,7 @@
     "@nestjs/platform-express": "11.2.8",
     "@nestjs/swagger": "11.4.8",
     "@opentelemetry/api": "1.10.0",
-    "@opentelemetry/context-async-hooks": "3.0.0",
+    "@opentelemetry/context-async-hooks": "3.1.1",
     "@opentelemetry/core": "3.0.0",
     "@opentelemetry/exporter-trace-otlp-http": "0.300.0",
     "@opentelemetry/instrumentation": "0.300.0",
