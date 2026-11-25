@@ -141,10 +141,22 @@ async function ssoSignIn(ctx, alias, who, { register = false, prompt, locale } =
     const bob = await institutionUser('sim-bank-b-idp', `bob.${tag()}@bank-b.invalid`);
     const b1 = await newContext(browser);
     await addAuthenticator(b1.page, 'usb');
+    const samlPosts = []; // the institution's SAML response as the browser posts it to Keycloak's broker endpoint
+    b1.context.on('request', (r) => { if (r.method() === 'POST' && r.url().includes('/broker/sim-bank-b/endpoint')) samlPosts.push({ url: r.url(), body: r.postData() }); });
     s = await ssoSignIn(b1, 'sim-bank-b', bob, { register: true });
     const cb = s.token ? claims(s.token) : {};
     check('SAML first sign-in: key enrolled; token with tenant_id of bank B', s.keyStep === 'register' && cb.tenant_id === TB, JSON.stringify({ ...s, tenant_id: cb.tenant_id }));
     check('the core accepts the SAML-brokered token', (await core(s.token, '/v1/me')).status === 200);
+    // ASVS 5.0 V6.8.3: a captured SAML response is used once. Replayed by the same browser (its cookies) and by another
+    // client (none), it gives no session and no code.
+    const saml = samlPosts.find((p) => /SAMLResponse=/.test(p.body ?? ''));
+    const again = saml ? await b1.context.request.post(saml.url, { headers: { 'content-type': 'application/x-www-form-urlencoded' }, data: saml.body, maxRedirects: 0 }).catch(() => null) : null;
+    const elsewhere = saml ? await fetch(saml.url, { method: 'POST', redirect: 'manual', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: saml.body }) : null;
+    const gaveCode = (loc) => /[?&]code=/.test(loc ?? '');
+    const gaveSession = (cookies) => /KEYCLOAK_IDENTITY=[^;]+/.test(cookies ?? '');
+    check('a captured SAML response replayed (same browser, another client) gives no session and no code (assertions used once)',
+      !!saml && !!again && !!elsewhere && !gaveCode(again.headers().location) && !gaveCode(elsewhere.headers.get('location')) && !gaveSession(elsewhere.headers.get('set-cookie'))
+        && !gaveSession(again.headers()['set-cookie']), `${again?.status()} ${elsewhere?.status} ${(elsewhere?.headers.get('location') ?? '').slice(0, 100)}`);
 
     // P3-AC1: the first SSO sign-in in each language of the cell (CIVORA's own pages after the institution's).
     for (const lang of LOCALES) {

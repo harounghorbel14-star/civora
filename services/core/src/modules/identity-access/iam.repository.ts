@@ -56,6 +56,13 @@ export const newInvitationCode = (): string => randomBytes(32).toString('base64u
  * Database access for identity-access (schema iam only, ADR-001). Every query runs in a transaction with the
  * caller's person set (SET LOCAL app.person_id), so row-level security filters it; pooled connections cannot leak it.
  */
+/** The outcome of a recovery attempt; personId and subject (the Keycloak user id) only when recovered. */
+export interface RecoveryOutcome {
+  outcome: 'recovered' | 'no-account' | 'level-too-low' | 'limited' | 'rejected';
+  personId: string | null;
+  subject: string | null;
+}
+
 export class IamRepository {
   constructor(private readonly pool: Pool) {
     // Without a listener, an idle connection lost during a database failover would crash the process (R26).
@@ -236,6 +243,39 @@ export class IamRepository {
     return this.asPerson(personId, async (c) => (await c.query<IdentityClaimView>(
       `select claim_type as type, source, loa, verified_at as "verifiedAt", expires_at as "expiresAt"
          from iam.identity_claim order by claim_type, source`)).rows);
+  }
+
+  /** The person's pairwise subjects per relying-party sector (P3-DB6); the person sees only their own rows. */
+  pairwiseIds(personId: string): Promise<{ sector: string; subject: string }[]> {
+    return this.asPerson(personId, async (c) => (await c.query<{ sector: string; subject: string }>(
+      'select sector, pairwise_sub as subject from iam.pairwise_id order by sector')).rows);
+  }
+
+  mirrorPairwiseIds(personId: string, rows: { sector: string; subject: string }[]): Promise<void> {
+    return this.asPerson(personId, async (c) => {
+      for (const r of rows) await c.query('select iam.mirror_pairwise_id($1, $2)', [r.sector, r.subject]);
+    });
+  }
+
+  /** Account recovery (P3-SEC4): no person until the eID's answer is matched; functions only. */
+  async startRecovery(stateDigest: Buffer, nonce: string, verifier: string, ttlSeconds: number): Promise<string> {
+    return (await this.pool.query<{ id: string }>('select iam.start_recovery($1, $2, $3, $4) as id', [stateDigest, nonce, verifier, ttlSeconds])).rows[0]!.id;
+  }
+
+  async claimRecovery(id: string, stateDigest: Buffer): Promise<{ nonce: string; codeVerifier: string } | null> {
+    try {
+      const r = await this.pool.query<{ nonce: string; code_verifier: string }>('select * from iam.claim_recovery($1, $2)', [id, stateDigest]);
+      return { nonce: r.rows[0]!.nonce, codeVerifier: r.rows[0]!.code_verifier };
+    } catch (e) {
+      if ((e as { code?: string }).code === 'P0002') return null;
+      throw e;
+    }
+  }
+
+  async finishRecovery(id: string, digest: Buffer | null, loa: string | null): Promise<RecoveryOutcome> {
+    const r = (await this.pool.query<{ outcome: RecoveryOutcome['outcome']; person_id: string | null; subject: string | null }>(
+      'select * from iam.finish_recovery($1, $2, $3)', [id, digest, loa])).rows[0]!;
+    return { outcome: r.outcome, personId: r.person_id, subject: r.subject };
   }
 
   /** Status-page challenges (P3-R2): no person; the functions decide whether a code may be sent and whether it is right. */

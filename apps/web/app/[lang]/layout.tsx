@@ -47,7 +47,8 @@ export default async function LangLayout({ children, params }: { children: React
             </nav>
             {session
               ? <form action={signOut}><input type="hidden" name="lang" value={lang} /><button type="submit" className="link" data-testid="sign-out">{t.t('auth.signOut')}</button></form>
-              : <a className="button" href={`/auth/login?${new URLSearchParams({ returnTo: path })}`} data-testid="sign-in">{t.t('auth.signIn')}</a>}
+              : <><a className="button" href={`/auth/login?${new URLSearchParams({ returnTo: path })}`} data-testid="sign-in">{t.t('auth.signIn')}</a>
+                <a href={`/${lang}/recover`} data-testid="recover-link">{t.t('recover.link')}</a></>}
           </div>
         </header>
         {session?.acting && (

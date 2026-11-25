@@ -8,6 +8,7 @@ import { STATUS_ACCESS } from './tokens';
 class StartRequest {
   @ApiProperty({ example: 'SYN-RC-1-00001', description: 'Case reference (letters, digits, dashes)' }) reference!: string;
   @ApiPropertyOptional({ example: 'fr-TN', description: 'Language of the message with the code' }) locale?: string;
+  @ApiPropertyOptional({ enum: ['email', 'sms'], description: 'Where the code goes: the e-mail address (default) or the phone number on file (SMS)' }) channel?: string;
 }
 class Challenge {
   @ApiProperty({ format: 'uuid' }) challengeId!: string;
@@ -46,8 +47,9 @@ export class StatusAccessController {
   @ApiAcceptedResponse({ type: Challenge, description: 'Always the same answer for a well-formed reference' })
   @ApiBadRequestResponse({ description: 'Malformed reference (format only)' })
   async start(@Req() req: Request, @Body() body: unknown): Promise<Challenge> {
-    const b = (body ?? {}) as { reference?: unknown; locale?: unknown };
-    const r = await this.service().start(b.reference, b.locale, String(req.headers['x-request-id'] ?? randomUUID()));
+    const b = (body ?? {}) as { reference?: unknown; locale?: unknown; channel?: unknown };
+    if (b.channel !== undefined && b.channel !== 'email' && b.channel !== 'sms') throw new BadRequestException({ errors: ['channel: email or sms'] });
+    const r = await this.service().start(b.reference, b.locale, String(req.headers['x-request-id'] ?? randomUUID()), (b.channel as 'email' | 'sms' | undefined) ?? 'email');
     if (!r) throw new BadRequestException({ errors: ['reference: 6 to 40 letters, digits or dashes'] });
     return r;
   }

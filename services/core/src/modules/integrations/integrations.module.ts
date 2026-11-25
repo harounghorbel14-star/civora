@@ -4,6 +4,7 @@ import { COUNTRY_PACK } from '../../country-config/country-config.module';
 import { loadSimulatedEidConfig, SimulatedOidcEid } from './adapters/national-eid/simulated-oidc/simulated-oidc.adapter';
 import { AdapterModeError } from './adapter-registry';
 import { stdoutIntegrationLog } from './integration-log';
+import { RoutingMessagingChannel, SimulatedSmsChannel } from './adapters/messaging/simulated-sms/simulated-sms.adapter';
 import { loadSimulatedSmtpConfig, SimulatedSmtpChannel } from './adapters/messaging/simulated-smtp/simulated-smtp.adapter';
 import type { MessagingChannel } from './ports/messaging';
 import type { NationalEid } from './ports/national-eid';
@@ -33,7 +34,10 @@ import { MESSAGING, NATIONAL_EID } from './tokens';
       provide: MESSAGING,
       useFactory: (): MessagingChannel | null => {
         const cfg = loadSimulatedSmtpConfig();
-        return cfg ? new SimulatedSmtpChannel(cfg, stdoutIntegrationLog) : null;
+        if (!cfg) return null;
+        const email = new SimulatedSmtpChannel(cfg, stdoutIntegrationLog);
+        // SMS (register M-01, Q3-1): simulated too, through the same mail catcher; a delivery channel, never a sign-in factor.
+        return new RoutingMessagingChannel(email, process.env.MESSAGING_SMS === 'simulated' ? new SimulatedSmsChannel(email, stdoutIntegrationLog) : null);
       },
     },
   ],

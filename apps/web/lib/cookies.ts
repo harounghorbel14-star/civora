@@ -19,3 +19,8 @@ export function pendingCookie(cfg: WebConfig): CookieSpec {
   // __Host- requires path /, so the pending cookie uses __Secure- on https (path-limited).
   return { name: `${cfg.hostPrefix ? '__Secure-' : ''}civora_login`, options: { httpOnly: true, secure: cfg.secureCookies, sameSite: 'lax', path: '/auth/callback', maxAge: 600 } };
 }
+
+/** A recovery attempt in this browser (no session yet); read only by the eID completion route, after the interstitial. */
+export function recoveryCookie(cfg: WebConfig): CookieSpec {
+  return { name: `${cfg.hostPrefix ? '__Secure-' : ''}civora_recovery`, options: { httpOnly: true, secure: cfg.secureCookies, sameSite: 'strict', path: '/identity/eid/complete', maxAge: 600 } };
+}

@@ -88,6 +88,7 @@
 | Q3-4 | Identity proofing for account recovery (P3-SEC4): which re-proofing evidence is acceptable | Counsel / founder | Recovery **design** only (P3-D5 is a design deliverable) |
 | Q3-5 | Officer security-key models (added 21 Nov 2026): which FIDO2 keys officers receive; their AAGUIDs and vendor attestation roots go into the staging/pilot configuration ([03 §9.3](03-identity-realms-and-authentication.md)) | Founder (procurement) | Enrolment fails closed until set; tests use a test-only model |
 | Q3-6 | Mail relay for activation and invitation e-mails in staging/pilot (added 21 Nov 2026) | Founder (provider) | Dev cell and tests use a local mail catcher |
+| Q3-7 | SMS fallback (P3-F1) versus ASVS L3 (P3-SEC1), which forbids SMS as a sign-in option (added 25 Nov 2026, [doc 12 §3](12-recovery-notices-sms-pairwise.md)) | Founder | Recommended: SMS only as a delivery channel (status codes, notices), never a sign-in factor; the simulated channel is built |
 
 ## 4. Plan (6 weeks)
 

@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, HttpCode, Inject, NotFoundException, Param, ParseUUIDPipe, Post, Req, UseGuards } from '@nestjs/common';
+import { HttpException, HttpStatus, BadRequestException, Body, Controller, Get, HttpCode, Inject, NotFoundException, Param, ParseUUIDPipe, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiProperty, ApiPropertyOptional, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { MANDATE_ACTIONS as POLICY_ACTIONS, type PolicyEngine } from '@civora/policies';
 import { IdentityGuard, type IdentifiedRequest } from './identity.guard';
@@ -93,7 +93,11 @@ export class MandatesController {
       me,
       { scopes: b.scopes as string[], validFrom: b.validFrom ? new Date(String(b.validFrom)) : new Date(), expiresAt: new Date(String(b.expiresAt)) },
       code,
-    );
+    ).catch((e: unknown) => {
+      // R-P3-15: at most 30 proposals a day per person (database quota).
+      if ((e as { code?: string }).code === '53400') throw new HttpException('Too many mandates proposed today; try again tomorrow', HttpStatus.TOO_MANY_REQUESTS);
+      throw e;
+    });
     return { ...toDto(m, me), invitationCode: code };
   }
 

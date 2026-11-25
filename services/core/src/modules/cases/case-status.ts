@@ -12,6 +12,8 @@ export interface CaseStatusView {
   since: string;
   /** Contact on file for one-time codes. Never returned to the caller of the status page. */
   contactEmail: string;
+  /** The customer's phone on file (synthetic range in dev and test); empty when none. */
+  contactPhone: string;
 }
 
 export interface CaseStatusDirectory {
@@ -25,6 +27,7 @@ export class SyntheticCaseStatusDirectory implements CaseStatusDirectory {
     const d = generate({ seed, tenants, casesPerTenant });
     const tenant = new Map(d.tenants.map((t) => [t.id, t.name]));
     const email = new Map(d.customers.map((c) => [c.id, c.email]));
+    const phone = new Map(d.customers.map((c) => [c.id, c.phone]));
     for (const c of d.cases) {
       this.byRef.set(c.reference, {
         reference: c.reference,
@@ -32,6 +35,7 @@ export class SyntheticCaseStatusDirectory implements CaseStatusDirectory {
         status: c.status,
         since: c.decidedOn ?? c.acknowledgedOn ?? c.receivedOn,
         contactEmail: email.get(c.customerId) ?? '',
+        contactPhone: phone.get(c.customerId) ?? '',
       });
     }
   }

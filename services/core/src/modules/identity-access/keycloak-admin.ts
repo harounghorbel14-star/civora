@@ -146,6 +146,48 @@ export class KeycloakCitizenDirectory implements CitizenDirectory {
   }
 }
 
+/** After recovery the person enrols again exactly as at activation: second factor first, then a new password. */
+export const RECOVERY_ACTIONS = ['CONFIGURE_TOTP', 'UPDATE_PASSWORD'];
+
+/** What account recovery needs from the identity provider (a fake replaces it in unit tests). */
+export interface RecoveryDirectory {
+  /**
+   * Removes every way to sign in, ends every session and e-mails a fresh activation link (the account, its subject and
+   * everything attached to it stay). Returns the address and language for the notice; null if the account is gone or
+   * disabled (nothing is changed then).
+   */
+  reset(userId: string): Promise<{ email: string; locale: string | null } | null>;
+}
+
+export class KeycloakRecoveryDirectory implements RecoveryDirectory {
+  private readonly admin: KeycloakAdmin;
+
+  constructor(private readonly cfg: ProvisionerConfig, fetchImpl: typeof fetch = fetch) {
+    this.admin = new KeycloakAdmin(cfg, fetchImpl);
+  }
+
+  async reset(userId: string): Promise<{ email: string; locale: string | null } | null> {
+    const id = encodeURIComponent(userId);
+    let user: { email?: string; enabled?: boolean; attributes?: Record<string, string[]> };
+    try {
+      user = await this.admin.json('GET', `/users/${id}`);
+    } catch (e) {
+      if (/HTTP 404/.test(String(e))) return null;
+      throw e;
+    }
+    if (!user.email || user.enabled === false) return null;
+    for (const c of await this.admin.json<{ id: string }[]>('GET', `/users/${id}/credentials`)) {
+      await this.admin.call('DELETE', `/users/${id}/credentials/${encodeURIComponent(c.id)}`);
+    }
+    await this.admin.call('POST', `/users/${id}/logout`);
+    const q = new URLSearchParams({
+      lifespan: String(this.cfg.activationLifespanSeconds), client_id: this.cfg.activationClientId, redirect_uri: this.cfg.activationRedirectUri,
+    });
+    await this.admin.call('PUT', `/users/${id}/execute-actions-email?${q}`, RECOVERY_ACTIONS);
+    return { email: user.email, locale: user.attributes?.locale?.[0] ?? null };
+  }
+}
+
 // ---------------------------------------------------------------- sessions and authenticators (both realms)
 
 export interface IdpSession {
@@ -170,6 +212,7 @@ export interface AccountDirectory {
   deleteSession(sessionId: string): Promise<void>;
   listCredentials(userId: string): Promise<IdpCredential[]>;
   deleteCredential(userId: string, credentialId: string): Promise<void>;
+  contact?(userId: string): Promise<{ email: string; locale: string | null } | null>;
 }
 
 export class KeycloakAccountDirectory implements AccountDirectory {
@@ -191,6 +234,12 @@ export class KeycloakAccountDirectory implements AccountDirectory {
     const rows = await this.admin.json<{ id: string; type: string; userLabel?: string; createdDate?: number }[]>(
       'GET', `/users/${encodeURIComponent(userId)}/credentials`);
     return rows.map((c) => ({ id: c.id, type: c.type, label: c.userLabel ?? null, createdAt: c.createdDate ? new Date(c.createdDate) : null }));
+  }
+
+  /** Where to send a security notice: the account's e-mail address and language. */
+  async contact(userId: string): Promise<{ email: string; locale: string | null } | null> {
+    const u = await this.admin.json<{ email?: string; attributes?: Record<string, string[]> }>('GET', `/users/${encodeURIComponent(userId)}`);
+    return u.email ? { email: u.email, locale: u.attributes?.locale?.[0] ?? null } : null;
   }
 
   async deleteCredential(userId: string, credentialId: string): Promise<void> {

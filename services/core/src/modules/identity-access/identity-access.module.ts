@@ -8,7 +8,7 @@ import { IdentityGuard } from './identity.guard';
 import { IamRepository } from './iam.repository';
 import { MandatesController } from './mandates.controller';
 import { MeController } from './me.controller';
-import { KeycloakAccountDirectory, KeycloakAdmin, KeycloakCitizenDirectory, KeycloakStaffDirectory, loadAdminConfig, loadInvitationConfig, loadProvisionerConfig } from './keycloak-admin';
+import { KeycloakAccountDirectory, KeycloakAdmin, KeycloakCitizenDirectory, KeycloakRecoveryDirectory, KeycloakStaffDirectory, loadAdminConfig, loadInvitationConfig, loadProvisionerConfig } from './keycloak-admin';
 import { InvitationsController, type InvitationsDeps, MyMembershipsController, OrgUnitsController } from './org.controller';
 import { AccountSecurity, loadStepUpMaxAge } from './account-security';
 import { AuthenticatorsController, SessionsController } from './account-security.controller';
@@ -17,9 +17,12 @@ import { RegistrationService } from './registration.service';
 import { RegistrationsController } from './registrations.controller';
 import { IdentityLinksController, type IdentityLinksDeps, loadIdentityDigestKey } from './identity-links.controller';
 import { StatusAccess } from './status-access';
+import { AccountRecovery } from './account-recovery';
+import { securityNotices } from './security-notices';
+import { RecoveryController } from './recovery.controller';
 import { StatusAccessController } from './status-access.controller';
 import { loadOidcConfig, TokenVerifier } from './token-verifier';
-import { ACCOUNT_SECURITY, IAM_REPOSITORY, IDENTITY_LINKS, INVITATIONS, POLICY_ENGINE, STATUS_ACCESS, REGISTRATION_SERVICE, STEP_UP_MAX_AGE, TOKEN_VERIFIER } from './tokens';
+import { ACCOUNT_RECOVERY, ACCOUNT_SECURITY, IAM_REPOSITORY, IDENTITY_LINKS, INVITATIONS, POLICY_ENGINE, STATUS_ACCESS, REGISTRATION_SERVICE, STEP_UP_MAX_AGE, TOKEN_VERIFIER } from './tokens';
 
 /**
  * Bounded context: identity-access (Phase 3: citizen and staff accounts, profile, mandates, organisation, identity links).
@@ -28,7 +31,7 @@ import { ACCOUNT_SECURITY, IAM_REPOSITORY, IDENTITY_LINKS, INVITATIONS, POLICY_E
 @Module({
   imports: [IntegrationsModule, CasesModule],
   controllers: [MeController, MandatesController, RegistrationsController, SessionsController, AuthenticatorsController, OrgUnitsController,
-    MyMembershipsController, InvitationsController, IdentityLinksController, StatusAccessController],
+    MyMembershipsController, InvitationsController, IdentityLinksController, StatusAccessController, RecoveryController],
   providers: [
     { provide: TOKEN_VERIFIER, useFactory: (): TokenVerifier => new TokenVerifier(loadOidcConfig()) },
     {
@@ -54,15 +57,16 @@ import { ACCOUNT_SECURITY, IAM_REPOSITORY, IDENTITY_LINKS, INVITATIONS, POLICY_E
     {
       // Sessions and authenticators of the signed-in person, per realm whose provisioner is configured.
       provide: ACCOUNT_SECURITY,
-      inject: [IAM_REPOSITORY],
-      useFactory: (repo: IamRepository | null): AccountSecurity | null => {
+      inject: [IAM_REPOSITORY, MESSAGING],
+      useFactory: (repo: IamRepository | null, messaging: MessagingChannel | null): AccountSecurity | null => {
         if (!repo) return null;
         const directories: ConstructorParameters<typeof AccountSecurity>[0] = {};
         for (const realm of ['citizens', 'staff'] as const) {
           const cfg = loadAdminConfig(realm);
           if (cfg) directories[realm] = new KeycloakAccountDirectory(new KeycloakAdmin(cfg));
         }
-        return new AccountSecurity(directories, (personId, realm, items) => repo.syncAuthenticators(personId, realm, items));
+        const log = (entry: Record<string, unknown>) => process.stdout.write(JSON.stringify({ ts: new Date().toISOString(), service: 'civora-core', context: 'account-security', ...entry }) + '\n');
+        return new AccountSecurity(directories, (personId, realm, items) => repo.syncAuthenticators(personId, realm, items), securityNotices(directories, messaging, log));
       },
     },
     {
@@ -94,6 +98,21 @@ import { ACCOUNT_SECURITY, IAM_REPOSITORY, IDENTITY_LINKS, INVITATIONS, POLICY_E
           challenges: { create: (...a) => repo.createStatusChallenge(...a), verify: (...a) => repo.verifyStatusChallenge(...a) },
           log: (entry) => process.stdout.write(JSON.stringify({ ts: new Date().toISOString(), service: 'civora-core', context: 'status-access', ...entry }) + '\n'),
         }) : null,
+    },
+    {
+      // Account recovery (P3-SEC4): the eID adapter, the digest key, the citizens provisioner and e-mail for the notice.
+      provide: ACCOUNT_RECOVERY,
+      inject: [IAM_REPOSITORY, NATIONAL_EID, MESSAGING],
+      useFactory: (repo: IamRepository | null, eid: NationalEid | null, messaging: MessagingChannel | null): AccountRecovery | null => {
+        const digestKey = loadIdentityDigestKey();
+        const cfg = loadProvisionerConfig();
+        if (!repo || !eid || !digestKey || !cfg) return null;
+        return new AccountRecovery({
+          eid, digestKey, messaging, directory: new KeycloakRecoveryDirectory(cfg),
+          attempts: { start: (...a) => repo.startRecovery(...a), claim: (...a) => repo.claimRecovery(...a), finish: (...a) => repo.finishRecovery(...a) },
+          log: (entry) => process.stdout.write(JSON.stringify({ ts: new Date().toISOString(), service: 'civora-core', context: 'account-recovery', ...entry }) + '\n'),
+        });
+      },
     },
     // Cedar policies (ADR-006), validated in strict mode at start-up: invalid policies stop the core (fail closed).
     { provide: POLICY_ENGINE, useFactory: (): PolicyEngine => PolicyEngine.load() },

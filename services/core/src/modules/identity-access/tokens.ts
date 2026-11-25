@@ -8,3 +8,4 @@ export const INVITATIONS = Symbol('INVITATIONS');
 export const IDENTITY_LINKS = Symbol('IDENTITY_LINKS');
 export const STATUS_ACCESS = Symbol('STATUS_ACCESS');
 export const POLICY_ENGINE = Symbol('POLICY_ENGINE');
+export const ACCOUNT_RECOVERY = Symbol('ACCOUNT_RECOVERY');

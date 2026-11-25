@@ -22,6 +22,10 @@ export const NOTICES: Record<string, { key: string; tone: Tone }> = {
   actingStarted: { key: 'acting.started', tone: 'info' },
   actingStopped: { key: 'acting.stopped', tone: 'success' },
   actingUnavailable: { key: 'acting.unavailable', tone: 'danger' },
+  recoveryRequested: { key: 'recover.requested', tone: 'info' },
+  recoveryRejected: { key: 'recover.error.rejected', tone: 'danger' },
+  recoveryUnavailable: { key: 'recover.error.unavailable', tone: 'warning' },
+  recoveryTooMany: { key: 'identity.error.tooMany', tone: 'warning' },
   invalid: { key: 'error.invalid', tone: 'danger' },
   error: { key: 'error.generic', tone: 'danger' },
 };

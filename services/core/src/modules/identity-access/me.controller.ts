@@ -6,6 +6,7 @@ import { IdentityGuard, type IdentifiedRequest } from './identity.guard';
 import type { IamRepository } from './iam.repository';
 import { ACCESSIBILITY_KEYS, accessibilityProblems } from './mandate-rules';
 import { IAM_REPOSITORY } from './tokens';
+import { loadPairwiseSectors, pairwiseSub } from './pairwise';
 
 class AccountDto {
   @ApiProperty({ enum: ['citizens', 'staff'] }) realm!: string;
@@ -24,13 +25,39 @@ class MePatch {
   accessibility?: Record<string, unknown>;
 }
 
+class PairwiseDto {
+  @ApiProperty({ example: 'rp1.agency.invalid', description: 'The relying party\'s sector (host)' }) sector!: string;
+  @ApiProperty({ format: 'uuid', description: 'The identifier that relying party knows you by' }) subject!: string;
+}
+
 @ApiTags('identity')
 @ApiBearerAuth()
 @ApiUnauthorizedResponse({ description: 'No valid access token' })
 @UseGuards(IdentityGuard)
 @Controller('v1/me')
 export class MeController {
+  /** Relying-party sectors and salts (P3-DB6), loaded once; empty when the cell has none configured. */
+  private readonly sectors = loadPairwiseSectors();
+
   constructor(@Inject(IAM_REPOSITORY) private readonly repo: IamRepository, @Inject(COUNTRY_PACK) private readonly pack: LoadedPack) {}
+
+  /** Mirrors the person's pairwise subjects (iam.pairwise_id), computed as Keycloak computes them; only what changed. */
+  private async mirror(req: IdentifiedRequest): Promise<void> {
+    const id = req.identity!;
+    if (id.realm !== 'citizens' || !this.sectors.length) return;
+    const have = new Map((await this.repo.pairwiseIds(id.personId)).map((r) => [r.sector, r.subject]));
+    const rows = this.sectors.map((s) => ({ sector: s.sector, subject: pairwiseSub(s.sector, id.subject, s.salt) })).filter((r) => have.get(r.sector) !== r.subject);
+    if (rows.length) await this.repo.mirrorPairwiseIds(id.personId, rows);
+  }
+
+  @Get('pairwise')
+  @ApiOperation({ operationId: 'listMyPairwiseIds', summary: 'Which services know you under which identifier (your pairwise subjects; citizens)' })
+  @ApiOkResponse({ type: [PairwiseDto] })
+  async pairwise(@Req() req: IdentifiedRequest): Promise<PairwiseDto[]> {
+    if (req.identity!.realm !== 'citizens') return [];
+    await this.mirror(req);
+    return this.repo.pairwiseIds(req.identity!.personId);
+  }
 
   @Get()
   @ApiOperation({ operationId: 'getMe', summary: 'The signed-in person: preferences and accounts (P3-API2)' })
@@ -38,6 +65,7 @@ export class MeController {
   async get(@Req() req: IdentifiedRequest): Promise<MeResponse> {
     const me = await this.repo.me(req.identity!.personId);
     if (!me) throw new NotFoundException();
+    await this.mirror(req).catch(() => undefined); // the mirror never fails the profile
     return me;
   }
 

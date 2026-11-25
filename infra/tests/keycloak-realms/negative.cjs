@@ -8,6 +8,8 @@
  */
 const crypto = require('node:crypto');
 const http = require('node:http');
+const fs = require('node:fs');
+const path = require('node:path');
 const { chromium } = require('playwright');
 const lib = require('./lib.cjs');
 const { KC, WEB_CB, check, info, stamp, claims, sleep, freshTotp, activationMail, newContext, authorize, waitFor, codeFrom, exchange, core, visible, submit,
@@ -200,6 +202,21 @@ async function registerWebApp() {
     const dcrStaff = await fetch(`${KC}/realms/civora-staff/clients-registrations/openid-connect`, { method: 'POST', headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ client_name: 'attacker app', redirect_uris: ['https://attacker.invalid/cb'] }) });
     check('N22 anonymous dynamic client registration is refused in both realms (no unknown client applications)', [dcr.status, dcrStaff.status].every((st) => st === 401 || st === 403), `${dcr.status} ${dcrStaff.status}`);
+    // Every operation the contract marks as needing a token answers 401 without one (a controller that lost its guard,
+    // as happened once during week 6 when a class was inserted between a controller's decorators, is caught here).
+    const contract = JSON.parse(fs.readFileSync(path.join(process.env.REPO_DIR || path.resolve(__dirname, '..', '..', '..'), 'services', 'core', 'openapi', 'core.openapi.json'), 'utf8'));
+    const open = [];
+    let guarded = 0;
+    for (const [p, ops] of Object.entries(contract.paths)) {
+      for (const [method, op] of Object.entries(ops)) {
+        if (!['get', 'post', 'put', 'patch', 'delete'].includes(method) || !(op.security ?? []).length) continue;
+        guarded++;
+        const url = process.env.CORE_URL + p.replace(/\{[^}]+\}/g, '00000000-0000-4000-8000-000000000000');
+        const res = await fetch(url, { method: method.toUpperCase(), headers: { 'content-type': 'application/json' }, body: ['post', 'put', 'patch'].includes(method) ? '{}' : undefined });
+        if (res.status !== 401) open.push(`${method.toUpperCase()} ${p}: ${res.status}`);
+      }
+    }
+    check(`N23 every operation that needs a token (${guarded} in the contract) answers 401 without one`, guarded > 20 && open.length === 0, open.join('; '));
     for (const ctx of [attacker, victim, w, x, login, o]) await ctx.context.close();
   } finally {
     await browser.close();

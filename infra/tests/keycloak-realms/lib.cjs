@@ -106,6 +106,29 @@ async function activationMail(to, ms = 15000) {
   return null;
 }
 
+/**
+ * The two e-mails of an account recovery (P3-SEC4) sent after `before` messages: the activation link (from Keycloak)
+ * and the recovery notice (from the core). Null for each one that did not arrive within `ms`.
+ */
+async function recoveryMails(to, before, ms = 20000) {
+  const until = Date.now() + ms;
+  let list = [];
+  while (Date.now() < until) {
+    list = await mails(to);
+    if (list.length >= before + 2) break;
+    await sleep(300);
+  }
+  const fresh = list.slice(0, Math.max(0, list.length - before));
+  const out = { activation: null, notice: null, count: list.length };
+  for (const m of fresh) {
+    const full = await (await fetch(`${MAIL}/api/v1/message/${m.ID}`)).json();
+    const link = (full.Text.match(/https?:\/\/\S+action-token\S+/) ?? [])[0];
+    if (link) out.activation = { subject: m.Subject, link };
+    else out.notice = { subject: m.Subject, text: full.Text };
+  }
+  return out;
+}
+
 /** A browser context; app callbacks are captured from request events (redirected requests escape route handlers). */
 async function newContext(browser, locale = 'en') {
   const context = await browser.newContext({ locale: locale === 'ar' ? 'ar-TN' : locale === 'fr' ? 'fr-TN' : 'en-US' });
@@ -250,5 +273,5 @@ module.exports = {
   KC, CORE, MAIL, ARTIFACTS, LOCALES, WEB_CB, WS_CB, RP1_CB, RP2_CB, TENANT, TEST_AAGUID, POLICY, LANG,
   check, failures, info, stamp, b64url, rnd, tag, claims, pw, sleep, median, form, refreshAdmin, admin, adminToken: () => adminToken,
   credentialTypes, userByEmail, freshTotp, mails, activationMail, newContext, addAuthenticator, authorize, waitFor, codeFrom, exchange,
-  core, visible, submit, shot, pageLanguage, setPasskeyExecution, choosePasskey, activate,
+  core, visible, submit, shot, pageLanguage, setPasskeyExecution, choosePasskey, activate, recoveryMails,
 };
