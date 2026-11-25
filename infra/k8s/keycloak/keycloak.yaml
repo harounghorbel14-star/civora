@@ -5,6 +5,10 @@
 # verify-full TLS. Secrets (keycloak-db, keycloak-tls, keycloak-db-ca, keycloak-attestation-roots) come from OpenBao via
 # External Secrets.
 # Exposure: no Ingress from the operator; the edge gateway is pending founder decision ADR-030.
+# Password deny list (ASVS 5.0 V6.2.4, V6.2.12; Phase 3 doc 11): ConfigMap keycloak-password-deny-list from
+# infra/keycloak/password-deny-list/civora-deny.txt (kubectl create configmap keycloak-password-deny-list -n keycloak
+# --from-file=civora-deny.txt=infra/keycloak/password-deny-list/civora-deny.txt). The realms' password policy names
+# it: a realm import without the file fails, so a missing list cannot silently weaken the policy.
 apiVersion: k8s.keycloak.org/v2beta1
 kind: Keycloak
 metadata:
@@ -66,6 +70,9 @@ spec:
               capabilities: { drop: [ALL] }
             volumeMounts:
               - { name: db-ca, mountPath: /opt/keycloak/conf/db-ca, readOnly: true }
+              - { name: password-deny-list, mountPath: /opt/keycloak/data/password-blacklists, readOnly: true }
         volumes:
           - name: db-ca
             secret: { secretName: keycloak-db-ca }
+          - name: password-deny-list
+            configMap: { name: keycloak-password-deny-list }

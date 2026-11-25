@@ -1,0 +1,38 @@
+{
+  "about": "Mandate conformance cases (Phase 3 P3-T4). Synthetic people. 'under' names the mandate the actor acts under.",
+  "mandates": {
+    "m1": { "principal": "alice", "agent": "bob", "scopes": ["cases:read", "payments:submit"], "active": true },
+    "m2": { "principal": "alice", "agent": "bob", "scopes": ["cases:manage"], "active": false },
+    "m3": { "principal": "carol", "agent": "bob", "scopes": ["cases:manage"], "active": true }
+  },
+  "records": {
+    "aliceCase": { "owner": "alice", "domain": "cases" },
+    "alicePayment": { "owner": "alice", "domain": "payments" },
+    "aliceDocument": { "owner": "alice", "domain": "documents" },
+    "aliceIdentity": { "owner": "alice", "domain": "identity" },
+    "aliceMandates": { "owner": "alice", "domain": "mandates" },
+    "carolCase": { "owner": "carol", "domain": "cases" }
+  },
+  "cases": [
+    { "id": "M01", "p": "alice", "a": "cases:read", "r": "aliceCase", "expect": "allow", "why": "own record" },
+    { "id": "M02", "p": "alice", "a": "identity:manage", "r": "aliceIdentity", "expect": "allow", "why": "own identity, not acting for anyone" },
+    { "id": "M03", "p": "bob", "a": "cases:read", "r": "aliceCase", "expect": "deny", "why": "someone else's record without a mandate" },
+    { "id": "M04", "p": "bob", "a": "cases:read", "r": "aliceCase", "under": "m1", "expect": "allow", "why": "scope cases:read" },
+    { "id": "M05", "p": "bob", "a": "cases:submit", "r": "aliceCase", "under": "m1", "expect": "deny", "why": "read does not cover submit" },
+    { "id": "M06", "p": "bob", "a": "payments:read", "r": "alicePayment", "under": "m1", "expect": "allow", "why": "submit covers read" },
+    { "id": "M07", "p": "bob", "a": "payments:submit", "r": "alicePayment", "under": "m1", "expect": "allow", "why": "scope payments:submit" },
+    { "id": "M08", "p": "bob", "a": "payments:manage", "r": "alicePayment", "under": "m1", "expect": "deny", "why": "submit does not cover manage" },
+    { "id": "M09", "p": "bob", "a": "documents:read", "r": "aliceDocument", "under": "m1", "expect": "deny", "why": "domain not in the scopes" },
+    { "id": "M10", "p": "bob", "a": "cases:read", "r": "alicePayment", "under": "m1", "expect": "deny", "why": "the record is not of the action's domain" },
+    { "id": "M11", "p": "bob", "a": "cases:read", "r": "carolCase", "under": "m1", "expect": "deny", "why": "the mandate's principal does not own the record" },
+    { "id": "M12", "p": "bob", "a": "cases:read", "r": "aliceCase", "under": "m2", "expect": "deny", "why": "inactive mandate (revoked, expired or not yet valid)" },
+    { "id": "M13", "p": "carol", "a": "cases:read", "r": "aliceCase", "under": "m1", "expect": "deny", "why": "not the agent of this mandate" },
+    { "id": "M14", "p": "alice", "a": "cases:read", "r": "aliceCase", "under": "m1", "expect": "deny", "why": "while acting, only mandate rules apply (the principal is not the agent)" },
+    { "id": "M15", "p": "bob", "a": "identity:manage", "r": "aliceIdentity", "under": "m1", "expect": "deny", "why": "identity is never delegated" },
+    { "id": "M16", "p": "bob", "a": "mandates:manage", "r": "aliceMandates", "under": "m1", "expect": "deny", "why": "mandates are never delegated" },
+    { "id": "M17", "p": "alice", "a": "identity:manage", "r": "aliceIdentity", "under": "m1", "expect": "deny", "why": "not while acting under a mandate" },
+    { "id": "M18", "p": "bob", "a": "cases:manage", "r": "carolCase", "under": "m3", "expect": "allow", "why": "scope cases:manage" },
+    { "id": "M19", "p": "bob", "a": "cases:read", "r": "carolCase", "under": "m3", "expect": "allow", "why": "manage covers read" },
+    { "id": "M20", "p": "bob", "a": "payments:submit", "r": "alicePayment", "under": "m3", "expect": "deny", "why": "m3 is carol's mandate" }
+  ]
+}

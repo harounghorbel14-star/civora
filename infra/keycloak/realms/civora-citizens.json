@@ -14,7 +14,7 @@
   "quickLoginCheckMilliSeconds": 1000,
   "minimumQuickLoginWaitSeconds": 60,
   "maxDeltaTimeSeconds": 43200,
-  "passwordPolicy": "length(12) and notUsername and notEmail and passwordHistory(5) and maxLength(128)",
+  "passwordPolicy": "length(12) and maxLength(128) and notUsername and notEmail and notContainsUsername and passwordHistory(5) and passwordBlacklist(civora-deny.txt) and regexPattern((?is)^(?!.*(?:civora|سيفورا|tunisie|tunisia|tunis|تونس|gouvernement|government|حكومة|citoyen|citizen|مواطن|keycloak|motdepasse|password)).*$)",
   "accessTokenLifespan": 300,
   "revokeRefreshToken": true,
   "refreshTokenMaxReuse": 0,

@@ -87,6 +87,19 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
 
+  packages/policies:
+    dependencies:
+      '@cedar-policy/cedar-wasm':
+        specifier: 4.14.0
+        version: 4.14.0
+    devDependencies:
+      '@types/node':
+        specifier: 22.20.5
+        version: 22.20.5
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
   packages/synthetic-data:
     dependencies:
       '@civora/country-packs':
@@ -111,6 +124,9 @@ importers:
       '@civora/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
+      '@civora/policies':
+        specifier: workspace:*
+        version: link:../../packages/policies
       '@civora/synthetic-data':
         specifier: workspace:*
         version: link:../../packages/synthetic-data
@@ -201,6 +217,9 @@ packages:
 
   '@borewit/text-codec@0.2.3':
     resolution: {integrity: sha512-49CycTz1aAZmvFcwkeFyhud1HUmRIB5Tabf7ALV+VA4Iu85MTfz2cUwzPagMFAdVBvrWdkCxG67I30tUwwpKsw==}
+
+  '@cedar-policy/cedar-wasm@4.14.0':
+    resolution: {integrity: sha512-TPyz3zMl5r7W5iSHq51IgG+NTILGoXB0VPrEcXnzCEpPUqL/7b+AtMPVVHB/UoJWuXA8YORjLuWxKHUW33ePAA==}
 
   '@emnapi/runtime@1.11.3':
     resolution: {integrity: sha512-Xz4Tpyki7XyrpbUK1jR1AhdAdaXyhhY4lZ3neLodmhpuWfy2PAQN5B46sAiU4liOXGLkHypn/qU+jvfWSCYYLA==}
@@ -1380,6 +1399,8 @@ packages:
 snapshots:
 
   '@borewit/text-codec@0.2.3': {}
+
+  '@cedar-policy/cedar-wasm@4.14.0': {}
 
   '@emnapi/runtime@1.11.3':
     dependencies:

@@ -20,6 +20,7 @@
     "@civora/country-packs": "workspace:*",
     "@civora/feature-flags": "workspace:*",
     "@civora/i18n": "workspace:*",
+    "@civora/policies": "workspace:*",
     "@civora/synthetic-data": "workspace:*",
     "@nestjs/common": "11.2.8",
     "@nestjs/core": "11.2.8",

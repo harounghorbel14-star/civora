@@ -819,6 +819,49 @@
         ],
         "type": "object"
       },
+      "PermissionDto": {
+        "properties": {
+          "action": {
+            "example": "cases:read",
+            "type": "string"
+          },
+          "allowed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "action",
+          "allowed"
+        ],
+        "type": "object"
+      },
+      "PermissionsDto": {
+        "properties": {
+          "mandateId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "permissions": {
+            "items": {
+              "$ref": "#/components/schemas/PermissionDto"
+            },
+            "type": "array"
+          },
+          "role": {
+            "enum": [
+              "principal",
+              "agent"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "mandateId",
+          "role",
+          "permissions"
+        ],
+        "type": "object"
+      },
       "PublicStatusDto": {
         "properties": {
           "institution": {
@@ -1342,6 +1385,48 @@
         ]
       }
     },
+    "/v1/mandates/{id}/permissions": {
+      "get": {
+        "operationId": "mandatePermissions",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionsDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "404": {
+            "description": "No such mandate where you are a party"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What the caller may do when acting under this mandate (Cedar policies, ADR-006; P3-T4)",
+        "tags": [
+          "mandates"
+        ]
+      }
+    },
     "/v1/mandates/{id}:accept": {
       "post": {
         "operationId": "acceptMandate",
@@ -1685,6 +1770,42 @@
       }
     },
     "/v1/me/sessions": {
+      "delete": {
+        "operationId": "endMyOtherSessions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "ended": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "ended"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Number of sessions ended"
+          },
+          "401": {
+            "description": "No valid access token, or no recent sign-in (WWW-Authenticate: error=\"insufficient_user_authentication\", max_age)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Sign out every other session (after changing a way to sign in, or when a device is lost); this one stays",
+        "tags": [
+          "identity"
+        ]
+      },
       "get": {
         "operationId": "listMySessions",
         "parameters": [],
@@ -1735,7 +1856,7 @@
             "description": "Ended"
           },
           "401": {
-            "description": "No valid access token"
+            "description": "No valid access token, or no recent sign-in (WWW-Authenticate: error=\"insufficient_user_authentication\", max_age)"
           },
           "404": {
             "description": "No such session of yours"

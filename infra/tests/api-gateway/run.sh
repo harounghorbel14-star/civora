@@ -100,6 +100,8 @@ check "7. registration is public but limited per client: 10 requests in 10 minut
 status_body='{"reference":"SYN-RC-1-00001"}'
 check "7. the customer status page is public but limited per client: 20 requests in 10 minutes, the 21st gets 429" \
   "n=0; for i in \$(seq 1 25); do c=\$(code -X POST -H 'content-type: application/json' --data '$status_body' http://gw-apisix:9080/v1/status-access); [ \$c = 429 ] && break; [ \$c = 401 ] && { echo 'token demanded'; exit 1; }; n=\$((n+1)); done; echo \"passed on: \$n\"; [ \$n = 20 ]"
+check "8. every declared route is rate limited per client address (Phase 3 doc 11 §5)" \
+  "python3 -c \"import yaml,sys; r=yaml.safe_load(open('$here/routes.yaml'))['routes']; m=[x['id'] for x in r if 'limit-count' not in (x.get('plugins') or {})]; print('without a limit:', m); sys.exit(1 if m else 0)\""
 check "gateway process runs as a non-root user" "[ \"\$(docker exec gw-apisix id -u)\" != 0 ]"
 stamp "done (fail=$fail)"
 exit $fail

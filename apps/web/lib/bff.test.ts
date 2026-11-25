@@ -109,6 +109,23 @@ describe('server-side sessions', () => {
     now += 601_000;
     assert.equal(store.takePending(id2), null, 'expired');
   });
+  it('pending sign-ins are bounded: under a flood the oldest go first (memory cannot be exhausted)', () => {
+    const store = new MemorySessionStore({ idleMs: 60_000, maxMs: 300_000, maxPending: 3 });
+    const ids = Array.from({ length: 5 }, (_, i) => store.putPending({ state: `s${i}`, nonce: 'n', verifier: 'v', returnTo: '/ar' }));
+    assert.equal(store.pendingSize, 3);
+    assert.equal(store.takePending(ids[0]), null);
+    assert.equal(store.takePending(ids[1]), null);
+    assert.equal(store.takePending(ids[4])?.state, 's4');
+  });
+  it('sessions past their absolute limit are swept when new ones are created', () => {
+    let now = 0;
+    const store = new MemorySessionStore({ idleMs: 60_000, maxMs: 300_000, now: () => now });
+    const t: Tokens = { accessToken: 'a', refreshToken: 'r', idToken: 'i', accessExpiresAt: 1e12, refreshExpiresAt: 1e12 };
+    store.create('old', t);
+    now += 301_000;
+    store.create('new', t);
+    assert.equal(store.size, 1);
+  });
 });
 
 describe('OpenID Connect', () => {

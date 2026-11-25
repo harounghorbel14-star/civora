@@ -10,7 +10,7 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const { chromium } = require('playwright');
 const lib = require('./lib.cjs');
-const { KC, WS_CB, TENANT, check, info, stamp, claims, admin, activationMail, newContext, addAuthenticator, authorize, waitFor, codeFrom, exchange,
+const { KC, WS_CB, TENANT, LANG, LOCALES, pageLanguage, check, info, stamp, claims, admin, activationMail, newContext, addAuthenticator, authorize, waitFor, codeFrom, exchange,
   core, visible, submit, activate, tag, pw } = lib;
 
 const REPO = process.env.REPO_DIR;
@@ -49,8 +49,8 @@ async function institutionUser(realm, email, extra = {}) {
 }
 
 /** Sign-in through an institution: kc_idp_hint, the institution's page, then CIVORA's security key. */
-async function ssoSignIn(ctx, alias, who, { register = false, prompt } = {}) {
-  const a = authorize(ctx.page, STAFF, 'civora-workspace', WS_CB, { kc_idp_hint: alias, ...(prompt ? { prompt } : {}) });
+async function ssoSignIn(ctx, alias, who, { register = false, prompt, locale } = {}) {
+  const a = authorize(ctx.page, STAFF, 'civora-workspace', WS_CB, { kc_idp_hint: alias, ...(prompt ? { prompt } : {}), ...(locale ? { ui_locales: locale } : {}) });
   const n = ctx.captured.length;
   await a.go();
   let sawInstitution = false;
@@ -64,11 +64,12 @@ async function ssoSignIn(ctx, alias, who, { register = false, prompt } = {}) {
   let keyStep = null;
   const step = await waitFor(async () => (await visible(ctx.page, '#registerWebAuthn')) ? 'register'
     : (await visible(ctx.page, '#authenticateWebAuthnButton')) ? 'authenticate' : null, 10000);
+  const keyPage = step ? await pageLanguage(ctx.page).catch(() => null) : null;
   if (step === 'register' && register) { keyStep = 'register'; await ctx.page.locator('#registerWebAuthn').click(); }
   if (step === 'authenticate') { keyStep = 'authenticate'; await ctx.page.locator('#authenticateWebAuthnButton').click(); }
   const code = await codeFrom(ctx.captured, n, 10000);
   const tok = code ? (await exchange(STAFF, 'civora-workspace', code, a.verifier, WS_CB)).body : {};
-  return { token: tok.access_token, keyStep, step, sawInstitution, page: ctx.page.url() };
+  return { token: tok.access_token, keyStep, step, sawInstitution, keyPage, page: ctx.page.url() };
 }
 
 (async () => {
@@ -144,6 +145,18 @@ async function ssoSignIn(ctx, alias, who, { register = false, prompt } = {}) {
     const cb = s.token ? claims(s.token) : {};
     check('SAML first sign-in: key enrolled; token with tenant_id of bank B', s.keyStep === 'register' && cb.tenant_id === TB, JSON.stringify({ ...s, tenant_id: cb.tenant_id }));
     check('the core accepts the SAML-brokered token', (await core(s.token, '/v1/me')).status === 200);
+
+    // P3-AC1: the first SSO sign-in in each language of the cell (CIVORA's own pages after the institution's).
+    for (const lang of LOCALES) {
+      stamp(`[${lang}] first SSO sign-in: CIVORA's security-key page in the requested language`);
+      const u = await institutionUser('sim-bank-a-idp', `staff.${lang}.${tag()}@bank-a.invalid`);
+      const c = await newContext(browser, lang);
+      await addAuthenticator(c.page, 'usb');
+      const r = await ssoSignIn(c, 'sim-bank-a', u, { register: true, locale: lang });
+      check(`[${lang}] first SSO sign-in: security-key enrolment page lang=${lang} dir=${LANG[lang].dir}, realm name translated, then a token for tenant A`,
+        r.keyStep === 'register' && r.keyPage?.lang === lang && r.keyPage?.dir === LANG[lang].dir && r.keyPage?.header === LANG[lang].staff && !!r.token && claims(r.token).tenant_id === TA, JSON.stringify(r.keyPage));
+      await c.context.close();
+    }
 
     stamp('no account takeover across institutions or of local accounts');
     const mallory = await institutionUser('sim-bank-b-idp', `m.${tag()}@bank-b.invalid`);

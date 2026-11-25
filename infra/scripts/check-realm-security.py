@@ -24,6 +24,7 @@ authenticated the person); every later SSO sign-in needs that key.
 """
 import copy
 import json
+import os
 import re
 import sys
 
@@ -243,6 +244,10 @@ def violations(r, profile="dev", live=False, require_approved_keys=False):
     return v
 
 
+CONTEXT_WORDS = [w.strip() for w in open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "keycloak", "password-deny-list",
+                                                     "context-words.txt"), encoding="utf-8") if w.strip()]
+
+
 def _violations(r, profile, require_approved_keys=False):
     v = []
     if r.get("sslRequired") not in ("external", "all"):
@@ -258,6 +263,15 @@ def _violations(r, profile, require_approved_keys=False):
     for rule in ("notUsername", "passwordHistory"):
         if rule not in pol:
             v.append(f"password policy: {rule}")
+    if profile in ("citizens", "staff"):
+        # ASVS 5.0 V6.2.4/V6.2.12 (common and breached passwords) and V6.1.2/V6.2.11 (context-specific words):
+        # infra/keycloak/password-deny-list, mounted where Keycloak runs (an import without the file fails).
+        if "passwordBlacklist(civora-deny.txt)" not in pol:
+            v.append("password policy: passwordBlacklist(civora-deny.txt) (common and breached passwords)")
+        rx = re.search(r"regexPattern\((.*)\)\s*(?:and|$)", pol)
+        missing = [w for w in CONTEXT_WORDS if not rx or w not in rx.group(1)]
+        if not rx or not rx.group(1).startswith("(?is)^(?!.*(?:") or missing:
+            v.append(f"password policy: context words refused (regexPattern with a negative look-ahead; missing {missing})")
     if int(r.get("accessTokenLifespan", 300)) > 300:
         v.append("access tokens live at most 5 min")
     if not r.get("revokeRefreshToken") or int(r.get("refreshTokenMaxReuse", 0)) != 0:
@@ -464,6 +478,8 @@ def mutations(profile, live=False, approved=False):
         "offline tokens by default": _grant_offline_by_default,
     }
     if profile in ("citizens", "staff"):
+        m["no deny list of common passwords"] = lambda r: r.update(passwordPolicy=r["passwordPolicy"].replace(" and passwordBlacklist(civora-deny.txt)", ""))
+        m["a context word allowed"] = lambda r: r.update(passwordPolicy=r["passwordPolicy"].replace("(?:civora|", "(?:"))
         m["unmanaged attributes enabled"] = lambda r: _set_up(r, unmanagedAttributePolicy="ENABLED")
         m["client without kind"] = lambda r: public_app(r)["attributes"].pop("civora.client-kind")
     if profile == "citizens":

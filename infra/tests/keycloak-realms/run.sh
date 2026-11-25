@@ -26,8 +26,8 @@ trap cleanup EXIT
 rnd() { head -c 48 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c "$1"; }
 free_port() { python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1])'; }
 fail=0
-# PARTS (development only; CI runs everything): comma-separated subset of login,account,org,eid,sso,web.
-part() { [[ ",${PARTS:-login,account,org,eid,sso,web}," == *",$1,"* ]]; }
+# PARTS (development only; CI runs everything): comma-separated subset of login,account,org,eid,sso,web,negative.
+part() { [[ ",${PARTS:-login,account,org,eid,sso,web,negative}," == *",$1,"* ]]; }
 checker="$repo/infra/scripts/check-realm-security.py"
 
 echo "Realm files (Git):"
@@ -53,6 +53,7 @@ mkdir -p "$work/import" && cp "$repo"/infra/keycloak/realms/civora-*.json "$repo
   && chmod 755 "$work/import" && chmod 644 "$work"/import/*
 docker run -d --name kr-keycloak --network "$net" -p "127.0.0.1:$kc_port:8080" -e KC_BOOTSTRAP_ADMIN_USERNAME=admin -e KC_BOOTSTRAP_ADMIN_PASSWORD="$kc_pw" \
   -e KC_HOSTNAME="http://localhost:$kc_port" -v "$work/import:/opt/keycloak/data/import:ro" -v "$work/truststores:/opt/keycloak/conf/truststores:ro" \
+  -v "$repo/infra/keycloak/password-deny-list/civora-deny.txt:/opt/keycloak/data/password-blacklists/civora-deny.txt:ro" \
   "$keycloak_image" start-dev --import-realm >/dev/null
 kc="http://localhost:$kc_port"
 mail="http://127.0.0.1:$(docker port kr-mail 8025/tcp | head -1 | sed 's/.*://')"
@@ -118,7 +119,7 @@ for _ in $(seq 1 60); do curl -sf --noproxy '*' "http://127.0.0.1:$core_port/hea
 curl -sf --noproxy '*' "http://127.0.0.1:$core_port/health/ready" >/dev/null || { echo "  FAIL core did not start"; tail -20 "$work/core.log"; exit 1; }
 stamp "civora-core up (database role civora_core_app; issuers: the two realms; registration through the provisioner client)"
 grep -q . "$work/provisioner.secret" && grep -q . "$work/staff-provisioner.secret" || { echo "  FAIL provisioner secrets not written"; exit 1; }
-if part web; then
+if part web || part negative; then
   (cd "$repo/apps/web" && CIVORA_ENV=test APP_ORIGIN="$web" OIDC_ISSUER="$kc/realms/civora-citizens" CORE_URL="http://127.0.0.1:$core_port" \
     NEXT_TELEMETRY_DISABLED=1 exec node_modules/.bin/next start -p "$web_port" -H 127.0.0.1) >"$work/web.log" 2>&1 &
   web_pid=$!
@@ -147,6 +148,9 @@ part web && echo "Citizen web app in ${LOCALES:-ar,fr,en}: journeys, status page
 part web && { KC_URL="$kc" CORE_URL="http://127.0.0.1:$core_port" MAIL_URL="$mail" KC_ADMIN_PASSWORD="$kc_pw" WEB_URL="$web" REPO_DIR="$repo" \
   STEP_UP_MAX_AGE_SECONDS=30 EID_IDS_OUT="$work/eid-ids.txt" ARTIFACT_DIR="${ARTIFACT_DIR:-$work/artifacts}" \
   NO_PROXY="localhost,127.0.0.1,${NO_PROXY:-}" no_proxy="localhost,127.0.0.1,${no_proxy:-}" node "$here/web.cjs" || fail=1; }
+part negative && echo "Negative tests (P3-T3): fixation, code and token replay, PKCE, redirects, CSRF, framing, CORS:"
+part negative && { KC_URL="$kc" CORE_URL="http://127.0.0.1:$core_port" MAIL_URL="$mail" KC_ADMIN_PASSWORD="$kc_pw" WEB_URL="$web" \
+  ARTIFACT_DIR="${ARTIFACT_DIR:-$work/artifacts}" NO_PROXY="localhost,127.0.0.1,${NO_PROXY:-}" no_proxy="localhost,127.0.0.1,${no_proxy:-}" node "$here/negative.cjs" || fail=1; }
 if part eid; then
 echo "Identity links through the SIMULATED national eID (P3-D4, P3-API6):"
 KC_URL="$kc" CORE_URL="http://127.0.0.1:$core_port" MAIL_URL="$mail" KC_ADMIN_PASSWORD="$kc_pw" ARTIFACT_DIR="${ARTIFACT_DIR:-$work/artifacts}" \

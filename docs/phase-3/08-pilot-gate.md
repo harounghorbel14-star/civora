@@ -17,6 +17,7 @@
 | PG-5 | Q3-2: national eID scheme and authorisation | Without it only the simulator exists (register entry I-01, class 3); a pilot must not present simulated identity proofing as real | Either an authorisation and a production adapter (class 1 or 2), or the pilot explicitly runs without eID links | Founder / authority | Open |
 | PG-6 | Q3-1: SMS provider (fallback, and customer codes for the status page if SMS is chosen) | P3-F1 lists SMS as a fallback; R2 codes need a channel to the customer | Provider and legal basis chosen, or the pilot runs with e-mail codes only, recorded as a decision | Founder | Open |
 | PG-7 | Web app sessions in a shared store ([doc 09](09-citizen-web-app.md)) | The citizen web app keeps its sessions in process memory: one replica only; a restart signs everyone out | Sessions in the cell's Valkey (encrypted at rest, same limits), tested with two replicas and a restart | Engineering | Open |
+| PG-8 | ASVS L3 for the whole application before real users ([doc 11](11-security-verification.md)) | The week-5 assessment covers identity only (153 requirements; 121 of 143 applicable met) and is a self-assessment. Open there: adaptive controls (G3), the production domain on the HSTS preload list (G5), edge limits for the web app (ADR-030) | Gaps G1–G5 of doc 11 closed or accepted by the founder; the remaining ASVS chapters assessed for the whole application; an external test with no open high finding | Engineering; founder (domain, external tester) | Open |
 
 ## Rules
 

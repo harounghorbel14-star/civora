@@ -217,6 +217,37 @@ async function securityChecks(browser, citizen, officer) {
   await y.context.close();
   await admin('PUT', 'civora-staff', { ...(await admin('GET', 'civora-staff')), webAuthnPolicyAcceptableAaguids: [TEST_AAGUID] });
 
+  stamp('password policy: common and breached passwords, context words (ASVS 5.0 V6.2.4, V6.2.11, V6.2.12)');
+  {
+    const email = `pw.policy.${tag()}@example.invalid`;
+    await core(undefined, '/v1/registrations', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, locale: 'en' }) });
+    const p = await newContext(browser);
+    await p.page.goto((await activationMail(email)).link);
+    await Promise.all([p.page.waitForNavigation(), p.page.locator('a[href*="login-actions"]').first().click()]);
+    if (await visible(p.page, '#totp')) {
+      if (await visible(p.page, '#mode-manual')) await p.page.locator('#mode-manual').click();
+      const secret = (await p.page.locator('#kc-totp-secret-key').innerText()).trim();
+      await p.page.locator('#totp').fill(await freshTotp(secret));
+      await submit(p.page, '#saveTOTPBtn, input[type=submit], button[type=submit]');
+    }
+    const attempt = async (candidate) => {
+      await waitFor(() => visible(p.page, '#password-new'), 8000);
+      await p.page.locator('#password-new').fill(candidate);
+      await p.page.locator('#password-confirm').fill(candidate);
+      await submit(p.page);
+      await sleep(500);
+      return (await visible(p.page, '#password-new')) ? 'refused' : 'accepted';
+    };
+    const common = await attempt('1Q2W3E4R5T6Y'); // on the deny list (case does not matter)
+    const breached = await attempt('qwertyuiopasdf');
+    const context = await attempt(`My-CIVORA-${rnd(10)}`);
+    const arabicContext = await attempt(`${rnd(8)}-تونس-${rnd(4)}`);
+    const fine = await attempt(pw());
+    check('activation refuses a common password, a breached one and passwords with context words (Latin and Arabic); accepts a random one',
+      [common, breached, context, arabicContext].every((x) => x === 'refused') && fine === 'accepted', [common, breached, context, arabicContext, fine].join(' '));
+    await p.context.close();
+  }
+
   stamp('other protections');
   // C5/C6 wrong and right TOTP for the activated citizen.
   const w = await newContext(browser);

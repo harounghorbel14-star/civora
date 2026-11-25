@@ -149,8 +149,17 @@ describe('identity and mandates, end to end (Phase 3 week 1)', { skip: !adminUrl
     assert.equal((await call(`/v1/mandates/${id}:act`, await sign('eve'), { method: 'POST' })).status, 404, 'nor anyone else');
     const seen = await call(`/v1/mandates/${id}/events`, pia);
     assert.deepEqual(seen.body.map((e: { action: string; actorRole: string }) => `${e.action}:${e.actorRole}`), ['created:principal', 'accepted:agent', 'acted:agent']);
+    // Cedar decisions (ADR-006, P3-T4): what the agent may do under this mandate; submit covers read; never identity.
+    const allowed = async (who: string) => Object.fromEntries((await call(`/v1/mandates/${id}/permissions`, who)).body.permissions
+      .map((p: { action: string; allowed: boolean }) => [p.action, p.allowed]));
+    const agentView = await allowed(abe);
+    assert.deepEqual(Object.entries(agentView).filter(([, v]) => v).map(([k]) => k).sort(), ['cases:read', 'payments:read', 'payments:submit']);
+    assert.equal(agentView['identity:manage'], false);
+    assert.equal(Object.values(await allowed(pia)).some(Boolean), false, 'the principal does not act under their own mandate');
+    assert.equal((await call(`/v1/mandates/${id}/permissions`, await sign('eve'))).status, 404);
     assert.equal((await call(`/v1/mandates/${id}:revoke`, pia, { method: 'POST' })).status, 200);
     assert.equal((await call(`/v1/mandates/${id}:act`, abe, { method: 'POST' })).status, 404, 'not after the principal revokes');
+    assert.equal(Object.values(await allowed(abe)).some(Boolean), false, 'nothing after revocation');
   });
 
   it('refuses delegation of identity or mandates, unknown scopes and over-long mandates', async () => {

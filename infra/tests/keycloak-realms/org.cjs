@@ -10,7 +10,7 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const lib = require('./lib.cjs');
 const { KC, WS_CB, TENANT, check, info, stamp, claims, sleep, admin, activationMail, newContext, addAuthenticator, authorize, waitFor, codeFrom,
-  exchange, core, visible, submit, activate, tag, userByEmail, LANG } = lib;
+  exchange, core, visible, submit, activate, tag, userByEmail, LANG, LOCALES } = lib;
 
 const STEP_UP = Number(process.env.STEP_UP_MAX_AGE_SECONDS || 30);
 const json = (method, body) => ({ method, headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
@@ -119,6 +119,31 @@ async function acceptInvitation(browser, email) {
     s = await staffSignIn(browser, adminEmail, adm.password, adm.ctx, { prompt: 'login' });
     r = await core(s.token, '/v1/org/units', json('POST', { kind: 'branch', name: `Sfax ${tag()}` }));
     check('after signing in again: 201', r.status === 201, r.raw);
+
+    // P3-AC1: an invitation in each language of the cell: the e-mail, Keycloak's activation pages and the first sign-in.
+    // The invitations are sent right after the re-authentication above (administration needs a recent sign-in).
+    const invited = {};
+    for (const lang of LOCALES) {
+      invited[lang] = `staff.${lang}.${tag()}@example.invalid`;
+      r = await core(s.token, '/v1/staff/invitations', json('POST', { email: invited[lang], unitId: claimsTeam, role: 'member', locale: LANG[lang].pack }));
+      check(`[${lang}] invite a member in ${LANG[lang].pack}: 201`, r.status === 201, r.raw);
+    }
+    const subjects = [];
+    for (const lang of LOCALES) {
+      stamp(`[${lang}] invitation accepted in ${lang}`);
+      const x = await newContext(browser, lang);
+      await addAuthenticator(x.page, 'usb');
+      const mail = await activationMail(invited[lang]);
+      const act = await activate(x.page, mail.link);
+      const signed = await staffSignIn(browser, invited[lang], act.password, x);
+      const mine = signed.token ? await core(signed.token, '/v1/me/memberships') : { body: [] };
+      subjects.push(mail.subject);
+      check(`[${lang}] invitation e-mail and activation pages in ${lang} (key before password); signed in, member of Claims`,
+        LANG[lang].script.test(mail.subject) && act.seen.join('>') === 'SECURITY-KEY>PASSWORD' && act.langs.length === 2 && act.langs.every((l) => l === lang)
+          && !!signed.token && mine.body?.[0]?.unitId === claimsTeam, JSON.stringify({ subject: mail.subject, langs: act.langs, seen: act.seen }));
+      await x.context.close();
+    }
+    check('each language has its own invitation e-mail subject', new Set(subjects).size === LOCALES.length, subjects.join(' | '));
     r = await core(ms.token, '/v1/org/units');
     check('staff see their institution\'s units (3 created here, among others)', r.status === 200 && [branch, claimsTeam, paymentsTeam].every((id) => r.body.some((u) => u.id === id)), r.raw);
 
