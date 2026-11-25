@@ -61,6 +61,14 @@ routes:
     plugins:
       limit-count: { count: 10, time_window: 600, key_type: var, key: remote_addr, rejected_code: 429, policy: local }
     upstream: { type: roundrobin, nodes: { "@CORE@": 1 } }
+  # Account recovery is public (the person cannot sign in) and leads to the national eID: few attempts per address.
+  - id: recovery
+    uris: [/v1/recovery, /v1/recovery/*]
+    methods: [POST]
+    priority: 20
+    plugins:
+      limit-count: { count: 10, time_window: 600, key_type: var, key: remote_addr, rejected_code: 429, policy: local }
+    upstream: { type: roundrobin, nodes: { "@CORE@": 1 } }
   # Customer access to the status page (Phase 3 P3-R2) is public (no account) and answers the same for every reference;
   # bounded per client address against guessing references and codes (the core also bounds codes per reference and
   # tries per code).

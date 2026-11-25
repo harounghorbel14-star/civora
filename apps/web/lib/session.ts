@@ -52,6 +52,7 @@ const MAX_PENDING = 10_000;
 export class MemorySessionStore {
   private readonly sessions = new Map<string, Session>();
   private readonly pending = new Map<string, PendingLogin>();
+  private readonly recoveries = new Map<string, { attemptId: string; lang: string; createdAt: number }>();
 
   constructor(private readonly opts: { idleMs: number; maxMs: number; now?: () => number; maxPending?: number }) {}
 
@@ -117,6 +118,26 @@ export class MemorySessionStore {
     const p = this.pending.get(id) ?? null;
     this.pending.delete(id);
     return p && this.now() - p.createdAt <= PENDING_MS ? p : null;
+  }
+
+  /** A recovery attempt waiting for the eID's answer (no session: the person cannot sign in). Bounded and single use like pending sign-ins. */
+  putRecovery(r: { attemptId: string; lang: string }): string {
+    const t = this.now();
+    const cap = this.opts.maxPending ?? MAX_PENDING;
+    for (const [k, v] of this.recoveries) {
+      if (t - v.createdAt > PENDING_MS || this.recoveries.size >= cap) this.recoveries.delete(k);
+      else break;
+    }
+    const id = newId();
+    this.recoveries.set(id, { ...r, createdAt: t });
+    return id;
+  }
+
+  takeRecovery(id: string | undefined): { attemptId: string; lang: string } | null {
+    if (!id) return null;
+    const r = this.recoveries.get(id) ?? null;
+    this.recoveries.delete(id);
+    return r && this.now() - r.createdAt <= PENDING_MS ? { attemptId: r.attemptId, lang: r.lang } : null;
   }
 
   get size(): number {

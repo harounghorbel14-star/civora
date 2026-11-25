@@ -2,7 +2,7 @@ import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 import { codeDigest, normaliseReference, referenceDigest, StatusAccess } from './status-access';
 
-const CASE = { reference: 'SYN-RC-1-00001', institution: 'Banque Exemple 1 (fictif)', status: 'decided' as const, since: '2026-11-10', contactEmail: 'client1.t1@synthetic.invalid' };
+const CASE = { reference: 'SYN-RC-1-00001', institution: 'Banque Exemple 1 (fictif)', status: 'decided' as const, since: '2026-11-10', contactPhone: '+21601234567', contactEmail: 'client1.t1@synthetic.invalid' };
 
 function harness(sendBound = 3) {
   const sent: { to: string; text: string; subject: string }[] = [];
@@ -45,6 +45,15 @@ describe('customer status page (P3-R2)', () => {
     assert.match(sent[0]!.text, /\b\d{6}\b/);
     assert.match(sent[0]!.subject, /code CIVORA/);
   });
+  it('SMS on request: the code goes to the phone on file (simulated channel), never to a number the person types', async () => {
+    const { svc, sent } = harness();
+    const c = await svc.start(CASE.reference, 'en', 'cid', 'sms');
+    await flush();
+    assert.ok(c);
+    assert.equal(sent.at(-1)!.to, '+21601234567');
+    assert.match(sent.at(-1)!.text, /\d{6}/);
+  });
+
   it('the right code shows the status once; the contact on file is never returned', async () => {
     const { svc, sent } = harness();
     const c = await svc.start(CASE.reference.toLowerCase(), 'en', 'c');

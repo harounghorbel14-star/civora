@@ -31,13 +31,15 @@
 | 4 | Citizen web app (backend-for-frontend) in AR/FR/EN; acting on behalf of (F6); customer status page with one-time codes (R2); messaging port (simulated e-mail); web E2E (T2, AC1) | **Done** (local) | [09](09-citizen-web-app.md): whole realms run 199 checks, all passed (38 web app checks); 139 tests (core 99, web 22); gateway 19/19; dev cell 17/17 |
 | 4 | Mobile shell + Detox plan (Q3-3) | **Plan done**; the app is built with its emulator job | [10](10-mobile-shell-and-detox-plan.md) |
 | 5 | Mandate scopes as Cedar policies (T4); negative tests (T3); ASVS 5.0 L3 assessment of the identity system (SEC1) with fixes (password deny list and context words, session ending with step-up and "end all others", web app resource isolation, CSP reports, HSTS); rate limits on every route (SEC2); every flow in AR/FR/EN (AC1) | **Done** (local) | [11](11-security-verification.md): whole realms run **254 checks, all passed** (22 negative, 58 web app); 154 unit and database tests; gateway 20/20; dev cell 17/17; ASVS: 121 of 143 applicable met |
+| 5 | GitHub on `ca766aa` | CI run 63 **green**; nightly run 30 **green** after re-running the Valkey-on-k3s job (a failover-timing race, doc 13 SR-14) | Merged into `main`: PR #10 (`d27c490`) |
+| 6 | Account recovery by re-proofing at the simulated eID (D5, SEC4), security notices, simulated SMS channel (F1), pairwise mirror (DB6), quotas (R-P3-15), assisted use (RISK); internal security review (AC2), readiness report, acceptance checklist | **Done** (local) | [12](12-recovery-notices-sms-pairwise.md), [13](13-security-review-and-readiness.md): whole realms run **274 checks, all passed** (recovery in three languages, pairwise mirror verified against Keycloak, SAML replay refused, N23); 170 unit and database tests; gateway 21/21; dev cell 17/17; no open high finding |
 
-## Completion estimate (22 Nov 2026, updated after week 5)
+## Completion estimate (25 Nov 2026, updated after week 6)
 
 Each of the 43 work items of the specification ([00](00-phase-3-start-and-specification-audit.md); objectives,
 dependency, time and budget lines excluded) scored by what is built **and tested**: 0, 25, 50, 75 or 100 %.
-**Phase 3: about 87 %** (37.25 of 43). Acceptance criteria: 2 of 3 met (AC1, AC3), AC2 not started (week 6).
-Time: 5 of 6 planned weeks used (week 5 complete; the mobile app is built with its emulator job, doc 10). The scoring is an engineering estimate, not an acceptance decision.
+**Phase 3: about 95 %** (41.0 of 43). Acceptance criteria: **3 of 3 met** (AC1, AC2 self-review, AC3).
+Time: 6 of 6 planned weeks used. Not reached 100 %: the mobile app and its Detox job (A2, T2, T1), G3/G4/G5 (SEC1), the web app's edge route (SEC2), SMS sign-in (F1, Q3-7), production re-proofing evidence (SEC4, Q3-4), counter-assisted flows (RISK, Phase 6). The scoring is an engineering estimate, not an acceptance decision.
 
 | Item | Done | What is missing |
 |---|---|---|
@@ -45,12 +47,12 @@ Time: 5 of 6 planned weeks used (week 5 complete; the mobile app is built with i
 | P3-D2 profile | 100% | GET/PATCH /v1/me and the preferences screen in three languages (doc 09) |
 | P3-D3 mandates | 100% | domain, API, audit events, screens, acting on behalf (doc 09) |
 | P3-D4 simulated eID adapter | 100% | port NationalEid, simulated-oidc adapter, ADR-028 mode rules, simulator realm (doc 06) |
-| P3-D5 account recovery design | 0% | week 6 |
+| P3-D5 account recovery design | 100% | recovery paths R1–R3 designed (doc 12 §1); R1 (re-proofing at the eID) built and tested in three languages |
 | P3-A1 realms per cell | 100% |  |
 | P3-A2 OIDC to apps | 75% | citizen web app as a backend-for-frontend (doc 09); the mobile client comes with the mobile app (doc 10) |
 | P3-A3 pairwise subject IDs | 100% |  |
 | P3-A4 step-up flows | 100% | RFC 9470 step-up on sensitive actions (doc 04) |
-| P3-F1 passkeys, TOTP, SMS fallback | 75% | SMS fallback waits on Q3-1 |
+| P3-F1 passkeys, TOTP, SMS fallback | 75% | a simulated SMS channel is built (status-page codes, doc 12 §3); SMS as a sign-in fallback conflicts with ASVS L3: founder decision Q3-7 (provider: Q3-1) |
 | P3-F2 device management | 100% | list, add (Keycloak action), remove with last-way protection (doc 04) |
 | P3-F3 language preference | 100% | stored, validated and applied in the web app (ar/fr/en, right to left) |
 | P3-F4 accessibility preferences | 100% | stored, validated and applied in the web app (text size, contrast, motion) |
@@ -61,26 +63,26 @@ Time: 5 of 6 planned weeks used (week 5 complete; the mobile app is built with i
 | P3-DB3 iam.authenticator (mirror) | 100% | mirror refreshed through iam.sync_authenticators (doc 04) |
 | P3-DB4 iam.identity_claim | 100% | keyed digests from the eID adapter; one identity per person (doc 06) |
 | P3-DB5 iam.mandate | 100% |  |
-| P3-DB6 iam.pairwise_id | 50% | table with RLS; pairwise ids issued by Keycloak, mirror not filled |
+| P3-DB6 iam.pairwise_id | 100% | mirror filled by the core, computed as Keycloak does (verified against a real token), shown in GET /v1/me/pairwise (doc 12 §4) |
 | P3-API1 OIDC endpoints | 100% |  |
 | P3-API2 /v1/me | 100% |  |
 | P3-API3 sessions | 100% | doc 04 |
 | P3-API4 authenticators | 100% | doc 04 |
 | P3-API5 mandates | 100% |  |
 | P3-API6 identity links (simulated eID) | 100% | start (step-up), complete, list (doc 06) |
-| P3-SEC1 ASVS L3 | 75% | assessment done (doc 11): 121 of 143 applicable L1–L3 requirements met in V3, V6–V10; gaps G1–G5 planned (notifications, recovery, adaptive controls, PAR/DPoP/private_key_jwt, HSTS preload) |
-| P3-SEC2 rate limits | 75% | every route reviewed and limited, checked by the gateway test (doc 11 §5); open: per-person and per-tenant quotas (R-P3-15), the web app's edge route (ADR-030, PG-8) |
+| P3-SEC1 ASVS L3 | 75% | assessment (doc 11), updated after week 6: 124 of 143 applicable L1–L3 requirements met in V3, V6–V10; G2 (recovery) closed, G1 partly; open: G3 adaptive controls, G4 PAR/DPoP/private_key_jwt, G5 HSTS preload |
+| P3-SEC2 rate limits | 75% | every route reviewed and limited, checked by the gateway test (doc 11 §5); quotas per person and institution (R-P3-15, week 6); open: the web app's edge route (ADR-030, PG-8) |
 | P3-SEC3 credential stuffing | 100% |  |
-| P3-SEC4 recovery re-proofing | 0% | week 6, depends on Q3-4 |
+| P3-SEC4 recovery re-proofing | 75% | built and tested with the simulated eID (level of the link, same answer, notices; doc 12); which evidence is acceptable in production is founder/counsel decision Q3-4 |
 | P3-SEC5 officers require FIDO2 | 100% | approved models: founder decision Q3-5 |
 | P3-T1 unit + integration | 75% | 139 tests (core 99 with PostgreSQL, web 22) and the realms integration run (199 checks); grows with each feature |
 | P3-T2 E2E Playwright, Detox | 75% | Playwright through the web app in three languages (doc 09); Detox planned, needs its emulator job (doc 10) |
 | P3-T3 negative tests (session fixation, CSRF, token replay) | 100% | 22 attack checks (N1–N22, doc 11 §6) besides the earlier forgery, replay and WebAuthn checks |
 | P3-T4 mandate-scope authorisation tests | 100% | Cedar policies with 20 decision cases and 8 negative controls; the core answers permissions from them (doc 11 §7); domain endpoints use the same engine when they arrive |
 | P3-AC1 all auth flows E2E in AR/FR/EN | 100% | every flow in each of the three languages (doc 11 §8) |
-| P3-AC2 no high findings in internal security review | 0% | review in week 6 |
+| P3-AC2 no high findings in internal security review | 100% | self-review done, no open high finding; one high found and fixed before merge (doc 13); external test: PG-8 |
 | P3-AC3 mandate actions logged and visible | 100% |  |
-| P3-RISK SMS reliance, passkey usability for elderly users | 25% | password + TOTP alternative exists; assisted flows not designed |
+| P3-RISK SMS reliance, passkey usability for elderly users | 75% | mitigations designed and mostly built (doc 12 §5): no SMS sign-in, password + TOTP, mandates for helpers, eID recovery; counter-assisted flows need the Phase 6 Workspace |
 | P3-R1 institution staff SSO | 100% | OIDC and SAML institutions, tenant from configuration, key after SSO, no account linking (doc 07) |
 | P3-R2 customer OTP status page | 100% | reference + code to the contact on file, no enumeration, simulated e-mail (SMS: Q3-1) (doc 09) |
 | P3-R3 branch/team roles | 100% | units, scoped roles, invitations, admin API (doc 05) |

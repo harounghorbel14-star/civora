@@ -18,17 +18,18 @@ whole application before the pilot (PG-8), not here.
 
 | Chapter | Requirements (L1–L3) | Met | Met, deviation documented | Partial | Gap | Not applicable |
 |---|---|---|---|---|---|---|
-| V6 Authentication | 47 | 34 | 2 | 4 | 4 | 3 |
+| V6 Authentication | 47 | 37 | 2 | 4 | 1 | 3 |
 | V7 Session Management | 19 | 16 | 1 | 2 | 0 | 0 |
 | V8 Authorization | 13 | 9 | 0 | 3 | 1 | 0 |
 | V9 Self-contained Tokens | 7 | 7 | 0 | 0 | 0 | 0 |
 | V10 OAuth and OIDC | 36 | 26 | 0 | 1 | 5 | 4 |
 | V3 Web Frontend Security | 31 | 26 | 0 | 1 | 1 | 3 |
-| **Total** | **153** | **118** | **3** | **11** | **11** | **10** |
+| **Total** | **153** | **121** | **3** | **11** | **8** | **10** |
 
-**Met (including documented deviations): 121 of 143 applicable requirements (84.6 %).** The assessment itself is
-complete; the identity system does **not yet** meet ASVS L3 in full. The open items are 11 gaps (G1–G5 in §4) and 11
-partial items, each with an owner and a plan. Found and fixed during the assessment (all tested, §9):
+**Met (including documented deviations): 124 of 143 applicable requirements (86.7 %)** after week 6 (121 at the end
+of week 5). The assessment itself is complete; the identity system does **not yet** meet ASVS L3 in full. The open
+items are 8 gaps (G1 in part, G3–G5 in §4) and 11 partial items, each with an owner and a plan. Week 6 closed G2
+(account recovery: V6.4.3, V6.4.4), half of G1 (notices: V6.3.7 now partial) and verified V6.8.3 (SAML replay refused). Found and fixed during the assessment (all tested, §9):
 
 | Fixed | ASVS |
 |---|---|
@@ -102,8 +103,8 @@ sign-in factor; it is a delivery channel only (status page codes, notifications)
 
 | | ASVS | Gap | Plan |
 |---|---|---|---|
-| G1 | V6.3.5, V6.3.7 | No notification of suspicious sign-ins or of changes to ways of signing in | Week 6 with recovery: notifications through the messaging port (simulated e-mail), in the person's language |
-| G2 | V6.4.3, V6.4.4 | No account recovery yet | Week 6: P3-D5 design and P3-SEC4 re-proofing through the (simulated) eID at the enrolment level |
+| G1 | V6.3.5, V6.3.7 | No notification of suspicious sign-ins; changes on Keycloak's own pages send no notice | **Partly closed in week 6** ([doc 12 §2](12-recovery-notices-sms-pairwise.md)): notices after recovery and after removing a way to sign in. Open: Keycloak sign-in events (with G3) |
+| G2 | V6.4.3, V6.4.4 | No account recovery | **Closed in week 6** ([doc 12 §1](12-recovery-notices-sms-pairwise.md)): re-proofing at the (simulated) eID at the level of the identity link, tested in three languages |
 | G3 | V8.2.4 (and part of V8.4.2) | No adaptive controls (new device, location, time) | Design in week 6 (signals → step-up and notification); implementation before the pilot (PG-8) |
 | G4 | V10.3.5, V10.4.12–V10.4.14, V10.4.16 | The web app is a public client with PKCE: no pushed authorization requests (PAR), no sender-constrained tokens (DPoP), no `private_key_jwt` | Week 6: the web app as a confidential client with `private_key_jwt`, PAR required, DPoP-bound tokens checked by the core (Keycloak 26 supports all three); the mobile app with its build |
 | G5 | V3.7.4 | The production domain is not on the HSTS preload list | Needs the production domain (founder decision); before the pilot (PG-8) |
@@ -238,12 +239,12 @@ Status key: Met; Met, deviation documented (§3); Partial; Gap (§4); Not applic
 | V6.3.4 | L2 | No undocumented pathways | Met | realm checker: browser, direct grant (disabled), first broker login, post broker login flows evaluated; the `admin-cli` password grant defect closed (doc 03 §5) |
 | V6.3.5 | L3 | Notify of suspicious attempts | Gap | G1 |
 | V6.3.6 | L3 | E-mail not an authentication factor | Met | no magic links, no e-mail reset (`resetPasswordAllowed=false`); e-mail only carries the one-time activation link |
-| V6.3.7 | L3 | Notify after authentication details change | Gap | G1 |
+| V6.3.7 | L3 | Notify after authentication details change | Partial | notices after recovery and after removing a way to sign in (doc 12 §2); not yet for changes on Keycloak's own pages (G1) |
 | V6.3.8 | L3 | No user enumeration (incl. registration, recovery) | Met | R-P3-1 tests: same answers and timing for registration and login (doc 03 §9); status page same answer (doc 09) |
 | V6.4.1 | L1 | Initial secrets random, short-lived, single use | Met | activation links: Keycloak action tokens, single use (tested), lifetime set by the core |
 | V6.4.2 | L1 | No hints or secret questions | Met | none |
-| V6.4.3 | L2 | Forgotten password reset keeps MFA | Gap | G2 (no self-service recovery yet: W6, P3-D5) |
-| V6.4.4 | L2 | Lost factor: re-proofing at enrolment level | Gap | G2 (P3-SEC4, W6, re-proofing through the simulated eID) |
+| V6.4.3 | L2 | Forgotten password reset keeps MFA | Met | recovery removes every credential and asks for the authenticator app again before a new password; never by e-mail alone (doc 12 §1) |
+| V6.4.4 | L2 | Lost factor: re-proofing at enrolment level | Met | re-proofing at the (simulated) eID at least at the level of the identity link, and at least substantial (doc 12 §1); accounts without a link: assisted recovery at a counter (Phase 6) |
 | V6.4.5 | L3 | Renewal reminders for expiring mechanisms | Not applicable | no authentication mechanism expires |
 | V6.4.6 | L3 | Admin-initiated reset without choosing the password | Met | invitations and resets by e-mailed action link; administrators never know a password (doc 05) |
 | V6.5.1 | L2 | OTPs usable once | Met | TOTP replay refused (doc 03 §4); status codes single use (doc 09) |
@@ -262,7 +263,7 @@ Status key: Met; Met, deviation documented (§3); Partial; Gap (§4); Not applic
 | V6.7.2 | L3 | Challenge nonce at least 64 bits | Met | WebAuthn challenges generated by Keycloak per ceremony (128-bit random) |
 | V6.8.1 | L2 | No spoofing across identity providers | Met | doc 07: create-only first sign-in, no linking by e-mail, usernames namespaced by provider; tests |
 | V6.8.2 | L2 | Assertion signatures always validated | Met | checker: OIDC `validateSignature`, SAML signed assertions required (negative controls) |
-| V6.8.3 | L2 | SAML assertions used once | Partial | Keycloak checks assertion validity; replay within the validity window not tested yet (internal review, W6) |
+| V6.8.3 | L2 | SAML assertions used once | Met | a captured SAML response replayed from the same browser or another client gives no session and no code (SSO check, week 6) |
 | V6.8.4 | L2 | Strength and recency from the IdP verified | Met | the core checks `auth_time`/`acr` (doc 04); SSO always followed by the CIVORA key (doc 07) |
 
 ### V7 Session Management

@@ -1,4 +1,4 @@
-import { BadRequestException, Body, ConflictException, Controller, Delete, ForbiddenException, Get, HttpCode, HttpException, Inject, NotFoundException, Param,
+import { BadRequestException, Body, ConflictException, Controller, Delete, ForbiddenException, Get, HttpCode, HttpException, HttpStatus, Inject, NotFoundException, Param,
   ParseUUIDPipe, Post, Put, Req, ServiceUnavailableException, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiConflictResponse, ApiCreatedResponse, ApiForbiddenResponse, ApiNoContentResponse, ApiNotFoundResponse, ApiOkResponse,
   ApiOperation, ApiProperty, ApiPropertyOptional, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
@@ -21,6 +21,7 @@ function translate(e: unknown): never {
   if (code === 'P0002') throw new NotFoundException();
   if (code === '22023' || code === '23514') throw new BadRequestException({ errors: [(e as Error).message] });
   if (code === '23505') throw new ConflictException('Already exists');
+  if (code === '53400') throw new HttpException((e as Error).message, HttpStatus.TOO_MANY_REQUESTS);
   throw e as Error;
 }
 

@@ -54,6 +54,24 @@ describe('account security: sessions and authenticators (P3-API3, P3-API4, P3-F2
     assert.deepEqual(dir.deleted, ['cred:k']);
   });
 
+  it('a removal sends a notice naming the kind (ASVS V6.3.7); a refused removal sends none; a failing notice never fails the removal', async () => {
+    const dir = new FakeDirectory();
+    const notices: string[] = [];
+    let fail = false;
+    const sec = new AccountSecurity({ citizens: dir }, async () => undefined, async (realm, subject, e) => {
+      if (fail) throw new Error('mail relay down');
+      notices.push(`${realm}:${subject}:${e.type}:${e.kind}`);
+    });
+    dir.creds.set('user-1', [cred('p', 'password'), cred('o', 'otp'), cred('k', 'webauthn-passwordless'), cred('k2', 'webauthn-passwordless')]);
+    assert.equal(await sec.removeAuthenticator('person-1', token(), 'k'), 'removed');
+    assert.deepEqual(notices, ['citizens:user-1:authenticator-removed:passkey']);
+    fail = true;
+    assert.equal(await sec.removeAuthenticator('person-1', token(), 'k2'), 'removed');
+    fail = false;
+    assert.equal(await sec.removeAuthenticator('person-1', token(), 'o'), 'last-way-to-sign-in');
+    assert.equal(notices.length, 1);
+  });
+
   it('an officer cannot remove their only security key; another person\'s credential is not found', async () => {
     const { dir, sec } = setup();
     dir.creds.set('officer', [cred('p', 'password'), cred('key', 'webauthn')]);

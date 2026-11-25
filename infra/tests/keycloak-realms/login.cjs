@@ -334,6 +334,20 @@ async function securityChecks(browser, citizen, officer) {
   check('C8 policy re-run salts it', pol.status === 0 && /rp-other-agency: pairwise salt generated/.test(pol.stdout), pol.stdout + pol.stderr);
   subs.push((await rpLogin('rp-other-agency', RP2_CB, rp2Secret)).sub);
   check('C8 pairwise: A ≠ internal id, stable for A, different for B', subs[0] && subs[0] !== citizen.userId && subs[0] === subs[1] && subs[2] && subs[2] !== subs[0], subs.join(' '));
+  // P3-DB6: the core computes the same pairwise subject as Keycloak (so it can mirror it in iam.pairwise_id).
+  {
+    const { pairwiseSub, sectorOf } = require(path.join(process.env.REPO_DIR || path.resolve(__dirname, '..', '..', '..'), 'services', 'core', 'dist', 'src', 'modules', 'identity-access', 'pairwise.js'));
+    const rp = (await admin('GET', 'civora-citizens/clients?clientId=rp-example-agency'))[0];
+    const mapper = (rp.protocolMappers ?? []).find((m) => m.protocolMapper === 'oidc-sha256-pairwise-sub-mapper');
+    const sector = sectorOf(mapper?.config?.sectorIdentifierUri || undefined, rp.redirectUris ?? []);
+    const computed = mapper && sector ? pairwiseSub(sector, citizen.userId, mapper.config.pairwiseSubAlgorithmSalt) : null;
+    check('C8 the core computes the same pairwise subject as Keycloak (sector, user id, salt): the mirror needs no relying party', computed === subs[0], `${computed} ${subs[0]} ${sector}`);
+    // The core mirrors it (iam.pairwise_id) and shows the person which service knows them under which identifier.
+    const own = await rpLogin('civora-web', WEB_CB);
+    const mine = own.body?.access_token ? await core(own.body.access_token, '/v1/me/pairwise') : { status: 0, body: [] };
+    check('C8 GET /v1/me/pairwise: the core mirrored the relying party\'s identifier for this citizen (iam.pairwise_id)',
+      mine.status === 200 && Array.isArray(mine.body) && mine.body.some((r) => r.sector === sector && r.subject === subs[0]), mine.raw ?? JSON.stringify(mine.body));
+  }
 
   await refreshAdmin();
   check('K1 core refuses a token from an untrusted realm (master): 401', (await core(lib.adminToken())).status === 401);

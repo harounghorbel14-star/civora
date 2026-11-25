@@ -85,7 +85,7 @@ for p in citizens staff; do
   before=$(python3 "$checker" "$work/$p.imported.json" --profile "$p" --live | grep -c FAIL || true)
   echo "  info civora-$p as imported, before policy: $before rule(s) not met (Keycloak's built-in defaults)"
   extra=(--smtp-host kr-mail --smtp-port 1025)
-  [ "$p" = citizens ] && extra+=(--provisioner-secret-out "$work/provisioner.secret")
+  [ "$p" = citizens ] && extra+=(--provisioner-secret-out "$work/provisioner.secret" --pairwise-out "$work/pairwise.json")
   [ "$p" = staff ] && extra+=(--provisioner-secret-out "$work/staff-provisioner.secret")
   [ "$p" = staff ] && extra+=(--approved-keys "$approved")
   python3 "$repo/infra/keycloak/apply-realm-policy.py" --server "$kc" --realm "civora-$p" --profile "$p" --export "$work/$p.live.json" "${extra[@]}" | sed 's/^/  /'
@@ -108,7 +108,10 @@ curl -sf --noproxy '*' -H "Authorization: Bearer $KC_ADMIN_TOKEN" "$kc/admin/rea
 eid_env=(EID_SIM_ISSUER="$kc/realms/sim-national-eid" EID_SIM_CLIENT_SECRET_FILE="$work/eid.secret" EID_REDIRECT_URI="$eid_cb"
   IDENTITY_CLAIM_DIGEST_KEY_FILE="$work/digest.key"
   # Customer status page (P3-R2): synthetic cases; one-time codes by the simulated e-mail channel to the mail catcher.
-  SYNTHETIC_CASES=on MESSAGING_SMTP_HOST=127.0.0.1 MESSAGING_SMTP_PORT="$mail_smtp")
+  SYNTHETIC_CASES=on MESSAGING_SMTP_HOST=127.0.0.1 MESSAGING_SMTP_PORT="$mail_smtp"
+  # Week 6: SMS through the simulated channel (register M-01; delivery only, never a sign-in factor); the relying
+  # parties' pairwise sectors and salts written by the policy, for the core's mirror (P3-DB6).
+  MESSAGING_SMS=simulated PAIRWISE_SECTORS_FILE="$work/pairwise.json")
 core_port=$(free_port)
 (cd "$repo/services/core" && CIVORA_ENV=test PORT="$core_port" DATABASE_URL="postgres://civora_core_app:$app_pw@127.0.0.1:$db_port/civora_core" \
   OIDC_ISSUER_CITIZENS="$kc/realms/civora-citizens" OIDC_ISSUER_STAFF="$kc/realms/civora-staff" \

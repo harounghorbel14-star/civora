@@ -44,8 +44,15 @@ export type RemoveResult = 'removed' | 'not-found' | 'last-way-to-sign-in';
 /** Synchronises the metadata mirror iam.authenticator (P3-DB3) for the person's account in a realm. */
 export type MirrorSync = (personId: string, realm: Realm, items: AuthenticatorView[]) => Promise<void>;
 
+/** Tells the person that a way to sign in changed (ASVS 5.0 V6.3.7); never fails the action that caused it. */
+export type SecurityNotice = (realm: Realm, subject: string, event: { type: 'authenticator-removed'; kind: AuthenticatorKind }) => Promise<void>;
+
 export class AccountSecurity {
-  constructor(private readonly directories: Partial<Record<Realm, AccountDirectory>>, private readonly mirror: MirrorSync) {}
+  constructor(
+    private readonly directories: Partial<Record<Realm, AccountDirectory>>,
+    private readonly mirror: MirrorSync,
+    private readonly notice: SecurityNotice = async () => undefined,
+  ) {}
 
   configured(realm: Realm): boolean {
     return !!this.directories[realm];
@@ -74,6 +81,7 @@ export class AccountSecurity {
     if (!canSignIn(token.realm, remaining)) return 'last-way-to-sign-in';
     await dir.deleteCredential(token.subject, id);
     await this.mirror(personId, token.realm, authenticatorViews(creds.filter((c) => c.id !== id)));
+    await this.notice(token.realm, token.subject, { type: 'authenticator-removed', kind: KIND_OF[target.type]! }).catch(() => undefined);
     return 'removed';
   }
 

@@ -14,7 +14,7 @@ const path = require('node:path');
 const { chromium } = require('playwright');
 const lib = require('./lib.cjs');
 const { KC, LANG, LOCALES, check, info, stamp, sleep, admin, freshTotp, activationMail, mails, newContext, addAuthenticator, waitFor, core, visible,
-  submit, activate, tag, pw, pageLanguage } = lib;
+  submit, activate, tag, pw, pageLanguage, recoveryMails } = lib;
 
 const WEB = process.env.WEB_URL;
 const STEP_UP = Number(process.env.STEP_UP_MAX_AGE_SECONDS || 30);
@@ -185,6 +185,20 @@ async function signOutChecks(x, lang, who) {
     const signedIn = {};
     for (const [i, lang] of LOCALES.entries()) signedIn[lang] = await journey(browser, lang, i);
 
+    stamp('status page code by SMS to the number on file (simulated SMS, register entry M-01; never a sign-in factor)');
+    {
+      const kase = dataset.cases[LOCALES.length];
+      const phone = dataset.customers.find((c) => c.id === kase.customerId).phone;
+      const box = `sms.${phone.replace(/\D/g, '')}@sms.civora-cell.invalid`;
+      const before = (await mails(box)).length;
+      const st = await core(undefined, '/v1/status-access', post({ reference: kase.reference, locale: 'fr-TN', channel: 'sms' }));
+      const code = await statusCode(box, before);
+      const shown = st.status === 202 && code ? await core(undefined, `/v1/status-access/${st.body.challengeId}:verify`, post({ reference: kase.reference, code })) : { status: 0 };
+      const bad = await core(undefined, '/v1/status-access', post({ reference: kase.reference, channel: 'pigeon' }));
+      check('the code goes by SMS to the phone on file when asked (simulated), and shows the status; an unknown channel: 400',
+        st.status === 202 && !!code && shown.status === 200 && shown.body?.reference === kase.reference && bad.status === 400, `${st.status} ${!!code} ${shown.status} ${bad.status}`);
+    }
+
     // Ways to sign in, in every language: a passkey through Keycloak's registration; then, once all sign-ins are older
     // than the step-up limit, a removal that asks "confirm it is you" (one wait for all languages).
     const before = {};
@@ -327,6 +341,39 @@ async function signOutChecks(x, lang, who) {
       const linked = await e.page.locator('[data-testid=identity-state]').getAttribute('data-linked');
       check(`[${il}] the page says the eID is simulated; the simulator in ${il}; back on the app: linked (level substantial)`,
         LANG[il].script.test(simulatedNotice ?? '') && eidPage.lang === il && linked === 'yes', JSON.stringify({ eidPage, linked }));
+
+      stamp(`[${il}] account recovery through the web app and the SIMULATED eID (P3-SEC4)`);
+      const rc = await newContext(browser, il);
+      opened.push(rc);
+      const before = (await mails(owner.email)).length;
+      await rc.page.goto(`${WEB}/${il}`);
+      await rc.page.locator('[data-testid=recover-link]').click();
+      await waitFor(() => visible(rc.page, '[data-testid=recover-start]'), 10000);
+      const recoverPage = await html(rc.page);
+      await rc.page.locator('[data-testid=recover-start]').click();
+      await waitFor(() => visible(rc.page, '#username'), 10000);
+      const eidAgain = await pageLanguage(rc.page);
+      await rc.page.locator('#username').fill(eidUser.username);
+      await rc.page.locator('#password').fill(eidUser.password);
+      await submit(rc.page);
+      await waitFor(async () => (await notice(rc.page)) === 'recoveryRequested', 15000);
+      const answered = await notice(rc.page);
+      const got = await recoveryMails(owner.email, before);
+      check(`[${il}] recovery: page and simulator in ${il}; the same answer whether or not an account exists; an activation link and a notice in ${il} reach the account's address`,
+        recoverPage.lang === PACK[il] && eidAgain.lang === il && answered === 'recoveryRequested' && !!got.activation?.link && !!got.notice && LANG[il].script.test(got.notice.subject),
+        JSON.stringify({ page: recoverPage.lang, eid: eidAgain.lang, answered, notice: got.notice?.subject, activation: !!got.activation }));
+      const kcUser = (await admin('GET', `civora-citizens/users?exact=true&email=${encodeURIComponent(owner.email)}`))[0];
+      const left = await admin('GET', `civora-citizens/users/${kcUser.id}/credentials`);
+      const kcSessions = await admin('GET', `civora-citizens/users/${kcUser.id}/sessions`);
+      check(`[${il}] after recovery: no old way to sign in left, every Keycloak session ended`, left.length === 0 && kcSessions.length === 0, `${left.length} ${kcSessions.length}`);
+      const again = await newContext(browser, il);
+      opened.push(again);
+      const act2 = got.activation?.link ? await activate(again.page, got.activation.link) : { seen: [], langs: [] };
+      const fresh = await newContext(browser, il);
+      opened.push(fresh);
+      const back = act2.password ? await webSignIn(fresh, il, { email: owner.email, password: act2.password, secret: act2.secret }) : { ok: false };
+      check(`[${il}] the link sets new ways to sign in in ${il} (authenticator app, then password); signed in again through the web app`,
+        act2.seen.join('>') === 'TOTP>PASSWORD' && act2.langs.every((l) => l === il) && !!back.ok, JSON.stringify({ seen: act2.seen, langs: act2.langs, ok: back.ok }));
     }
     for (const ctx of opened) await ctx.context.close();
   } finally {

@@ -162,6 +162,18 @@ describe('identity and mandates, end to end (Phase 3 week 1)', { skip: !adminUrl
     assert.equal(Object.values(await allowed(abe)).some(Boolean), false, 'nothing after revocation');
   });
 
+  it('quota (R-P3-15): at most 30 mandate proposals a day per person; the 31st gets 429', async () => {
+    const quinn = await sign('quinn');
+    const expiresAt = new Date(Date.now() + 7 * 86400_000).toISOString();
+    for (let i = 0; i < 30; i++) {
+      const r = await call('/v1/mandates', quinn, { method: 'POST', body: { scopes: ['cases:read'], expiresAt } });
+      assert.equal(r.status, 201, `proposal ${i + 1}`);
+    }
+    assert.equal((await call('/v1/mandates', quinn, { method: 'POST', body: { scopes: ['cases:read'], expiresAt } })).status, 429);
+    const other = await sign('rita');
+    assert.equal((await call('/v1/mandates', other, { method: 'POST', body: { scopes: ['cases:read'], expiresAt } })).status, 201, 'another person is not affected');
+  });
+
   it('refuses delegation of identity or mandates, unknown scopes and over-long mandates', async () => {
     const alice = await sign('alice');
     const r = await call('/v1/mandates', alice, { method: 'POST', body: { scopes: ['mandates:manage', 'cases:read'], expiresAt: new Date(Date.now() + 400 * 86_400_000).toISOString() } });
@@ -315,6 +327,36 @@ describe('identity and mandates, end to end (Phase 3 week 1)', { skip: !adminUrl
     const r = await call('/v1/identity/links', old, { method: 'POST', body: {} });
     assert.equal(r.status, 401);
     assert.match(r.headers.get('www-authenticate') ?? '', /insufficient_user_authentication/);
+  });
+
+  it('account recovery (P3-SEC4), database as the application role: single use, matched by digest only, level of the link, 3 per day', async () => {
+    const c = new Client({ connectionString: appDbUrl });
+    await c.connect();
+    const d = (n: number) => Buffer.alloc(32, n);
+    const one = async (sql: string, args: unknown[] = []) => (await c.query(sql, args)).rows[0];
+    const start = async (state: number) => (await one('select iam.start_recovery($1, $2, $3, 600) as id', [d(state), 'n'.repeat(43), 'v'.repeat(43)])).id as string;
+    const claim = (id: string, state: number) => one('select * from iam.claim_recovery($1, $2)', [id, d(state)]);
+    const finish = (id: string, digest: Buffer | null, loa: string | null) => one('select * from iam.finish_recovery($1, $2, $3)', [id, digest, loa]);
+    const round = async (state: number, digest: Buffer | null, loa: string | null) => { const id = await start(state); await claim(id, state); return finish(id, digest, loa); };
+    const NID = d(200); // fay's linked identity (previous test), linked at level "high"
+
+    const r1 = await start(1);
+    await assert.rejects(claim(r1, 9), /no such open recovery attempt/, 'wrong state');
+    assert.deepEqual(await claim(r1, 1), { nonce: 'n'.repeat(43), code_verifier: 'v'.repeat(43) });
+    await assert.rejects(claim(r1, 1), /no such open recovery attempt/, 'single use');
+    const won = await finish(r1, NID, 'high');
+    assert.deepEqual([won.outcome, won.subject, /^[0-9a-f-]{36}$/.test(won.person_id)], ['recovered', 'fay', true], 'the account to reset: by subject');
+    await assert.rejects(finish(r1, NID, 'high'), /no such claimed recovery attempt/, 'an outcome is recorded once');
+    assert.equal((await round(2, d(250), 'high')).outcome, 'no-account', 'an identity linked to no account');
+    assert.equal((await round(3, NID, 'substantial')).outcome, 'level-too-low', 'below the level of the link (high)');
+    const rej = await round(4, null, null);
+    assert.deepEqual([rej.outcome, rej.person_id, rej.subject], ['rejected', null, null]);
+    assert.equal((await round(5, NID, 'high')).outcome, 'recovered');
+    assert.equal((await round(6, NID, 'high')).outcome, 'recovered');
+    assert.equal((await round(7, NID, 'high')).outcome, 'limited', 'at most 3 recoveries of one person in 24 hours');
+    await assert.rejects(one('select iam.start_recovery($1, $2, $3, 30)', [d(8), 'n'.repeat(43), 'v'.repeat(43)]), /60\.\.900/);
+    await assert.rejects(c.query('select count(*) from iam.recovery_attempt'), /permission denied/);
+    await c.end();
   });
 
   it('status page (P3-R2), database as the application role: 3 codes per reference, 5 tries, single use, bound to the reference', async () => {

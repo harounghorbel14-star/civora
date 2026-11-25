@@ -53,6 +53,8 @@ def main():
     ap.add_argument("--smtp-from", default="no-reply@civora-cell.invalid")
     ap.add_argument("--approved-keys", help="JSON file listing the approved security-key models ([{\"aaguid\": ..., \"model\": ...}]); "
                     "their vendor attestation roots must be in Keycloak's truststore (conf/truststores)")
+    ap.add_argument("--pairwise-out", help="write the relying parties' pairwise sectors and salts (JSON, mode 0600) for the core's "
+                    "mirror of pairwise ids (P3-DB6); a deployment secret, never in Git")
     ap.add_argument("--provisioner-secret-out", help="regenerate the civora-core-provisioner secret and write it to this file "
                     "(mode 0600) for the core's secret store; the secret never goes to Git")
     a = ap.parse_args()
@@ -94,6 +96,21 @@ def main():
             if m.get("protocolMapper") == "oidc-sha256-pairwise-sub-mapper" and not (m.get("config") or {}).get("pairwiseSubAlgorithmSalt"):
                 call(a.server, token, "PUT", f"/admin/realms/{realm}/clients/{c['id']}/protocol-mappers/models/{m['id']}", m)
                 print(f"  policy: client {c['clientId']}: pairwise salt generated")
+    if a.pairwise_out:
+        from urllib.parse import urlparse
+        sectors = []
+        for c in call(a.server, token, "GET", f"/admin/realms/{realm}/clients?max=1000"):
+            for m in c.get("protocolMappers") or []:
+                cfg = m.get("config") or {}
+                if m.get("protocolMapper") != "oidc-sha256-pairwise-sub-mapper" or not cfg.get("pairwiseSubAlgorithmSalt"):
+                    continue
+                hosts = {urlparse(u).netloc for u in ([cfg["sectorIdentifierUri"]] if cfg.get("sectorIdentifierUri") else c.get("redirectUris") or []) if urlparse(u).netloc}
+                if len(hosts) == 1:
+                    sectors.append({"clientId": c["clientId"], "sector": hosts.pop(), "salt": cfg["pairwiseSubAlgorithmSalt"]})
+        fd = os.open(a.pairwise_out, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w") as f:
+            json.dump(sectors, f)
+        print(f"  policy: {len(sectors)} pairwise sector(s) written to {a.pairwise_out} (0600)")
     if a.smtp_host:
         rep = call(a.server, token, "GET", f"/admin/realms/{realm}")
         # Authentication to the relay, when it needs one, comes from Keycloak's vault (${vault.smtp-password}), never from here.

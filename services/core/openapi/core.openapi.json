@@ -141,6 +141,23 @@
         ],
         "type": "object"
       },
+      "CompleteRecovery": {
+        "properties": {
+          "code": {
+            "description": "The code the eID returned to the app callback",
+            "type": "string"
+          },
+          "state": {
+            "description": "The state the eID returned to the app callback",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "state"
+        ],
+        "type": "object"
+      },
       "CreateMandate": {
         "properties": {
           "expiresAt": {
@@ -819,6 +836,25 @@
         ],
         "type": "object"
       },
+      "PairwiseDto": {
+        "properties": {
+          "sector": {
+            "description": "The relying party's sector (host)",
+            "example": "rp1.agency.invalid",
+            "type": "string"
+          },
+          "subject": {
+            "description": "The identifier that relying party knows you by",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sector",
+          "subject"
+        ],
+        "type": "object"
+      },
       "PermissionDto": {
         "properties": {
           "action": {
@@ -889,6 +925,50 @@
           "institution",
           "status",
           "since"
+        ],
+        "type": "object"
+      },
+      "RecoveryAcceptedDto": {
+        "properties": {
+          "status": {
+            "description": "The same answer whether or not the identity has an account",
+            "enum": [
+              "accepted"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      },
+      "RecoveryAttemptDto": {
+        "properties": {
+          "authorizationUrl": {
+            "description": "Send the browser here: a fresh authentication at the (simulated) national eID",
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "authorizationUrl",
+          "expiresAt"
         ],
         "type": "object"
       },
@@ -995,8 +1075,26 @@
         },
         "type": "object"
       },
+      "StartRecovery": {
+        "properties": {
+          "locale": {
+            "description": "Language of the eID pages",
+            "example": "fr-TN",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "StartRequest": {
         "properties": {
+          "channel": {
+            "description": "Where the code goes: the e-mail address (default) or the phone number on file (SMS)",
+            "enum": [
+              "email",
+              "sms"
+            ],
+            "type": "string"
+          },
           "locale": {
             "description": "Language of the message with the code",
             "example": "fr-TN",
@@ -1769,6 +1867,39 @@
         ]
       }
     },
+    "/v1/me/pairwise": {
+      "get": {
+        "operationId": "listMyPairwiseIds",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PairwiseDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "description": "No valid access token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Which services know you under which identifier (your pairwise subjects; citizens)",
+        "tags": [
+          "identity"
+        ]
+      }
+    },
     "/v1/me/sessions": {
       "delete": {
         "operationId": "endMyOtherSessions",
@@ -2125,6 +2256,91 @@
         "summary": "Give a staff member of your institution a role in a unit",
         "tags": [
           "organisation"
+        ]
+      }
+    },
+    "/v1/recovery": {
+      "post": {
+        "operationId": "startRecovery",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartRecovery"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecoveryAttemptDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "429": {
+            "description": "Too many recovery attempts at the moment"
+          },
+          "503": {
+            "description": "Recovery is not configured in this cell"
+          }
+        },
+        "summary": "Start recovering an account by proving your identity again at the national eID (no sign-in)",
+        "tags": [
+          "identity"
+        ]
+      }
+    },
+    "/v1/recovery/{id}:complete": {
+      "post": {
+        "operationId": "completeRecovery",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteRecovery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecoveryAcceptedDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "404": {
+            "description": "No such open attempt, or the state does not match, or it expired or was used (not distinguished)"
+          },
+          "422": {
+            "description": "The eID did not confirm an identity"
+          }
+        },
+        "summary": "Complete with the code and state the eID returned; if the identity has an account, a link is e-mailed to it",
+        "tags": [
+          "identity"
         ]
       }
     },

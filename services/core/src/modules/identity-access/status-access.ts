@@ -37,19 +37,24 @@ export class StatusAccess {
   }) {}
 
   /** Always returns a challenge id; throws only for a malformed reference (format, not existence). */
-  async start(reference: unknown, locale: unknown, correlationId: string): Promise<{ challengeId: string; expiresAt: string } | null> {
+  /**
+   * The code goes to the contact on file through the channel the person picks: e-mail (default) or SMS (simulated until
+   * Q3-1). The person never sees or types the address or number; a case without that channel gets no code (same answer).
+   */
+  async start(reference: unknown, locale: unknown, correlationId: string, channel: 'email' | 'sms' = 'email'): Promise<{ challengeId: string; expiresAt: string } | null> {
     const ref = normaliseReference(reference);
     if (!ref) return null;
     const id = randomUUID();
     const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
     const view = await this.deps.directory.find(ref);
-    const send = await this.deps.challenges.create(id, referenceDigest(ref), codeDigest(id, code), !!view?.contactEmail);
-    if (send && view) {
+    const to = channel === 'sms' ? view?.contactPhone : view?.contactEmail;
+    const send = await this.deps.challenges.create(id, referenceDigest(ref), codeDigest(id, code), !!to);
+    if (send && view && to) {
       const lang = typeof locale === 'string' && TEXT[locale.split('-')[0]!] ? locale.split('-')[0]! : 'ar';
       const t = TEXT[lang]!;
       setImmediate(() => {
         this.deps.messaging.send({
-          to: view.contactEmail, subject: t.subject, text: t.body.replace('{code}', code).replace('{minutes}', String(CODE_MINUTES)),
+          to, subject: t.subject, text: t.body.replace('{code}', code).replace('{minutes}', String(CODE_MINUTES)),
           purpose: 'status-access', correlationId,
         }).catch(() => this.deps.log({ level: 'error', msg: 'status code not delivered', correlationId }));
       });
