@@ -240,6 +240,8 @@ def violations(r, profile="dev", live=False, require_approved_keys=False):
             for m in c.get("protocolMappers", []):
                 if m.get("protocolMapper") == "oidc-sha256-pairwise-sub-mapper" and not m.get("config", {}).get("pairwiseSubAlgorithmSalt"):
                     v.append(f"{c.get('clientId')}: pairwise subject without a salt (run apply-realm-policy.py)")
+            if c.get("clientId") == "civora-web" and profile == "citizens" and not c.get("attributes", {}).get("jwks.string"):
+                v.append("civora-web: no public key for its client assertions (run apply-realm-policy.py --web-client-jwks)")
     v += [f"flow step {x}: unknown authenticator, add it to the checker before use" for x in sorted(UNKNOWN)]
     return v
 
@@ -339,6 +341,28 @@ def _violations(r, profile, require_approved_keys=False):
                 v.append(f"{cid}: attribute civora.client-kind must be first-party, relying-party or service")
             if kind == "first-party" and not audience_core(c):
                 v.append(f"{cid}: first-party client needs the civora-core audience")
+            if cid == "civora-web" and profile == "citizens":
+                # The web app (a backend-for-frontend) at ASVS 5.0 L3 (Phase 3 doc 14): confidential client with
+                # private_key_jwt, pushed authorization requests only, DPoP-bound access tokens (V10.3.5, V10.4.12-16).
+                a = c.get("attributes", {})
+                if c.get("publicClient") or c.get("clientAuthenticatorType") != "client-jwt":
+                    v.append("civora-web: must be a confidential client authenticating with a signed JWT (private_key_jwt)")
+                if a.get("token.endpoint.auth.signing.alg") not in ("ES256", "PS256", "EdDSA"):
+                    v.append("civora-web: client assertions signed with ES256, PS256 or EdDSA")
+                if a.get("use.jwks.url") == "true":
+                    v.append("civora-web: the client's public key is pinned in the client (jwks.string), not fetched from a URL")
+                if a.get("require.pushed.authorization.requests") != "true":
+                    v.append("civora-web: pushed authorization requests (PAR) required")
+                if a.get("dpop.bound.access.tokens") != "true":
+                    v.append("civora-web: access tokens bound to the client's key (DPoP)")
+            if cid == "civora-mobile" and profile == "citizens":
+                # The mobile app is a public (native) client: PAR and DPoP-bound tokens are required as for the web app;
+                # it cannot keep a client secret, so no client authentication (ASVS V10.4.16 deviation, Phase 3 doc 14).
+                a = c.get("attributes", {})
+                if a.get("require.pushed.authorization.requests") != "true":
+                    v.append("civora-mobile: pushed authorization requests (PAR) required")
+                if a.get("dpop.bound.access.tokens") != "true":
+                    v.append("civora-mobile: access tokens bound to the app's key (DPoP)")
             if kind == "service" and (c.get("publicClient") or not c.get("serviceAccountsEnabled") or c.get("standardFlowEnabled", True)
                                       or c.get("implicitFlowEnabled") or c.get("directAccessGrantsEnabled", True)):
                 v.append(f"{cid}: service client must be confidential, service account only (no browser or password flows)")
@@ -478,6 +502,15 @@ def mutations(profile, live=False, approved=False):
         "offline tokens by default": _grant_offline_by_default,
     }
     if profile in ("citizens", "staff"):
+        if profile == "citizens":
+            web = lambda r: first(r, lambda c: c.get("clientId") == "civora-web")
+            m["web app with a client secret"] = lambda r: web(r).update(clientAuthenticatorType="client-secret")
+            m["web app as a public client"] = lambda r: web(r).update(publicClient=True)
+            m["web app without PAR"] = lambda r: web(r)["attributes"].pop("require.pushed.authorization.requests")
+            m["web app without DPoP"] = lambda r: web(r)["attributes"].update({"dpop.bound.access.tokens": "false"})
+            mobile = lambda r: first(r, lambda c: c.get("clientId") == "civora-mobile")
+            m["mobile app without PAR"] = lambda r: mobile(r)["attributes"].pop("require.pushed.authorization.requests")
+            m["mobile app without DPoP"] = lambda r: mobile(r)["attributes"].pop("dpop.bound.access.tokens")
         m["no deny list of common passwords"] = lambda r: r.update(passwordPolicy=r["passwordPolicy"].replace(" and passwordBlacklist(civora-deny.txt)", ""))
         m["a context word allowed"] = lambda r: r.update(passwordPolicy=r["passwordPolicy"].replace("(?:civora|", "(?:"))
         m["unmanaged attributes enabled"] = lambda r: _set_up(r, unmanagedAttributePolicy="ENABLED")

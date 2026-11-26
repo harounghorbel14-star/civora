@@ -22,14 +22,17 @@ whole application before the pilot (PG-8), not here.
 | V7 Session Management | 19 | 16 | 1 | 2 | 0 | 0 |
 | V8 Authorization | 13 | 9 | 0 | 3 | 1 | 0 |
 | V9 Self-contained Tokens | 7 | 7 | 0 | 0 | 0 | 0 |
-| V10 OAuth and OIDC | 36 | 26 | 0 | 1 | 5 | 4 |
+| V10 OAuth and OIDC | 36 | 26 | 0 | 6 | 0 | 4 |
 | V3 Web Frontend Security | 31 | 26 | 0 | 1 | 1 | 3 |
-| **Total** | **153** | **121** | **3** | **11** | **8** | **10** |
+| **Total** | **153** | **121** | **3** | **16** | **3** | **10** |
 
 **Met (including documented deviations): 124 of 143 applicable requirements (86.7 %)** after week 6 (121 at the end
 of week 5). The assessment itself is complete; the identity system does **not yet** meet ASVS L3 in full. The open
-items are 8 gaps (G1 in part, G3–G5 in §4) and 11 partial items, each with an owner and a plan. Week 6 closed G2
-(account recovery: V6.4.3, V6.4.4), half of G1 (notices: V6.3.7 now partial) and verified V6.8.3 (SAML replay refused). Found and fixed during the assessment (all tested, §9):
+items are 3 gaps (G1 in part, G3, G5 in §4) and 16 partial items, each with an owner and a plan. Week 6 closed G2
+(account recovery: V6.4.3, V6.4.4), half of G1 (notices: V6.3.7 now partial) and verified V6.8.3 (SAML replay refused).
+On 26 Nov G4 moved from gap to partial ([doc 14](14-sender-constrained-tokens.md)): the web app is a confidential
+client with `private_key_jwt`, pushed authorization requests and DPoP-bound tokens checked by the core; the five V10
+rows stay partial until the other clients follow (ASVS asks for PAR "always" and "only" sender-constrained tokens). Found and fixed during the assessment (all tested, §9):
 
 | Fixed | ASVS |
 |---|---|
@@ -106,7 +109,7 @@ sign-in factor; it is a delivery channel only (status page codes, notifications)
 | G1 | V6.3.5, V6.3.7 | No notification of suspicious sign-ins; changes on Keycloak's own pages send no notice | **Partly closed in week 6** ([doc 12 §2](12-recovery-notices-sms-pairwise.md)): notices after recovery and after removing a way to sign in. Open: Keycloak sign-in events (with G3) |
 | G2 | V6.4.3, V6.4.4 | No account recovery | **Closed in week 6** ([doc 12 §1](12-recovery-notices-sms-pairwise.md)): re-proofing at the (simulated) eID at the level of the identity link, tested in three languages |
 | G3 | V8.2.4 (and part of V8.4.2) | No adaptive controls (new device, location, time) | Design in week 6 (signals → step-up and notification); implementation before the pilot (PG-8) |
-| G4 | V10.3.5, V10.4.12–V10.4.14, V10.4.16 | The web app is a public client with PKCE: no pushed authorization requests (PAR), no sender-constrained tokens (DPoP), no `private_key_jwt` | Week 6: the web app as a confidential client with `private_key_jwt`, PAR required, DPoP-bound tokens checked by the core (Keycloak 26 supports all three); the mobile app with its build |
+| G4 | V10.3.5, V10.4.12–V10.4.14, V10.4.16 | No pushed authorization requests (PAR), no sender-constrained tokens (DPoP), no `private_key_jwt` | **Partly closed on 26 Nov** ([doc 14](14-sender-constrained-tokens.md)): the web app is confidential (`private_key_jwt`), PAR required, DPoP-bound tokens checked by the core with single-use proofs; the mobile client requires PAR and DPoP in the realm. Open (doc 14 §5): the Workspace client (Phase 6), the mobile app itself (A2), relying parties and the provisioner (`private_key_jwt`), Keycloak's account console, a DPoP-aware edge route |
 | G5 | V3.7.4 | The production domain is not on the HSTS preload list | Needs the production domain (founder decision); before the pilot (PG-8) |
 
 
@@ -153,6 +156,10 @@ own edge limits wait for the edge gateway decision (ADR-030), recorded in PG-8.
 | N20 | Cross-site sub-resource, frame and form-post requests to the web app | 403; a plain link still works |
 | N21 | CSP violation reporting | header present; reports accepted; anything else refused |
 | N22 | Anonymous dynamic client registration | refused in both realms |
+| N24 | The web app's client used without its signed assertion | `invalid_client` |
+| N25 | An authorization request not pushed first (web and mobile clients) | `error=invalid_request`, no sign-in page; a pushed request is accepted |
+| N26 | The web app's sign-in (PAR + `private_key_jwt` + DPoP) | token type DPoP, bound to the session key's thumbprint |
+| N27 | A stolen DPoP-bound token: as a bearer token, without a proof, with another key's proof, with a replayed proof, with a proof for another URL | 401 each; 200 only with a fresh proof from its key ([doc 14](14-sender-constrained-tokens.md)) |
 
 Together with the earlier checks (doc 03: forged WebAuthn assertion, TOTP replay, password grant; doc 09: CSRF on
 server actions, new session id at every sign-in, no token in the browser).
@@ -316,7 +323,7 @@ Status key: Met; Met, deviation documented (§3); Partial; Gap (§4); Not applic
 | V9.1.2 | L1 | Algorithm allow-list, no none | Met | asymmetric only (RS/PS/ES), `none` and HMAC refused (tests) |
 | V9.1.3 | L1 | Keys from trusted pre-configured sources | Met | JWKS URL per configured issuer; header keys (`jku`, `x5u`, `jwk`) ignored |
 | V9.2.1 | L1 | exp and nbf verified | Met | expired token test |
-| V9.2.2 | L2 | Token type checked | Met | `typ` Bearer only; an ID token is refused (N11) |
+| V9.2.2 | L2 | Token type checked | Met | `typ` Bearer, or DPoP with a bound key (doc 14); an ID token is refused (N11) |
 | V9.2.3 | L2 | Audience checked | Met | `aud` civora-core (wrong audience test) |
 | V9.2.4 | L2 | Audience-restricted tokens per audience | Met | access tokens `aud` civora-core; ID tokens `aud` the client |
 
@@ -333,7 +340,7 @@ Status key: Met; Met, deviation documented (§3); Partial; Gap (§4); Not applic
 | V10.3.2 | L2 | Decisions use the token's delegation claims | Met | subject from the token; mandates checked in the database at every use |
 | V10.3.3 | L2 | User identified by iss + sub | Met | accounts keyed by realm (issuer) and subject (doc 02) |
 | V10.3.4 | L2 | Strength and recency verified | Met | `acr`, `auth_time` (doc 04) |
-| V10.3.5 | L3 | Sender-constrained access tokens (DPoP/mTLS) | Gap | G4 |
+| V10.3.5 | L3 | Sender-constrained access tokens (DPoP/mTLS) | Partial | the core requires DPoP-bound tokens with a fresh, single-use proof for the web and mobile apps (doc 14 §3, N27); staff tokens still bearer until the Workspace app (G4) |
 | V10.4.1 | L1 | Exact redirect URI matching | Met | registered URIs, no wildcards (checker negative control; N6, N7) |
 | V10.4.2 | L1 | Codes single use; replay revokes issued tokens | Met | N3, N19 |
 | V10.4.3 | L1 | Code lifetime; L3: 1 min | Met | `accessCodeLifespan` 60 s (live realm) |
@@ -345,11 +352,11 @@ Status key: Met; Met, deviation documented (§3); Partial; Gap (§4); Not applic
 | V10.4.9 | L2 | Users can revoke refresh tokens | Met | sessions page and API end sessions and their refresh tokens |
 | V10.4.10 | L2 | Confidential clients authenticate on back channels | Met | core, provisioner and broker clients use client authentication |
 | V10.4.11 | L2 | Only required scopes assigned to clients | Partial | Keycloak default client scopes kept; review in the internal review (W6) |
-| V10.4.12 | L3 | response_mode restricted | Gap | G4 (pushed authorization requests fix it) |
-| V10.4.13 | L3 | Code grant always with PAR | Gap | G4 |
-| V10.4.14 | L3 | Only sender-constrained access tokens | Gap | G4 |
+| V10.4.12 | L3 | response_mode restricted | Partial | PAR required for the web and mobile apps (doc 14, N25); not yet for the workspace client and relying parties (G4) |
+| V10.4.13 | L3 | Code grant always with PAR | Partial | PAR required for civora-web and civora-mobile (checker, N25); workspace client, relying parties and Keycloak's account console not yet (doc 14 §5, G4) |
+| V10.4.14 | L3 | Only sender-constrained access tokens | Partial | DPoP-bound tokens for civora-web (N26) and civora-mobile (realm); other clients still bearer (doc 14 §5, G4) |
 | V10.4.15 | L3 | authorization_details not tampered | Not applicable | not used |
-| V10.4.16 | L3 | Confidential clients with private_key_jwt or mTLS | Gap | G4 |
+| V10.4.16 | L3 | Confidential clients with private_key_jwt or mTLS | Partial | the web app: private_key_jwt with a pinned key (N24, N26); relying parties and the provisioner still use secrets; the mobile app stays public (doc 14 §5, G4) |
 | V10.5.1 | L2 | ID token replay (nonce) | Met | web app checks the nonce |
 | V10.5.2 | L2 | User identified from sub | Met | pairwise `sub` per client (doc 03 C8) |
 | V10.5.3 | L2 | Issuer metadata matches the configured issuer | Met | issuer configured, no discovery from untrusted input |

@@ -18,6 +18,10 @@ export interface VerifiedToken {
   sessionId: string | null;
   /** Realm roles (realm_access.roles), e.g. "tenant-admin" for an institution's administrator. */
   roles: string[];
+  /** Thumbprint of the key a DPoP-bound token is bound to (cnf.jkt, RFC 9449); null for a bearer token. */
+  jkt?: string | null;
+  /** The client the token was issued to (azp). */
+  clientId?: string | null;
 }
 
 export interface OidcConfig {
@@ -101,7 +105,11 @@ export class TokenVerifier {
     } catch {
       throw new TokenError('invalid token');
     }
-    if (payload.typ !== 'Bearer') throw new TokenError('not an access token');
+    // A DPoP-bound token (RFC 9449) says so in typ and carries the key thumbprint in cnf.jkt; the guard then demands a proof.
+    const cnf = payload.cnf as { jkt?: unknown } | undefined;
+    const jkt = typeof cnf?.jkt === 'string' && /^[A-Za-z0-9_-]{43}$/.test(cnf.jkt) ? cnf.jkt : null;
+    if (cnf !== undefined && !jkt) throw new TokenError('unsupported confirmation');
+    if (payload.typ === 'DPoP' ? !jkt : payload.typ !== 'Bearer' || jkt) throw new TokenError('not an access token');
     const tenant = typeof payload.tenant_id === 'string' ? payload.tenant_id : null;
     if (entry.realm === 'staff' && (!tenant || !UUID.test(tenant))) throw new TokenError('staff token without a valid tenant');
     if (entry.realm === 'citizens' && payload.tenant_id !== undefined) throw new TokenError('citizen token with a tenant');
@@ -111,6 +119,7 @@ export class TokenVerifier {
     const sessionId = typeof payload.sid === 'string' && payload.sid.length <= 128 ? payload.sid : null;
     const access = payload.realm_access as { roles?: unknown } | undefined;
     const roles = Array.isArray(access?.roles) ? access.roles.filter((r): r is string => typeof r === 'string' && /^[a-z][a-z0-9-]{0,63}$/.test(r)).slice(0, 50) : [];
-    return { realm: entry.realm, subject: payload.sub as string, tenantId: tenant, locale, authTime, acr, sessionId, roles };
+    const clientId = typeof payload.azp === 'string' && payload.azp.length <= 255 ? payload.azp : null;
+    return { realm: entry.realm, subject: payload.sub as string, tenantId: tenant, locale, authTime, acr, sessionId, roles, jkt, clientId };
   }
 }

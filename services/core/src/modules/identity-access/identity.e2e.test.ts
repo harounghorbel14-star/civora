@@ -162,6 +162,30 @@ describe('identity and mandates, end to end (Phase 3 week 1)', { skip: !adminUrl
     assert.equal(Object.values(await allowed(abe)).some(Boolean), false, 'nothing after revocation');
   });
 
+  it('DPoP (RFC 9449): a bound token works only with a fresh proof for this request and key, once; never as a bearer token', async () => {
+    const { calculateJwkThumbprint, exportJWK, generateKeyPair, SignJWT: Sign } = await import('jose');
+    const { createHash, randomUUID } = await import('node:crypto');
+    const key = await generateKeyPair('ES256', { extractable: true });
+    const jwk = await exportJWK(key.publicKey);
+    const jkt = await calculateJwkThumbprint(jwk, 'sha256');
+    const token = await sign('dana', { typ: 'DPoP', cnf: { jkt }, azp: 'civora-web' });
+    const proof = (htm: string, path: string, t = token, k = key.privateKey, j = jwk) => new Sign({ htm, htu: `${base}${path}`, jti: randomUUID(),
+      ath: createHash('sha256').update(t, 'ascii').digest('base64url') }).setProtectedHeader({ alg: 'ES256', typ: 'dpop+jwt', jwk: j }).setIssuedAt().sign(k);
+    const get = async (headers: Record<string, string>) => (await fetch(`${base}/v1/me`, { headers })).status;
+    const p1 = await proof('GET', '/v1/me');
+    assert.equal(await get({ authorization: `DPoP ${token}`, dpop: p1 }), 200, 'bound token with its proof');
+    assert.equal(await get({ authorization: `DPoP ${token}`, dpop: p1 }), 401, 'the same proof again (replay)');
+    assert.equal(await get({ authorization: `Bearer ${token}` }), 401, 'a bound token as a bearer token');
+    assert.equal(await get({ authorization: `DPoP ${token}` }), 401, 'no proof');
+    assert.equal(await get({ authorization: `DPoP ${token}`, dpop: await proof('POST', '/v1/me') }), 401, 'proof for another method');
+    assert.equal(await get({ authorization: `DPoP ${token}`, dpop: await proof('GET', '/v1/mandates') }), 401, 'proof for another URL');
+    const other = await generateKeyPair('ES256', { extractable: true });
+    assert.equal(await get({ authorization: `DPoP ${token}`, dpop: await proof('GET', '/v1/me', token, other.privateKey, await exportJWK(other.publicKey)) }), 401, 'proof from another key');
+    const unbound = await sign('dana', { azp: 'civora-web' });
+    assert.equal(await get({ authorization: `Bearer ${unbound}` }), 401, 'the web app must use DPoP: its bearer token is refused');
+    assert.equal((await fetch(`${base}/v1/me`, { headers: { authorization: `Bearer ${token}` } })).headers.get('www-authenticate')?.startsWith('DPoP'), true);
+  });
+
   it('quota (R-P3-15): at most 30 mandate proposals a day per person; the 31st gets 429', async () => {
     const quinn = await sign('quinn');
     const expiresAt = new Date(Date.now() + 7 * 86400_000).toISOString();

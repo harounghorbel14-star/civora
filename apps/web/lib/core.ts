@@ -1,5 +1,5 @@
 import type { WebConfig } from './config';
-import { refreshTokens } from './oidc';
+import { dpopProof, refreshTokens } from './oidc';
 import type { MemorySessionStore, Session } from './session';
 
 /** The core wants a recent sign-in for this action (RFC 9470): re-authenticate, then repeat it. */
@@ -14,7 +14,7 @@ export interface CoreResult<T = unknown> {
 
 const REFRESH_MARGIN_MS = 30_000;
 
-/** Calls civora-core with the session's access token, refreshing it first when it is about to expire. */
+/** Calls civora-core with the session's DPoP-bound access token, refreshing it first when it is about to expire. */
 export async function coreCall<T = unknown>(
   cfg: WebConfig,
   store: MemorySessionStore,
@@ -26,7 +26,7 @@ export async function coreCall<T = unknown>(
 ): Promise<CoreResult<T>> {
   if (session.tokens.accessExpiresAt - REFRESH_MARGIN_MS <= now) {
     try {
-      const tokens = await refreshTokens(cfg, session.tokens, fetchFn, now);
+      const tokens = await refreshTokens(cfg, session.tokens, session.dpop, fetchFn, now);
       store.update(session.id, { tokens });
       session.tokens = tokens;
     } catch {
@@ -34,10 +34,14 @@ export async function coreCall<T = unknown>(
       throw new SignedOut('refresh refused');
     }
   }
+  // DPoP (RFC 9449): the token is bound to the session's key; every call carries a fresh proof for this method and URL.
+  const method = init.method ?? 'GET';
+  const proof = await dpopProof(session.dpop, method, cfg.coreUrl + path, session.tokens.accessToken);
   const res = await fetchFn(cfg.coreUrl + path, {
-    method: init.method ?? 'GET',
+    method,
     headers: {
-      authorization: `Bearer ${session.tokens.accessToken}`,
+      authorization: `DPoP ${session.tokens.accessToken}`,
+      dpop: proof,
       accept: 'application/json',
       ...(init.body !== undefined ? { 'content-type': 'application/json' } : {}),
       ...(init.correlationId ? { 'x-request-id': init.correlationId } : {}),

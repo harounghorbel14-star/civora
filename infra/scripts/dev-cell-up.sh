@@ -48,6 +48,18 @@ done
 # Key for the keyed digests of national identifiers (identity links): kept while the database is kept.
 [ -s .generated/identity-digest.key ] || head -c 32 /dev/urandom | base64 > .generated/identity-digest.key
 chmod 644 .generated/identity-digest.key
+# The web app's signing key for its client assertions (private_key_jwt; Phase 3 doc 14): dev only, made once; the
+# policy below pins its public half on civora-web. A web app run against this cell uses
+# OIDC_CLIENT_KEY_FILE=infra/compose/.generated/web-client.pem.
+if [ ! -s .generated/web-client.pem ]; then
+  openssl ecparam -name prime256v1 -genkey -noout | openssl pkcs8 -topk8 -nocrypt -out .generated/web-client.pem
+fi
+chmod 600 .generated/web-client.pem
+openssl pkey -in .generated/web-client.pem -pubout -outform DER | python3 -c 'import sys, json, base64
+d = sys.stdin.buffer.read(); assert len(d) == 91 and d[-65] == 4, "not an uncompressed P-256 public key"
+b = lambda x: base64.urlsafe_b64encode(x).rstrip(b"=").decode()
+print(json.dumps({"keys": [{"kty": "EC", "crv": "P-256", "x": b(d[-64:-32]), "y": b(d[-32:]), "kid": "civora-web-1", "use": "sig", "alg": "ES256"}]}))' \
+  > .generated/web-client.jwks.json
 
 # 2. Build the application image and start everything; wait for health checks.
 #    PROXY_CA=/path/ca.crt passes a TLS-inspecting proxy's CA as a build secret (never stored in the image).
@@ -71,7 +83,7 @@ export KC_ADMIN_TOKEN
 for spec in "civora-citizens citizens" "civora-staff staff" "civora-dev dev"; do
   set -- $spec
   extra=(--smtp-host mail --smtp-port 1025)
-  [ "$2" = citizens ] && extra+=(--provisioner-secret-out .generated/provisioner.secret)
+  [ "$2" = citizens ] && extra+=(--provisioner-secret-out .generated/provisioner.secret --web-client-jwks .generated/web-client.jwks.json)
   [ "$2" = staff ] && extra+=(--provisioner-secret-out .generated/staff-provisioner.secret)
   python3 "$here/keycloak/apply-realm-policy.py" --server http://localhost:8080 --realm "$1" --profile "$2" --export ".generated/$1.live.json" "${extra[@]}" >/dev/null
 done

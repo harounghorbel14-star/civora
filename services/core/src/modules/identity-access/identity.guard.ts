@@ -6,6 +6,7 @@ import { packLocale } from './locale';
 import { IAM_REPOSITORY, TOKEN_VERIFIER } from './tokens';
 import type { IamRepository } from './iam.repository';
 import { TokenError, type TokenVerifier, type VerifiedToken } from './token-verifier';
+import { type DpopConfig, DpopError, loadDpopConfig, verifyDpopProof } from './dpop';
 
 export interface Identity extends VerifiedToken {
   personId: string;
@@ -13,8 +14,10 @@ export interface Identity extends VerifiedToken {
 export type IdentifiedRequest = Request & { identity?: Identity };
 
 /**
- * Requires a verified access token (Authorization: Bearer). The person comes from the token only, never from
- * the request body or path (ADR-016). Tokens are never logged.
+ * Requires a verified access token. The person comes from the token only, never from the request body or path
+ * (ADR-016). Tokens are never logged. A token bound to a key (DPoP, RFC 9449) is accepted only as
+ * `Authorization: DPoP <token>` with a valid proof (dpop.ts); a bound token sent as a bearer token is refused, and so
+ * is a bearer token from a client that must use DPoP (the web app).
  */
 @Injectable()
 export class IdentityGuard implements CanActivate {
@@ -24,19 +27,39 @@ export class IdentityGuard implements CanActivate {
     @Inject(COUNTRY_PACK) private readonly pack: LoadedPack,
   ) {}
 
+  private readonly dpop: DpopConfig = loadDpopConfig();
+
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
     const req = ctx.switchToHttp().getRequest<IdentifiedRequest>();
     const res = ctx.switchToHttp().getResponse<Response>();
+    // A route may list this guard twice (class and step-up): verify once (a DPoP proof is single use).
+    if (req.identity) return true;
     if (!this.verifier.enabled || !this.repo) throw new ServiceUnavailableException('Authentication is not configured in this cell');
     const header = req.headers.authorization ?? '';
-    const match = /^Bearer ([A-Za-z0-9._~+/=-]{20,8192})$/.exec(header);
+    const match = /^(Bearer|DPoP) ([A-Za-z0-9._~+/=-]{20,8192})$/.exec(header);
     if (!match) return this.deny(res, 'invalid_request');
+    const [, scheme, raw] = match as unknown as [string, 'Bearer' | 'DPoP', string];
     let token: VerifiedToken;
     try {
-      token = await this.verifier.verify(match[1]!);
+      token = await this.verifier.verify(raw);
     } catch (e) {
       if (e instanceof TokenError) return this.deny(res, 'invalid_token');
       throw new HttpException('Token verification unavailable', HttpStatus.SERVICE_UNAVAILABLE);
+    }
+    if (token.jkt) {
+      const proof = req.headers.dpop;
+      if (scheme !== 'DPoP' || typeof proof !== 'string') return this.deny(res, 'invalid_token', 'DPoP');
+      const path = (req.originalUrl ?? req.url).split(/[?#]/)[0];
+      const bases = this.dpop.publicUrls.length ? this.dpop.publicUrls : [`${req.protocol}://${req.get('host') ?? ''}`];
+      try {
+        await verifyDpopProof({ proof, method: req.method, urls: bases.map((b) => b + path), accessToken: raw, jkt: token.jkt,
+          claimJti: (digest, ttl) => this.repo!.claimDpopJti(digest, ttl) });
+      } catch (e) {
+        if (e instanceof DpopError) return this.deny(res, 'invalid_dpop_proof', 'DPoP');
+        throw new HttpException('Token verification unavailable', HttpStatus.SERVICE_UNAVAILABLE);
+      }
+    } else if (scheme !== 'Bearer' || (token.clientId && this.dpop.requiredClients.has(token.clientId))) {
+      return this.deny(res, 'invalid_token', scheme === 'DPoP' ? 'DPoP' : 'Bearer');
     }
     // Keycloak sends a language (ar, fr, en); the person's preference is stored as a locale of the pack (ar-TN, ...).
     const { supported, default: fallback } = this.pack.pack.locales;
@@ -45,8 +68,8 @@ export class IdentityGuard implements CanActivate {
     return true;
   }
 
-  private deny(res: Response, error: 'invalid_request' | 'invalid_token'): never {
-    res.setHeader('WWW-Authenticate', `Bearer realm="civora", error="${error}"`);
+  private deny(res: Response, error: 'invalid_request' | 'invalid_token' | 'invalid_dpop_proof', scheme: 'Bearer' | 'DPoP' = 'Bearer'): never {
+    res.setHeader('WWW-Authenticate', scheme === 'DPoP' ? `DPoP realm="civora", error="${error}", algs="ES256 PS256 RS256 EdDSA"` : `Bearer realm="civora", error="${error}"`);
     throw new UnauthorizedException('A valid access token is required');
   }
 }

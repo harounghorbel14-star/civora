@@ -10,7 +10,7 @@ const fs = require('node:fs');
 const { chromium } = require('playwright');
 const lib = require('./lib.cjs');
 const { WEB_CB, LANG, check, info, stamp, claims, sleep, admin, activationMail, newContext, waitFor, core, visible, submit, activate, tag, pw, signIn,
-  pageLanguage, mails, recoveryMails } = lib;
+  pageLanguage, mails, recoveryMails, TEST_APP } = lib;
 
 const SIM = 'sim-national-eid';
 const EID_CB = process.env.EID_REDIRECT_URI || 'https://app.civora-cell.invalid/identity/eid/callback';
@@ -36,7 +36,7 @@ async function citizen(browser) {
   const act = await activate((await newContext(browser)).page, (await activationMail(email)).link);
   const fn = async () => {
     const ctx = await newContext(browser);
-    const t = await signIn(ctx, { realm: 'civora-citizens', client: 'civora-web', cb: WEB_CB, email, password: act.password, secret: act.secret });
+    const t = await signIn(ctx, { realm: 'civora-citizens', client: TEST_APP, cb: WEB_CB, email, password: act.password, secret: act.secret });
     await ctx.context.close();
     return t.access_token;
   };

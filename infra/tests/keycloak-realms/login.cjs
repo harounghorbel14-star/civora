@@ -15,7 +15,7 @@ const { spawnSync } = require('node:child_process');
 const lib = require('./lib.cjs');
 const {
   KC, CORE, MAIL, ARTIFACTS, LOCALES, WEB_CB, WS_CB, RP1_CB, RP2_CB, TENANT, TEST_AAGUID, POLICY, LANG, check, info, stamp, b64url, rnd, tag, claims, pw, sleep, median, form, refreshAdmin, admin, credentialTypes, userByEmail, freshTotp, mails, activationMail, newContext, addAuthenticator, authorize, waitFor, codeFrom, exchange, core, visible, submit, shot, pageLanguage, choosePasskey, activate,
-} = lib;
+ TEST_APP } = lib;
 
 async function citizenJourney(browser, lang) {
   const L = LANG[lang];
@@ -37,7 +37,7 @@ async function citizenJourney(browser, lang) {
   check(`[${lang}] after activation: password + otp, e-mail verified by the link`, (await credentialTypes('civora-citizens', user.id)).join() === 'otp,password' && u2.emailVerified === true);
 
   // Login page in the citizen's language; e-mail and password on one page, then the TOTP code.
-  let a = authorize(page, 'civora-citizens', 'civora-web', WEB_CB, { ui_locales: lang });
+  let a = authorize(page, 'civora-citizens', TEST_APP, WEB_CB, { ui_locales: lang });
   let n = captured.length;
   await context.clearCookies();
   await a.go();
@@ -53,25 +53,25 @@ async function citizenJourney(browser, lang) {
     await submit(page);
   }
   let code = await codeFrom(captured, n);
-  let tok = code ? await exchange('civora-citizens', 'civora-web', code, a.verifier, WEB_CB) : { body: {} };
+  let tok = code ? await exchange('civora-citizens', TEST_APP, code, a.verifier, WEB_CB) : { body: {} };
   if (!check(`[${lang}] login with password + TOTP: tokens issued`, !!tok.body.access_token, JSON.stringify(tok.body))) await shot(page, `citizen-${lang}-login`);
   const me = tok.body.access_token ? await core(tok.body.access_token) : { status: 0, body: {} };
   check(`[${lang}] core accepts the token; preferred locale stored as the pack locale ${L.pack}`, me.status === 200 && me.body.preferredLocale === L.pack, `${me.status} ${me.raw}`);
 
   // Passkey added from the app, then used alone in a new session.
-  a = authorize(page, 'civora-citizens', 'civora-web', WEB_CB, { kc_action: 'webauthn-register-passwordless', ui_locales: lang });
+  a = authorize(page, 'civora-citizens', TEST_APP, WEB_CB, { kc_action: 'webauthn-register-passwordless', ui_locales: lang });
   n = captured.length;
   await a.go();
   if (await waitFor(() => visible(page, '#registerWebAuthn'), 10000)) await page.locator('#registerWebAuthn').click();
   await codeFrom(captured, n);
   check(`[${lang}] passkey added from the app`, (await credentialTypes('civora-citizens', user.id)).includes('webauthn-passwordless'));
   await context.clearCookies();
-  a = authorize(page, 'civora-citizens', 'civora-web', WEB_CB, { ui_locales: lang });
+  a = authorize(page, 'civora-citizens', TEST_APP, WEB_CB, { ui_locales: lang });
   n = captured.length;
   await a.go();
   if (await choosePasskey(page)) await page.locator('#authenticateWebAuthnButton').click();
   code = await codeFrom(captured, n);
-  tok = code ? await exchange('civora-citizens', 'civora-web', code, a.verifier, WEB_CB) : { body: {} };
+  tok = code ? await exchange('civora-citizens', TEST_APP, code, a.verifier, WEB_CB) : { body: {} };
   const me2 = tok.body.access_token ? await core(tok.body.access_token) : { body: {} };
   if (!check(`[${lang}] passkey alone signs in (no username typed first); same person`, me2.body?.id === me.body?.id && !!me.body?.id, `${me2.status}`)) await shot(page, `citizen-${lang}-passkey`);
   return { email, password: act.password, secret: act.secret, userId: user.id, page, context, captured };
@@ -156,8 +156,8 @@ async function securityChecks(browser, citizen, officer) {
   const unknownTries = [];
   const knownTries = [];
   for (let i = 0; i < 4; i++) {
-    unknownTries.push(await loginAttempt(browser, 'civora-citizens', 'civora-web', WEB_CB, `nobody.${tag()}@example.invalid`, pw()));
-    knownTries.push(await loginAttempt(browser, 'civora-citizens', 'civora-web', WEB_CB, known[i], pw()));
+    unknownTries.push(await loginAttempt(browser, 'civora-citizens', TEST_APP, WEB_CB, `nobody.${tag()}@example.invalid`, pw()));
+    knownTries.push(await loginAttempt(browser, 'civora-citizens', TEST_APP, WEB_CB, known[i], pw()));
   }
   const msgs = new Set([...unknownTries, ...knownTries].map((t) => `${t.status}:${t.message}`));
   check('E2 login: unknown address and existing account + wrong password get the same status and message', msgs.size === 1, [...msgs].join(' / '));
@@ -168,11 +168,11 @@ async function securityChecks(browser, citizen, officer) {
 
   // E3. A locked account answers like an unknown one.
   const victim = known[0];
-  for (let i = 0; i < 5; i++) { await loginAttempt(browser, 'civora-citizens', 'civora-web', WEB_CB, victim, pw()); await sleep(1100); }
+  for (let i = 0; i < 5; i++) { await loginAttempt(browser, 'civora-citizens', TEST_APP, WEB_CB, victim, pw()); await sleep(1100); }
   const vid = (await userByEmail('civora-citizens', victim)).id;
   const locked = (await admin('GET', `civora-citizens/attack-detection/brute-force/users/${vid}`)).disabled === true;
-  const lockedTry = await loginAttempt(browser, 'civora-citizens', 'civora-web', WEB_CB, victim, pw());
-  const unknownTry = await loginAttempt(browser, 'civora-citizens', 'civora-web', WEB_CB, `nobody.${tag()}@example.invalid`, pw());
+  const lockedTry = await loginAttempt(browser, 'civora-citizens', TEST_APP, WEB_CB, victim, pw());
+  const unknownTry = await loginAttempt(browser, 'civora-citizens', TEST_APP, WEB_CB, `nobody.${tag()}@example.invalid`, pw());
   check('E3 brute force: account locked after 5 wrong passwords (C9)', locked);
   check('E3 locked account answers exactly like an unknown address', `${lockedTry.status}:${lockedTry.message}` === `${unknownTry.status}:${unknownTry.message}`,
     `${lockedTry.message} vs ${unknownTry.message}`);
@@ -182,7 +182,7 @@ async function securityChecks(browser, citizen, officer) {
   const bare = `bare.${tag()}@example.invalid`;
   const barePw = pw();
   await admin('POST', 'civora-citizens/users', { username: bare, email: bare, enabled: true, emailVerified: true, credentials: [{ type: 'password', value: barePw, temporary: false }] });
-  const f1 = await loginAttempt(browser, 'civora-citizens', 'civora-web', WEB_CB, bare, barePw);
+  const f1 = await loginAttempt(browser, 'civora-citizens', TEST_APP, WEB_CB, bare, barePw);
   check('F1 citizen with a password but no second factor: refused, no TOTP enrolment offered, no code', !f1.enrol && !f1.otp && /activat|تفعيل|activ/i.test(f1.message), JSON.stringify(f1));
   const bareStaff = `bare.officer.${tag()}@example.invalid`;
   const bareStaffPw = pw();
@@ -251,7 +251,7 @@ async function securityChecks(browser, citizen, officer) {
   stamp('other protections');
   // C5/C6 wrong and right TOTP for the activated citizen.
   const w = await newContext(browser);
-  const a = authorize(w.page, 'civora-citizens', 'civora-web', WEB_CB);
+  const a = authorize(w.page, 'civora-citizens', TEST_APP, WEB_CB);
   let n = w.captured.length;
   await a.go();
   await w.page.locator('#username').fill(citizen.email);
@@ -268,7 +268,7 @@ async function securityChecks(browser, citizen, officer) {
   check('C6 password + current TOTP code: completes', !!(await codeFrom(w.captured, n)));
   await w.context.close();
 
-  for (const [realm2, client, email, password] of [['civora-citizens', 'civora-web', citizen.email, citizen.password], ['civora-citizens', 'admin-cli', citizen.email, citizen.password],
+  for (const [realm2, client, email, password] of [['civora-citizens', TEST_APP, citizen.email, citizen.password], ['civora-citizens', 'admin-cli', citizen.email, citizen.password],
     ['civora-staff', 'civora-workspace', officer.email, officer.password], ['civora-staff', 'admin-cli', officer.email, officer.password]]) {
     const r = await form(`${KC}/realms/${realm2}/protocol/openid-connect/token`, { grant_type: 'password', client_id: client, username: email, password });
     check(`C7 password grant refused (${realm2}, client ${client})`, !r.body.access_token, JSON.stringify(r.body));
@@ -343,7 +343,7 @@ async function securityChecks(browser, citizen, officer) {
     const computed = mapper && sector ? pairwiseSub(sector, citizen.userId, mapper.config.pairwiseSubAlgorithmSalt) : null;
     check('C8 the core computes the same pairwise subject as Keycloak (sector, user id, salt): the mirror needs no relying party', computed === subs[0], `${computed} ${subs[0]} ${sector}`);
     // The core mirrors it (iam.pairwise_id) and shows the person which service knows them under which identifier.
-    const own = await rpLogin('civora-web', WEB_CB);
+    const own = await rpLogin(TEST_APP, WEB_CB);
     const mine = own.body?.access_token ? await core(own.body.access_token, '/v1/me/pairwise') : { status: 0, body: [] };
     check('C8 GET /v1/me/pairwise: the core mirrored the relying party\'s identifier for this citizen (iam.pairwise_id)',
       mine.status === 200 && Array.isArray(mine.body) && mine.body.some((r) => r.sector === sector && r.subject === subs[0]), mine.raw ?? JSON.stringify(mine.body));

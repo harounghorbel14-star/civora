@@ -1,0 +1,4 @@
+# Reviewed false positives (gitleaks fingerprints). Each line names a synthetic test value, never a credential.
+# Commit 299a1c9: a placeholder in the shape of an access token in a unit test (header {"alg":"ES256"},
+# payload {"sub":"x"}, signature the text "signature-placeholder"); replaced by a value built at run time.
+299a1c9c6f08ef6aa321d8704edd224d2bd2d0e4:services/core/src/modules/identity-access/dpop.test.ts:generic-api-key:8

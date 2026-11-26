@@ -11,6 +11,8 @@ const KC = process.env.KC_URL;
 const CORE = process.env.CORE_URL;
 const MAIL = process.env.MAIL_URL;
 const ARTIFACTS = process.env.ARTIFACT_DIR || '.';
+/** The harness's first-party public client (test only, created by run.sh); civora-web is confidential (PAR, DPoP). */
+const TEST_APP = 'civora-test-app';
 const LOCALES = (process.env.LOCALES || 'ar,fr,en').split(',');
 const WEB_CB = 'https://app.civora-cell.invalid/callback';
 const WS_CB = 'https://workspace.civora-cell.invalid/callback';
@@ -271,7 +273,7 @@ async function signIn(ctx, { realm, client, cb, email, password, secret, passkey
 module.exports = {
   signIn,
   KC, CORE, MAIL, ARTIFACTS, LOCALES, WEB_CB, WS_CB, RP1_CB, RP2_CB, TENANT, TEST_AAGUID, POLICY, LANG,
-  check, failures, info, stamp, b64url, rnd, tag, claims, pw, sleep, median, form, refreshAdmin, admin, adminToken: () => adminToken,
+  TEST_APP, check, failures, info, stamp, b64url, rnd, tag, claims, pw, sleep, median, form, refreshAdmin, admin, adminToken: () => adminToken,
   credentialTypes, userByEmail, freshTotp, mails, activationMail, newContext, addAuthenticator, authorize, waitFor, codeFrom, exchange,
   core, visible, submit, shot, pageLanguage, setPasskeyExecution, choosePasskey, activate, recoveryMails,
 };

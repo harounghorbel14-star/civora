@@ -257,6 +257,11 @@ export class IamRepository {
     });
   }
 
+  /** Records a DPoP proof identifier (digest); false when it was already used (replay). */
+  async claimDpopJti(digest: Buffer, ttlSeconds: number): Promise<boolean> {
+    return (await this.pool.query<{ fresh: boolean }>('select iam.claim_dpop_jti($1, $2) as fresh', [digest, ttlSeconds])).rows[0]!.fresh;
+  }
+
   /** Account recovery (P3-SEC4): no person until the eID's answer is matched; functions only. */
   async startRecovery(stateDigest: Buffer, nonce: string, verifier: string, ttlSeconds: number): Promise<string> {
     return (await this.pool.query<{ id: string }>('select iam.start_recovery($1, $2, $3, $4) as id', [stateDigest, nonce, verifier, ttlSeconds])).rows[0]!.id;

@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 import type { NextRequest } from 'next/server';
 import { pendingCookie, sessionCookie } from '@/lib/cookies';
-import { exchangeCode, verifyIdToken } from '@/lib/oidc';
+import { exchangeCode, newDpopKey, verifyIdToken } from '@/lib/oidc';
 import { config, store } from '@/server/context';
 import { interstitial, serializeCookie } from '@/server/interstitial';
 
@@ -23,10 +23,11 @@ export async function GET(req: NextRequest): Promise<Response> {
   const code = q.get('code');
   if (!code) return interstitial(back(q.get('kc_action_status') === 'cancelled' ? 'cancelled' : 'signInFailed'), [clearPending]);
   try {
-    const tokens = await exchangeCode(cfg, code, pending.verifier);
+    const dpop = await newDpopKey(); // a new key per session: its tokens are bound to it (DPoP)
+    const tokens = await exchangeCode(cfg, code, pending.verifier, dpop);
     const subject = await verifyIdToken(cfg, tokens.idToken, pending.nonce);
     store().destroy(jar.get(sc.name)?.value);
-    const session = store().create(subject, tokens);
+    const session = store().create(subject, tokens, dpop);
     const notice = q.get('kc_action_status') === 'success' ? 'actionDone' : pending.returnTo.includes('confirmed=1') ? 'stepUpDone' : null;
     return interstitial(notice ? back(notice) : pending.returnTo, [clearPending, serializeCookie(sc.name, session.id, sc.options)]);
   } catch {
