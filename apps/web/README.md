@@ -35,7 +35,8 @@ CIVORA_ENV=dev APP_ORIGIN=http://localhost:3100 OIDC_ISSUER=http://localhost:808
 ```
 
 `APP_ORIGIN/auth/callback` must be a redirect URI of the realm's `civora-web` client, and the client must hold the
-public half of the key (`infra/keycloak/apply-realm-policy.py --web-client-jwks FILE`). Settings:
+public half of the key (`infra/keycloak/apply-realm-policy.py --web-client-jwks FILE`; the dev cell does this with a
+dev-only key, `infra/compose/.generated/web-client.pem`). Settings:
 
 | Variable | |
 |---|---|
