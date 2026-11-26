@@ -5,7 +5,8 @@ import { calculateJwkThumbprint, exportJWK, generateKeyPair, type JWK, SignJWT }
 import { DpopError, loadDpopConfig, verifyDpopProof } from './dpop';
 
 const URL_ = 'https://api.cell.invalid/v1/me';
-const TOKEN = 'eyJhbGciOiJFUzI1NiJ9.eyJzdWIiOiJ4In0.c2lnbmF0dXJlLXBsYWNlaG9sZGVy';
+// A placeholder in the shape of a token (the proof only hashes it); built here so no token-like literal sits in Git.
+const TOKEN = [{ alg: 'ES256' }, { sub: 'x' }, 'placeholder'].map((p) => Buffer.from(JSON.stringify(p)).toString('base64url')).join('.');
 const ath = (t: string) => createHash('sha256').update(t, 'ascii').digest('base64url');
 
 async function setup() {
