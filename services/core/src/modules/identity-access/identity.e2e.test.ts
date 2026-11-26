@@ -1,5 +1,6 @@
 import { strict as assert } from 'node:assert';
 import { execFileSync } from 'node:child_process';
+import { createHash, randomBytes } from 'node:crypto';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -49,7 +50,8 @@ describe('identity and mandates, end to end (Phase 3 week 1)', { skip: !adminUrl
     sign = (sub, claims = {}) => new SignJWT({ typ: 'Bearer', ...claims }).setProtectedHeader({ alg: 'ES256', kid: 'e2e' })
       .setIssuer(ISS).setAudience('civora-core').setSubject(sub).setIssuedAt().setExpirationTime('5m').sign(privateKey);
 
-    Object.assign(process.env, { CIVORA_ENV: 'test', DATABASE_URL: appDbUrl, OIDC_ISSUER_CITIZENS: ISS, OIDC_LOCAL_JWKS_FILE: join(dir, 'jwks.json') });
+    Object.assign(process.env, { CIVORA_ENV: 'test', DATABASE_URL: appDbUrl, OIDC_ISSUER_CITIZENS: ISS, OIDC_LOCAL_JWKS_FILE: join(dir, 'jwks.json'),
+      IDENTITY_CLAIM_DIGEST_KEY: randomBytes(32).toString('base64') }); // the key turns the adaptive controls on (doc 15)
     const { createApp } = await import('../../app.factory');
     app = await createApp({ logger: false });
     await app.listen(0, '127.0.0.1');
@@ -241,6 +243,63 @@ describe('identity and mandates, end to end (Phase 3 week 1)', { skip: !adminUrl
     await assert.rejects(c.query('select iam.sync_authenticators($1, $2::jsonb)', ['citizens', '[]']), /no authenticated person/);
     await c.end();
     assert.deepEqual([n1, n2, visible], [2, 1, ['totp']]);
+  });
+
+  it('adaptive controls (G3): a session now used from another browser is ended and refused; other sessions go on', async () => {
+    const chrome = 'Mozilla/5.0 (X11; Linux x86_64) Chrome/131.0.0.0 Safari/537.36';
+    const firefox = 'Mozilla/5.0 (Windows NT 10.0; rv:133.0) Gecko/20100101 Firefox/133.0';
+    const get = async (t: string, ua: string) => {
+      const res = await fetch(`${base}/v1/me`, { headers: { authorization: `Bearer ${t}`, 'user-agent': ua } });
+      return { status: res.status, auth: res.headers.get('www-authenticate') ?? '' };
+    };
+    const t1 = await sign('gina', { sid: 'sid-g1', azp: 'civora-test-app' });
+    const t2 = await sign('gina', { sid: 'sid-g2', azp: 'civora-test-app' });
+    const first = await get(t1, chrome);
+    const again = await get(t1, chrome);
+    const stolen = await get(t1, firefox);
+    const back = await get(t1, chrome);
+    const other = await get(t2, chrome);
+    const noSession = await get(await sign('gina'), firefox);
+    assert.deepEqual([first.status, again.status, stolen.status, back.status, other.status, noSession.status], [200, 200, 401, 401, 200, 200],
+      'same browser: allowed; another browser: refused, and the session stays ended; other sessions and tokens without a session go on');
+    assert.match(stolen.auth, /error="invalid_token"/);
+  });
+
+  it('database: adaptive controls (G3) as the application role: outcomes, digests only, own rows only, writes through the function', async () => {
+    await call('/v1/me', await sign('hugo'));
+    const c = new Client({ connectionString: appDbUrl });
+    await c.connect();
+    const person = (await c.query("select iam.ensure_person('citizens', 'hugo', null, null) as id")).rows[0].id;
+    const d = (s: string) => createHash('sha256').update(s).digest();
+    const observe = async (session: string, device: string, label = 'Chrome · Linux') => {
+      await c.query('begin');
+      await c.query("select set_config('app.person_id', $1, true)", [person]);
+      const r = (await c.query('select outcome, long_absence from iam.observe_session($1, $2, $3, $4)', [d(session), d(device), 'device-cookie', label])).rows[0];
+      await c.query('commit');
+      return r.long_absence ? `${r.outcome}+long` : r.outcome;
+    };
+    const seq = [
+      await observe('s1', 'A'), await observe('s1', 'A'), await observe('s2', 'A'), await observe('s3', 'B'),
+      await observe('s3', 'C'), await observe('s3', 'B'), await observe('s2', 'A', 'Firefox · Windows'),
+    ];
+    assert.deepEqual(seq, ['first-device', 'same', 'new-known', 'new-device', 'changed-device', 'ended', 'changed-browser']);
+    const au = new URL(adminUrl as string);
+    au.pathname = `/${dbName}`;
+    const admin = new Client({ connectionString: au.toString() });
+    await admin.connect();
+    await admin.query("update iam.known_device set last_seen = now() - interval '200 days' where person_id = $1", [person]);
+    await admin.end();
+    assert.equal(await observe('s4', 'A'), 'new-known+long', 'a sign-in after more than 180 days without any');
+    await c.query('begin');
+    await c.query("select set_config('app.person_id', $1, true)", [person]);
+    const rows = (await c.query('select length(device) as n, label from iam.known_device order by first_seen')).rows;
+    await c.query('commit');
+    assert.deepEqual(rows.map((r) => r.n), [32, 32]);
+    const visibleToNobody = (await c.query('select count(*)::int as n from iam.known_device')).rows[0].n;
+    await assert.rejects(c.query('insert into iam.session_context (session, person_id, device, label) values ($1, $2, $1, $3)', [d('x'), person, 'x']), /permission denied/);
+    await assert.rejects(c.query('select iam.observe_session($1, $1, $2, $3)', [d('x'), 'device-cookie', 'x']), /no authenticated person/);
+    await c.end();
+    assert.equal(visibleToNobody, 0, 'without a person set, no row is visible');
   });
 
   it('database: branches, teams and unit roles per institution (P3-R3), invitations become memberships at first sign-in', async () => {

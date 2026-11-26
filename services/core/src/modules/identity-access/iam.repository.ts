@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { Pool, type PoolClient } from 'pg';
+import type { Outcome, Signal } from './adaptive-context';
 import type { VerifiedToken } from './token-verifier';
 
 export interface PersonView {
@@ -254,6 +255,15 @@ export class IamRepository {
   mirrorPairwiseIds(personId: string, rows: { sector: string; subject: string }[]): Promise<void> {
     return this.asPerson(personId, async (c) => {
       for (const r of rows) await c.query('select iam.mirror_pairwise_id($1, $2)', [r.sector, r.subject]);
+    });
+  }
+
+  /** Adaptive controls (doc phase-3/15): compares this request's device signal with its session and known devices. */
+  observeSession(personId: string, signal: Signal): Promise<{ outcome: Outcome; longAbsence: boolean }> {
+    return this.asPerson(personId, async (c) => {
+      const r = await c.query<{ outcome: Outcome; long_absence: boolean }>('select outcome, long_absence from iam.observe_session($1, $2, $3, $4)',
+        [signal.session, signal.device, signal.strength, signal.label]);
+      return { outcome: r.rows[0]!.outcome, longAbsence: r.rows[0]!.long_absence };
     });
   }
 

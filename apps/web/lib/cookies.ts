@@ -24,3 +24,16 @@ export function pendingCookie(cfg: WebConfig): CookieSpec {
 export function recoveryCookie(cfg: WebConfig): CookieSpec {
   return { name: `${cfg.hostPrefix ? '__Secure-' : ''}civora_recovery`, options: { httpOnly: true, secure: cfg.secureCookies, sameSite: 'strict', path: '/identity/eid/complete', maxAge: 600 } };
 }
+
+/**
+ * The device cookie (adaptive controls, doc phase-3/15): a random id that lets the core recognise this browser across
+ * sign-ins (a sign-in from a new device sends a notice) and notice a session used from another browser (it is ended).
+ * HttpOnly, Secure; SameSite=Lax so it also comes back with the top-level return from Keycloak; 400 days (the browser
+ * limit). Only its SHA-256 digest leaves the web app; the core keeps a keyed digest of that.
+ */
+export function deviceCookie(cfg: WebConfig): CookieSpec {
+  return { name: `${cfg.hostPrefix ? '__Host-' : ''}civora_device`, options: { httpOnly: true, secure: cfg.secureCookies, sameSite: 'lax', path: '/', maxAge: 400 * 24 * 3600 } };
+}
+
+/** A well-formed device id (32 random bytes, base64url), or null. */
+export const validDeviceId = (v: string | undefined): string | null => (v && /^[A-Za-z0-9_-]{43}$/.test(v) ? v : null);

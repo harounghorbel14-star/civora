@@ -2,8 +2,8 @@ import { randomUUID } from 'node:crypto';
 import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { loadConfig, type WebConfig } from '@/lib/config';
-import { sessionCookie } from '@/lib/cookies';
-import { coreCall, SignedOut, type CoreResult } from '@/lib/core';
+import { deviceCookie, sessionCookie, validDeviceId } from '@/lib/cookies';
+import { type BrowserContext, coreCall, SignedOut, type CoreResult } from '@/lib/core';
 import { type Lang } from '@/lib/locales';
 import { sessionStore, type MemorySessionStore, type Session } from '@/lib/session';
 
@@ -30,10 +30,15 @@ export async function correlationId(): Promise<string> {
   return (await headers()).get('x-request-id') ?? randomUUID();
 }
 
+/** The browser of the current request: its device cookie and User-Agent (adaptive controls, doc phase-3/15). */
+export async function browserContext(): Promise<BrowserContext> {
+  return { deviceId: validDeviceId((await cookies()).get(deviceCookie(config()).name)?.value), userAgent: (await headers()).get('user-agent') };
+}
+
 /** Calls the core for the signed-in person; a session the core no longer accepts goes back to sign-in. */
 export async function core<T = unknown>(session: Session, path: string, returnTo: string, init: { method?: string; body?: unknown } = {}): Promise<CoreResult<T>> {
   try {
-    return await coreCall<T>(config(), store(), session, path, { ...init, correlationId: await correlationId() });
+    return await coreCall<T>(config(), store(), session, path, { ...init, correlationId: await correlationId(), browser: await browserContext() });
   } catch (e) {
     if (e instanceof SignedOut) redirect(loginUrl(returnTo));
     throw e;

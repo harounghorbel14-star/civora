@@ -18,21 +18,24 @@ whole application before the pilot (PG-8), not here.
 
 | Chapter | Requirements (L1–L3) | Met | Met, deviation documented | Partial | Gap | Not applicable |
 |---|---|---|---|---|---|---|
-| V6 Authentication | 47 | 37 | 2 | 4 | 1 | 3 |
+| V6 Authentication | 47 | 37 | 2 | 5 | 0 | 3 |
 | V7 Session Management | 19 | 16 | 1 | 2 | 0 | 0 |
-| V8 Authorization | 13 | 9 | 0 | 3 | 1 | 0 |
+| V8 Authorization | 13 | 9 | 1 | 3 | 0 | 0 |
 | V9 Self-contained Tokens | 7 | 7 | 0 | 0 | 0 | 0 |
 | V10 OAuth and OIDC | 36 | 26 | 0 | 6 | 0 | 4 |
 | V3 Web Frontend Security | 31 | 26 | 0 | 1 | 1 | 3 |
-| **Total** | **153** | **121** | **3** | **16** | **3** | **10** |
+| **Total** | **153** | **121** | **4** | **17** | **1** | **10** |
 
-**Met (including documented deviations): 124 of 143 applicable requirements (86.7 %)** after week 6 (121 at the end
-of week 5). The assessment itself is complete; the identity system does **not yet** meet ASVS L3 in full. The open
-items are 3 gaps (G1 in part, G3, G5 in §4) and 16 partial items, each with an owner and a plan. Week 6 closed G2
+**Met (including documented deviations): 125 of 143 applicable requirements (87.4 %)** after G3 on 26 Nov (124 after
+week 6, 121 at the end of week 5). The assessment itself is complete; the identity system does **not yet** meet ASVS L3
+in full. The open items are 1 gap (G5 in §4) and 17 partial items, each with an owner and a plan. Week 6 closed G2
 (account recovery: V6.4.3, V6.4.4), half of G1 (notices: V6.3.7 now partial) and verified V6.8.3 (SAML replay refused).
 On 26 Nov G4 moved from gap to partial ([doc 14](14-sender-constrained-tokens.md)): the web app is a confidential
 client with `private_key_jwt`, pushed authorization requests and DPoP-bound tokens checked by the core; the five V10
-rows stay partial until the other clients follow (ASVS asks for PAR "always" and "only" sender-constrained tokens). Found and fixed during the assessment (all tested, §9):
+rows stay partial until the other clients follow (ASVS asks for PAR "always" and "only" sender-constrained tokens).
+Also on 26 Nov G3 was closed ([doc 15](15-adaptive-controls.md)): the device and browser of every session drive a notice
+for a new device and the end of a session used from another device or browser (V8.2.4, deviation D4); V6.3.5 moved from
+gap to partial. Found and fixed during the assessment (all tested, §9):
 
 | Fixed | ASVS |
 |---|---|
@@ -79,8 +82,10 @@ are not sign-ins: the first proves an identity for an existing account, the seco
 | Client address | Rate limits (§5) | per route | `429` |
 | Mandate state and scopes | Acting on behalf (Cedar, §7) | active, not expired, scope covers the action | allow; otherwise deny |
 | Tenant | Every staff request | the token's tenant | row-level security, Cedar F1 |
+| Device of the session (web app: device cookie; mobile: its DPoP key; otherwise the browser family), [doc 15](15-adaptive-controls.md) | Start of every session | not seen before for this person (or no sign-in for 180 days) | allow; notice to the person at once |
+| Device and browser family of the session | Every request | different from those the session started with | refuse (401), end the session at Keycloak and in the core, notice |
 
-Nothing else is used: no location, device posture or time-of-day rules yet (gap G3).
+Nothing else is used: no location, address-based or time-of-day rules (doc 15 §2), no device posture check.
 
 ### 2.4 Browser features the web app relies on (V3.1.1)
 
@@ -95,6 +100,7 @@ password + authenticator app path remains. Pages work without JavaScript (forms 
 | D1 | V6.3.3 (L3: one factor phishing-resistant hardware) | Citizens may sign in with password + TOTP instead of a passkey | Inclusion (P3-RISK): not every citizen has a device with a platform authenticator, and assisted use (relatives, public counters) must remain possible. Controls: passkey offered first; TOTP codes single use; lockout and per-address limits; deny list; sensitive actions need a fresh sign-in; the core sees `acr` and can demand stronger methods per action later; notifications (G1) |
 | D2 | V6.5.5 (TOTP lifetime 30 s) | One 30-second step of clock tolerance | Phone clocks drift; RFC 6238 §5.2 recommends allowing one step. Codes are single use, lockout after 5 failures |
 | D3 | V7.4.1 (terminated sessions unusable) | Self-contained access tokens stay valid until they expire (5 min) after sign-out or role changes (also V8.3.2) | The web app keeps tokens on the server and deletes them at sign-out, so nobody holding the browser can use them; refresh tokens are revoked at once (N10); 5-minute lifetime; mandates and memberships are read from the database at every request |
+| D4 | V8.2.4 (adaptive controls at the start of a session) | A sign-in from a new device or browser is allowed and notified, not challenged again | Every sign-in already needs two factors (passkey, or password and authenticator app; officers: password and security key); an extra challenge would ask for the same factors. The notice goes at once, in the person's language, and the security page ends every other session. During a session, a device or browser change ends it ([doc 15](15-adaptive-controls.md)) |
 
 Design notes (not deviations): the minimum password length is 12 (ASVS: at least 8, 15 recommended) because every
 password account also has a second factor and the deny list; the breached-password set is local, refreshed with each
@@ -106,9 +112,9 @@ sign-in factor; it is a delivery channel only (status page codes, notifications)
 
 | | ASVS | Gap | Plan |
 |---|---|---|---|
-| G1 | V6.3.5, V6.3.7 | No notification of suspicious sign-ins; changes on Keycloak's own pages send no notice | **Partly closed in week 6** ([doc 12 §2](12-recovery-notices-sms-pairwise.md)): notices after recovery and after removing a way to sign in. Open: Keycloak sign-in events (with G3) |
+| G1 | V6.3.5, V6.3.7 | No notification of suspicious sign-ins; changes on Keycloak's own pages send no notice | **Partly closed** ([doc 12 §2](12-recovery-notices-sms-pairwise.md), [doc 15](15-adaptive-controls.md)): notices after recovery, after removing a way to sign in, after a sign-in from a new device or after a long absence, and when a session is ended. Open: failed and partly successful sign-ins, a success after several failures (Keycloak sign-in events) |
 | G2 | V6.4.3, V6.4.4 | No account recovery | **Closed in week 6** ([doc 12 §1](12-recovery-notices-sms-pairwise.md)): re-proofing at the (simulated) eID at the level of the identity link, tested in three languages |
-| G3 | V8.2.4 (and part of V8.4.2) | No adaptive controls (new device, location, time) | Design in week 6 (signals → step-up and notification); implementation before the pilot (PG-8) |
+| G3 | V8.2.4 (and part of V8.4.2) | No adaptive controls (new device, location, time) | **Closed on 26 Nov** ([doc 15](15-adaptive-controls.md)): device and browser of every session; new device notified (D4), a session used from another device or browser ended; location and time of day deliberately not used |
 | G4 | V10.3.5, V10.4.12–V10.4.14, V10.4.16 | No pushed authorization requests (PAR), no sender-constrained tokens (DPoP), no `private_key_jwt` | **Partly closed on 26 Nov** ([doc 14](14-sender-constrained-tokens.md)): the web app is confidential (`private_key_jwt`), PAR required, DPoP-bound tokens checked by the core with single-use proofs; the mobile client requires PAR and DPoP in the realm. Open (doc 14 §5): the Workspace client (Phase 6), the mobile app itself (A2), relying parties and the provisioner (`private_key_jwt`), Keycloak's account console, a DPoP-aware edge route |
 | G5 | V3.7.4 | The production domain is not on the HSTS preload list | Needs the production domain (founder decision); before the pilot (PG-8) |
 
@@ -244,7 +250,7 @@ Status key: Met; Met, deviation documented (§3); Partial; Gap (§4); Not applic
 | V6.3.2 | L1 | No default accounts | Partial | CIVORA realms have none (checker refuses users in realm files); the master realm bootstrap admin must be replaced at installation: checked in the internal review (W6) |
 | V6.3.3 | L2 | MFA; L3: phishing-resistant hardware factor | Met, deviation documented | staff: password + FIDO2 key (met); citizens: passkey (met) or password + TOTP (deviation D1) |
 | V6.3.4 | L2 | No undocumented pathways | Met | realm checker: browser, direct grant (disabled), first broker login, post broker login flows evaluated; the `admin-cli` password grant defect closed (doc 03 §5) |
-| V6.3.5 | L3 | Notify of suspicious attempts | Gap | G1 |
+| V6.3.5 | L3 | Notify of suspicious attempts | Partial | a sign-in from a new device or browser, or after more than 180 days, is notified at once (doc 15); failed and partly successful attempts need Keycloak sign-in events (G1) |
 | V6.3.6 | L3 | E-mail not an authentication factor | Met | no magic links, no e-mail reset (`resetPasswordAllowed=false`); e-mail only carries the one-time activation link |
 | V6.3.7 | L3 | Notify after authentication details change | Partial | notices after recovery and after removing a way to sign in (doc 12 §2); not yet for changes on Keycloak's own pages (G1) |
 | V6.3.8 | L3 | No user enumeration (incl. registration, recovery) | Met | R-P3-1 tests: same answers and timing for registration and login (doc 03 §9); status page same answer (doc 09) |
@@ -303,17 +309,17 @@ Status key: Met; Met, deviation documented (§3); Partial; Gap (§4); Not applic
 |---|---|---|---|---|
 | V8.1.1 | L1 | Function- and data-level rules documented | Met | doc 02 (people, accounts, mandates), doc 05 (units, roles), Cedar policies (`packages/policies`) |
 | V8.1.2 | L2 | Field-level rules documented | Partial | responses are allow-listed DTOs; a field-level rule table per endpoint is written with the domain endpoints (Phase 5+) |
-| V8.1.3 | L3 | Environmental attributes documented | Met | §2.3: sign-in age and method (`auth_time`, `acr`), client address for rate limits; nothing else is used |
-| V8.1.4 | L3 | How contextual factors drive decisions documented | Met | §2.3: thresholds and actions (step-up after 5 min, lockout, rate limits) |
+| V8.1.3 | L3 | Environmental attributes documented | Met | §2.3: sign-in age and method (`auth_time`, `acr`), device and browser of the session (doc 15), client address for rate limits; nothing else is used |
+| V8.1.4 | L3 | How contextual factors drive decisions documented | Met | §2.3: thresholds and actions (step-up after 5 min, lockout, rate limits, new-device notice, session ended on a device or browser change) |
 | V8.2.1 | L1 | Function-level access by explicit permission | Met | guards and roles; 403 tests (doc 05, N13) |
 | V8.2.2 | L1 | Data-level access (no IDOR/BOLA) | Met | row-level security; non-parties get 404 (doc 02, mandates and sessions tests) |
 | V8.2.3 | L2 | Field-level access (no BOPLA) | Met | validation pipe whitelists input; PATCH /v1/me accepts preference fields only |
-| V8.2.4 | L3 | Adaptive controls (location, device, time) | Gap | G3 |
+| V8.2.4 | L3 | Adaptive controls (location, device, time) | Met, deviation documented | device and browser of every session (doc 15): a new device is notified at the start of a session (D4); a device or browser change during a session ends it and refuses the request; tested in three languages |
 | V8.3.1 | L1 | Rules enforced in a trusted layer | Met | core only; the web app has no authorization logic |
 | V8.3.2 | L3 | Authorization changes apply immediately | Partial | memberships, mandates and units are read at each request; realm roles in tokens lag up to 5 min (§3 D3) |
 | V8.3.3 | L3 | Decisions on the originating subject | Met | the core decides from the person's token; it uses its service account only after checking ownership |
 | V8.4.1 | L2 | Cross-tenant controls | Met | tenant in row-level security and Cedar F1; tests |
-| V8.4.2 | L3 | Administrative interfaces: layered controls | Partial | FIDO2 for staff, step-up on administration, Keycloak administration not exposed publicly (Phase 2); no device posture check (G3) |
+| V8.4.2 | L3 | Administrative interfaces: layered controls | Partial | FIDO2 for staff, step-up on administration, Keycloak administration not exposed publicly (Phase 2), session bound to its browser (doc 15); no device posture check |
 
 ### V9 Self-contained Tokens
 

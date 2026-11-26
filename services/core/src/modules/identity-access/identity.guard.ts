@@ -1,9 +1,10 @@
-import { type CanActivate, type ExecutionContext, HttpException, HttpStatus, Inject, Injectable, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
+import { type CanActivate, type ExecutionContext, HttpException, HttpStatus, Inject, Injectable, Optional, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import type { LoadedPack } from '@civora/country-packs';
 import { COUNTRY_PACK } from '../../country-config/country-config.module';
 import { packLocale } from './locale';
-import { IAM_REPOSITORY, TOKEN_VERIFIER } from './tokens';
+import { ADAPTIVE_CONTROLS, IAM_REPOSITORY, TOKEN_VERIFIER } from './tokens';
+import type { AdaptiveControls } from './adaptive-context';
 import type { IamRepository } from './iam.repository';
 import { TokenError, type TokenVerifier, type VerifiedToken } from './token-verifier';
 import { type DpopConfig, DpopError, loadDpopConfig, verifyDpopProof } from './dpop';
@@ -25,6 +26,7 @@ export class IdentityGuard implements CanActivate {
     @Inject(TOKEN_VERIFIER) private readonly verifier: TokenVerifier,
     @Inject(IAM_REPOSITORY) private readonly repo: IamRepository | null,
     @Inject(COUNTRY_PACK) private readonly pack: LoadedPack,
+    @Optional() @Inject(ADAPTIVE_CONTROLS) private readonly adaptive: AdaptiveControls | null = null,
   ) {}
 
   private readonly dpop: DpopConfig = loadDpopConfig();
@@ -64,7 +66,10 @@ export class IdentityGuard implements CanActivate {
     // Keycloak sends a language (ar, fr, en); the person's preference is stored as a locale of the pack (ar-TN, ...).
     const { supported, default: fallback } = this.pack.pack.locales;
     const mapped: VerifiedToken = { ...token, locale: token.locale ? packLocale(token.locale, supported, fallback) : null };
-    req.identity = { ...mapped, personId: await this.repo.ensurePerson(mapped) };
+    const identity = { ...mapped, personId: await this.repo.ensurePerson(mapped) };
+    // Adaptive controls (doc phase-3/15): a session now used from another device or browser is ended and refused.
+    if (this.adaptive && (await this.adaptive.check(identity, req.headers)) === 'deny') return this.deny(res, 'invalid_token', scheme);
+    req.identity = identity;
     return true;
   }
 
