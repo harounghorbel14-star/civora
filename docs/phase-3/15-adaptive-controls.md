@@ -1,4 +1,4 @@
-# 15 — Adaptive controls: device and browser of each session (gap G3)
+# 15 — Adaptive controls and sign-in notices (gaps G3 and G1)
 
 | | |
 |---|---|
@@ -85,3 +85,49 @@ because each app legitimately sends its own signal.
 | End to end, core + PostgreSQL | a session used from another browser: 401 `invalid_token`, and it stays refused from the first browser too; another session of the same person and tokens without a session go on | pass; core 131 tests |
 | Unit, web | the device cookie's attributes and format; the forwarded headers carry the digest, never the id, and a cleaned User-Agent | 26 tests pass |
 | Against Keycloak, the core and the web app (`run.sh`, part `web`), in ar, fr, en | first device: no notice; a sign-in from a second browser: "new sign-in" e-mail in the person's language naming the browser; a session cookie copied to another browser: refused there, the session ended at Keycloak too (its owner must sign in again), "session ended" e-mail in the person's language; the person's other session goes on; the device cookie's attributes | **all passed**: web part 75 checks; whole realms run **286 checks, all passed** (1284 s) |
+
+## 7. Notices from Keycloak's sign-in events (rest of G1, 26 Nov 2026)
+
+ASVS V6.3.5 asks that people be told about suspicious attempts, successful or not; V6.3.7 about changes to their ways of
+signing in. Keycloak keeps a short record of sign-in events; the core reads it and writes to the person.
+
+**What Keycloak records (observed on 26.8.1, not assumed).** A probe realm with a password and an authenticator app:
+
+| Attempt | Event | Tells it apart |
+|---|---|---|
+| Wrong password | `LOGIN_ERROR`, `invalid_user_credentials` | user known, `username` detail, no selected credential |
+| Right password, wrong code | `LOGIN_ERROR`, `invalid_user_credentials` | `selected_credential_id` = the authenticator app's credential |
+| Success | `LOGIN` | session id |
+| A way to sign in added or changed from an app (`kc_action`) | `UPDATE_CREDENTIAL` with `credential_type`, then `LOGIN` with the same `code_id` | the person was signed in |
+| A password set through an e-mailed link (activation, recovery) | `UPDATE_CREDENTIAL` only, **no** `LOGIN` | outside any sign-in |
+| A credential removed through the admin API (the core's own removal) | none | the core sends its own notice (doc 12 §2) |
+
+**What the core sends** (Arabic, French or English, the account's language):
+
+| Notice | When | At most |
+|---|---|---|
+| "Right password, second step failed" | a failure on a credential of a second-factor type (authenticator app, security key) | once a day |
+| "Failed attempts to sign in" | 5 failures within an hour (the account locks at 5, doc 03) | once a day |
+| "Signed in after failed attempts" | a success after 3 or more failures within the hour, with the number | each time |
+| "A way to sign in was added or changed" | `UPDATE_CREDENTIAL` inside a sign-in; never for activation or recovery links | each time |
+| "A way to sign in was removed" | `REMOVE_CREDENTIAL` (Keycloak's own account pages; the core's removals raise none) | each time |
+
+**How.** The realms store `LOGIN`, `LOGIN_ERROR`, `UPDATE_CREDENTIAL` and `REMOVE_CREDENTIAL` for **one hour** (they
+hold addresses; realm checker: stored, 10 minutes to one day, 3 negative controls per realm). The provisioner client
+may read them (`view-events`, nothing more). Every 60 s (`SIGNIN_EVENTS_POLL_SECONDS`; `SIGNIN_EVENTS=off` stops it) the
+core reads the events since its last round, all pages, with a 2-minute overlap and leaving events younger than 5 s for
+the next round (so a change and its sign-in are read together). Each event is recorded once in
+`iam.record_signin_event` (whichever core replica reads it), failures are counted per account in a one-hour window,
+warnings are limited per day. Accounts are keyed digests of realm and Keycloak user id; the tables keep two hours of
+event digests and two days of counters, and the application role can only call the function.
+
+**Limits.** A failed security-key step (staff) counts as a failed attempt; only the authenticator app's failure was
+observed as "second step failed". Removals on Keycloak's account pages are handled like the rest but are covered by
+unit tests only. **Open (V6.3.7):** citizens may change their e-mail address on Keycloak's account pages, and no notice
+goes to the old address. Decision needed: allow the change only through a verified flow, or notify the old address.
+
+| Level | What | Result |
+|---|---|---|
+| Unit, core (`signin-events.test.ts`) | classification of each event shape above; the watcher reads every page, handles events oldest first, sends each notice once, leaves young events for the next round, re-reads with an overlap without repeating; settings; one round at a time, a failing round survives | 6 tests pass |
+| Database as the application role | the exact sequence of outcomes (5th failure warned, 6th not, success after failures with the count, daily limit), an event read twice handled once, a new window after an hour, no table access, invalid input refused | pass; core 138 tests |
+| Against Keycloak 26.8.1, the core and the web app (`run.sh`) | lockout after 5 wrong passwords: the owner gets "failed attempts" (Arabic, no language set); in ar, fr, en: right password and wrong code → "second step failed"; a sign-in after failures → the e-mail with the count (4); a passkey added from the web app → "a way to sign in was added"; none at activation | see the progress log |

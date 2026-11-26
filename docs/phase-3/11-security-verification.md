@@ -18,24 +18,25 @@ whole application before the pilot (PG-8), not here.
 
 | Chapter | Requirements (L1–L3) | Met | Met, deviation documented | Partial | Gap | Not applicable |
 |---|---|---|---|---|---|---|
-| V6 Authentication | 47 | 37 | 2 | 5 | 0 | 3 |
+| V6 Authentication | 47 | 38 | 2 | 4 | 0 | 3 |
 | V7 Session Management | 19 | 16 | 1 | 2 | 0 | 0 |
 | V8 Authorization | 13 | 9 | 1 | 3 | 0 | 0 |
 | V9 Self-contained Tokens | 7 | 7 | 0 | 0 | 0 | 0 |
 | V10 OAuth and OIDC | 36 | 26 | 0 | 6 | 0 | 4 |
 | V3 Web Frontend Security | 31 | 26 | 0 | 1 | 1 | 3 |
-| **Total** | **153** | **121** | **4** | **17** | **1** | **10** |
+| **Total** | **153** | **122** | **4** | **16** | **1** | **10** |
 
-**Met (including documented deviations): 125 of 143 applicable requirements (87.4 %)** after G3 on 26 Nov (124 after
-week 6, 121 at the end of week 5). The assessment itself is complete; the identity system does **not yet** meet ASVS L3
-in full. The open items are 1 gap (G5 in §4) and 17 partial items, each with an owner and a plan. Week 6 closed G2
+**Met (including documented deviations): 126 of 143 applicable requirements (88.1 %)** after G3 and G1 on 26 Nov (124
+after week 6, 121 at the end of week 5). The assessment itself is complete; the identity system does **not yet** meet
+ASVS L3 in full. The open items are 1 gap (G5 in §4) and 16 partial items, each with an owner and a plan. Week 6 closed G2
 (account recovery: V6.4.3, V6.4.4), half of G1 (notices: V6.3.7 now partial) and verified V6.8.3 (SAML replay refused).
 On 26 Nov G4 moved from gap to partial ([doc 14](14-sender-constrained-tokens.md)): the web app is a confidential
 client with `private_key_jwt`, pushed authorization requests and DPoP-bound tokens checked by the core; the five V10
 rows stay partial until the other clients follow (ASVS asks for PAR "always" and "only" sender-constrained tokens).
 Also on 26 Nov G3 was closed ([doc 15](15-adaptive-controls.md)): the device and browser of every session drive a notice
 for a new device and the end of a session used from another device or browser (V8.2.4, deviation D4); V6.3.5 moved from
-gap to partial. Found and fixed during the assessment (all tested, §9):
+gap to partial. Then G1 ([doc 15 §7](15-adaptive-controls.md)): notices from Keycloak's sign-in events (a right password with a
+failed second step, repeated failures, a sign-in after failures, a way to sign in added or changed); V6.3.5 met. Found and fixed during the assessment (all tested, §9):
 
 | Fixed | ASVS |
 |---|---|
@@ -112,7 +113,7 @@ sign-in factor; it is a delivery channel only (status page codes, notifications)
 
 | | ASVS | Gap | Plan |
 |---|---|---|---|
-| G1 | V6.3.5, V6.3.7 | No notification of suspicious sign-ins; changes on Keycloak's own pages send no notice | **Partly closed** ([doc 12 §2](12-recovery-notices-sms-pairwise.md), [doc 15](15-adaptive-controls.md)): notices after recovery, after removing a way to sign in, after a sign-in from a new device or after a long absence, and when a session is ended. Open: failed and partly successful sign-ins, a success after several failures (Keycloak sign-in events) |
+| G1 | V6.3.5, V6.3.7 | No notification of suspicious sign-ins; changes on Keycloak's own pages send no notice | **Mostly closed on 26 Nov** ([doc 12 §2](12-recovery-notices-sms-pairwise.md), [doc 15](15-adaptive-controls.md)): notices after recovery, removals, a new device or long absence, a session ended, a failed second step, repeated failures, a sign-in after failures, a way to sign in added or changed. Open (V6.3.7): an e-mail address changed on Keycloak's account pages — decision: allow it only through a verified flow, or notify the old address |
 | G2 | V6.4.3, V6.4.4 | No account recovery | **Closed in week 6** ([doc 12 §1](12-recovery-notices-sms-pairwise.md)): re-proofing at the (simulated) eID at the level of the identity link, tested in three languages |
 | G3 | V8.2.4 (and part of V8.4.2) | No adaptive controls (new device, location, time) | **Closed on 26 Nov** ([doc 15](15-adaptive-controls.md)): device and browser of every session; new device notified (D4), a session used from another device or browser ended; location and time of day deliberately not used |
 | G4 | V10.3.5, V10.4.12–V10.4.14, V10.4.16 | No pushed authorization requests (PAR), no sender-constrained tokens (DPoP), no `private_key_jwt` | **Partly closed on 26 Nov** ([doc 14](14-sender-constrained-tokens.md)): the web app is confidential (`private_key_jwt`), PAR required, DPoP-bound tokens checked by the core with single-use proofs; the mobile client requires PAR and DPoP in the realm. Open (doc 14 §5): the Workspace client (Phase 6), the mobile app itself (A2), relying parties and the provisioner (`private_key_jwt`), Keycloak's account console, a DPoP-aware edge route |
@@ -250,9 +251,9 @@ Status key: Met; Met, deviation documented (§3); Partial; Gap (§4); Not applic
 | V6.3.2 | L1 | No default accounts | Partial | CIVORA realms have none (checker refuses users in realm files); the master realm bootstrap admin must be replaced at installation: checked in the internal review (W6) |
 | V6.3.3 | L2 | MFA; L3: phishing-resistant hardware factor | Met, deviation documented | staff: password + FIDO2 key (met); citizens: passkey (met) or password + TOTP (deviation D1) |
 | V6.3.4 | L2 | No undocumented pathways | Met | realm checker: browser, direct grant (disabled), first broker login, post broker login flows evaluated; the `admin-cli` password grant defect closed (doc 03 §5) |
-| V6.3.5 | L3 | Notify of suspicious attempts | Partial | a sign-in from a new device or browser, or after more than 180 days, is notified at once (doc 15); failed and partly successful attempts need Keycloak sign-in events (G1) |
+| V6.3.5 | L3 | Notify of suspicious attempts | Met | new device or browser, sign-in after 180 days (doc 15); right password with a failed second step, 5 failed attempts, a sign-in after failures (doc 15 §7, from Keycloak sign-in events); tested in three languages |
 | V6.3.6 | L3 | E-mail not an authentication factor | Met | no magic links, no e-mail reset (`resetPasswordAllowed=false`); e-mail only carries the one-time activation link |
-| V6.3.7 | L3 | Notify after authentication details change | Partial | notices after recovery and after removing a way to sign in (doc 12 §2); not yet for changes on Keycloak's own pages (G1) |
+| V6.3.7 | L3 | Notify after authentication details change | Partial | notices after recovery and removals through the app (doc 12 §2), a way to sign in added or changed inside a sign-in, removals on Keycloak's pages (doc 15 §7); open: an e-mail address changed on Keycloak's account pages (decision: verified flow, or notify the old address) |
 | V6.3.8 | L3 | No user enumeration (incl. registration, recovery) | Met | R-P3-1 tests: same answers and timing for registration and login (doc 03 §9); status page same answer (doc 09) |
 | V6.4.1 | L1 | Initial secrets random, short-lived, single use | Met | activation links: Keycloak action tokens, single use (tested), lifetime set by the core |
 | V6.4.2 | L1 | No hints or secret questions | Met | none |
