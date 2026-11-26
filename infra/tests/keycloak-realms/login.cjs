@@ -132,7 +132,9 @@ async function securityChecks(browser, citizen, officer) {
   stamp('account enumeration (R-P3-1): the answers must not depend on whether an address has an account');
   // E1. Registration: same answer for a new, a pending and an activated address.
   const pending = `pending.${tag()}@example.invalid`;
-  const citizenMailsBefore = (await mails(citizen.email)).length; // earlier security notices (a passkey added from the app) are not registration mail
+  // Security notices (a passkey added from the app may arrive now) are not registration mail: count only the others.
+  const registrationMails = async (to) => (await mails(to)).filter((m) => !Object.values(lib.NOTICE).some((n) => Object.values(n).some((re) => re.test(m.Subject)))).length;
+  const citizenMailsBefore = await registrationMails(citizen.email);
   const answers = [];
   for (const [what, email] of [['new', `new.${tag()}@example.invalid`], ['pending', pending], ['pending again', pending], ['activated', citizen.email]]) {
     const r = await core(undefined, '/v1/registrations', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, locale: 'en' }) });
@@ -143,7 +145,7 @@ async function securityChecks(browser, citizen, officer) {
   info(`E1 registration answer times (ms): ${answers.map((x) => `${x.what} ${x.ms}`).join(', ')} (work is done after the answer)`);
   await sleep(4000);
   check('E1 activated address: no e-mail sent; pending address asked twice: one e-mail (per-address bound)',
-    (await mails(citizen.email)).length === citizenMailsBefore && (await mails(pending)).length === 1, `${(await mails(citizen.email)).length - citizenMailsBefore} / ${(await mails(pending)).length}`);
+    (await registrationMails(citizen.email)) === citizenMailsBefore && (await mails(pending)).length === 1, `${(await registrationMails(citizen.email)) - citizenMailsBefore} / ${(await mails(pending)).length}`);
   const resp = await core(undefined, '/v1/registrations', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: 'not-an-address' }) });
   check('E1 malformed address: 400 (format only, says nothing about accounts)', resp.status === 400, resp.status);
 
