@@ -18,11 +18,12 @@ import { RegistrationsController } from './registrations.controller';
 import { IdentityLinksController, type IdentityLinksDeps, loadIdentityDigestKey } from './identity-links.controller';
 import { StatusAccess } from './status-access';
 import { AccountRecovery } from './account-recovery';
-import { securityNotices } from './security-notices';
+import { contextNotices, securityNotices } from './security-notices';
+import { AdaptiveControls, loadAdaptiveConfig } from './adaptive-context';
 import { RecoveryController } from './recovery.controller';
 import { StatusAccessController } from './status-access.controller';
 import { loadOidcConfig, TokenVerifier } from './token-verifier';
-import { ACCOUNT_RECOVERY, ACCOUNT_SECURITY, IAM_REPOSITORY, IDENTITY_LINKS, INVITATIONS, POLICY_ENGINE, STATUS_ACCESS, REGISTRATION_SERVICE, STEP_UP_MAX_AGE, TOKEN_VERIFIER } from './tokens';
+import { ACCOUNT_RECOVERY, ACCOUNT_SECURITY, ADAPTIVE_CONTROLS, IAM_REPOSITORY, IDENTITY_LINKS, INVITATIONS, POLICY_ENGINE, STATUS_ACCESS, REGISTRATION_SERVICE, STEP_UP_MAX_AGE, TOKEN_VERIFIER } from './tokens';
 
 /**
  * Bounded context: identity-access (Phase 3: citizen and staff accounts, profile, mandates, organisation, identity links).
@@ -67,6 +68,28 @@ import { ACCOUNT_RECOVERY, ACCOUNT_SECURITY, IAM_REPOSITORY, IDENTITY_LINKS, INV
         }
         const log = (entry: Record<string, unknown>) => process.stdout.write(JSON.stringify({ ts: new Date().toISOString(), service: 'civora-core', context: 'account-security', ...entry }) + '\n');
         return new AccountSecurity(directories, (personId, realm, items) => repo.syncAuthenticators(personId, realm, items), securityNotices(directories, messaging, log));
+      },
+    },
+    {
+      // Adaptive controls (G3, doc phase-3/15): need the database and the cell's digest key; Keycloak (to end a session)
+      // and the messaging port (notices) when configured.
+      provide: ADAPTIVE_CONTROLS,
+      inject: [IAM_REPOSITORY, MESSAGING],
+      useFactory: (repo: IamRepository | null, messaging: MessagingChannel | null): AdaptiveControls | null => {
+        const key = loadIdentityDigestKey();
+        if (!repo || !key) return null;
+        const directories: Parameters<typeof contextNotices>[0] = {};
+        for (const realm of ['citizens', 'staff'] as const) {
+          const cfg = loadAdminConfig(realm);
+          if (cfg) directories[realm] = new KeycloakAccountDirectory(new KeycloakAdmin(cfg));
+        }
+        const log = (entry: Record<string, unknown>) => process.stdout.write(JSON.stringify({ ts: new Date().toISOString(), service: 'civora-core', context: 'adaptive-controls', ...entry }) + '\n');
+        return new AdaptiveControls({
+          observe: (personId, signal) => repo.observeSession(personId, signal),
+          endSession: async (realm, sessionId) => { await directories[realm]?.deleteSession(sessionId); },
+          notice: contextNotices(directories, messaging, log),
+          log,
+        }, loadAdaptiveConfig(), key);
       },
     },
     {

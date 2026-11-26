@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import type { NextRequest } from 'next/server';
-import { pendingCookie, sessionCookie } from '@/lib/cookies';
+import { randomBytes } from 'node:crypto';
+import { deviceCookie, pendingCookie, sessionCookie, validDeviceId } from '@/lib/cookies';
 import { exchangeCode, newDpopKey, verifyIdToken } from '@/lib/oidc';
 import { config, store } from '@/server/context';
 import { interstitial, serializeCookie } from '@/server/interstitial';
@@ -29,7 +30,10 @@ export async function GET(req: NextRequest): Promise<Response> {
     store().destroy(jar.get(sc.name)?.value);
     const session = store().create(subject, tokens, dpop);
     const notice = q.get('kc_action_status') === 'success' ? 'actionDone' : pending.returnTo.includes('confirmed=1') ? 'stepUpDone' : null;
-    return interstitial(notice ? back(notice) : pending.returnTo, [clearPending, serializeCookie(sc.name, session.id, sc.options)]);
+    // A browser without a device id gets one now (adaptive controls, doc phase-3/15); an existing one is kept.
+    const dc = deviceCookie(cfg);
+    const device = validDeviceId(jar.get(dc.name)?.value) ? [] : [serializeCookie(dc.name, randomBytes(32).toString('base64url'), dc.options)];
+    return interstitial(notice ? back(notice) : pending.returnTo, [clearPending, serializeCookie(sc.name, session.id, sc.options), ...device]);
   } catch {
     return interstitial(back('signInFailed'), [clearPending]);
   }

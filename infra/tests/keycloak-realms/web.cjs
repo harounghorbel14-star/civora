@@ -103,6 +103,31 @@ const html = (page) => page.evaluate(() => ({ lang: document.documentElement.lan
   nav: document.querySelector('header nav')?.textContent ?? '' }));
 const notice = (page) => page.locator('[data-notice]').first().getAttribute('data-notice').catch(() => null);
 const sessionCookie = async (x) => (await x.context.cookies(WEB)).find((c) => /civora_session$/.test(c.name));
+/**
+ * Headers for a request from Node that is the same browser as context x: its session and device cookies and its
+ * User-Agent. The adaptive controls (doc phase-3/15) end a session used from any other browser.
+ */
+async function asBrowser(x) {
+  const cookie = (await x.context.cookies(WEB)).filter((c) => /civora_(session|device)$/.test(c.name)).map((c) => `${c.name}=${c.value}`).join('; ');
+  return { cookie, 'user-agent': await x.page.evaluate(() => navigator.userAgent) };
+}
+// Subjects of the adaptive-control notices (security-notices.ts), per language.
+const G3_MAIL = {
+  ar: { newDevice: /دخول جديد/, ended: /أنهينا جلسة/ },
+  fr: { newDevice: /Nouvelle connexion/, ended: /Nous avons fermé une session/ },
+  en: { newDevice: /New sign-in/, ended: /We ended a session/ },
+};
+/** The first e-mail to `to`, after the first `before` ones, whose subject matches; null if none within `ms`. */
+async function mailMatching(to, before, subject, ms = 15000) {
+  const until = Date.now() + ms;
+  while (Date.now() < until) {
+    const list = await mails(to);
+    const m = list.slice(0, Math.max(0, list.length - before)).find((x) => subject.test(x.Subject));
+    if (m) return { subject: m.Subject, text: (await (await fetch(`${process.env.MAIL_URL}/api/v1/message/${m.ID}`)).json()).Text };
+    await sleep(300);
+  }
+  return null;
+}
 
 async function statusCode(email, before) {
   const until = Date.now() + 15000;
@@ -264,7 +289,10 @@ async function signOutChecks(x, lang, who) {
     const jwt = /eyJ[A-Za-z0-9_-]{10,}\./;
     const where = [...sent.filter((c) => jwt.test(c.value)).map((c) => `cookie ${c.name}`), ...(jwt.test(storage) ? ['storage'] : []), ...(jwt.test(page) ? ['page'] : [])];
     check('no token anywhere the web app\'s pages can reach (its cookies, storage, page)', where.length === 0, where.join(', '));
-    const res = await fetch(`${WEB}/${lang}/security`, { headers: { cookie: `${sc.name}=${sc.value}` }, redirect: 'manual' });
+    const dc = (await x.context.cookies(WEB)).find((c) => /civora_device$/.test(c.name));
+    check('device cookie (adaptive controls): HttpOnly, SameSite=Lax, Secure, path /, about 400 days, a random id',
+      dc && dc.httpOnly && dc.sameSite === 'Lax' && dc.secure && dc.path === '/' && dc.expires > Date.now() / 1000 + 399 * 86400 && /^[A-Za-z0-9_-]{43}$/.test(dc.value), JSON.stringify({ ...dc, value: undefined }));
+    const res = await fetch(`${WEB}/${lang}/security`, { headers: await asBrowser(x), redirect: 'manual' });
     const csp = res.headers.get('content-security-policy') ?? '';
     const body = await res.text();
     check('strict Content Security Policy: scripts by nonce only, no inline, no framing; no-referrer',
@@ -273,12 +301,45 @@ async function signOutChecks(x, lang, who) {
     const form = new FormData();
     if (actionField) form.append(actionField, '');
     form.append('lang', lang);
-    const forged = await fetch(`${WEB}/${lang}`, { method: 'POST', body: form, redirect: 'manual', headers: { cookie: `${sc.name}=${sc.value}`, origin: 'http://attacker.invalid' } });
-    const still = await fetch(`${WEB}/${lang}/security`, { headers: { cookie: `${sc.name}=${sc.value}` }, redirect: 'manual' });
+    const forged = await fetch(`${WEB}/${lang}`, { method: 'POST', body: form, redirect: 'manual', headers: { ...(await asBrowser(x)), origin: 'http://attacker.invalid' } });
+    const still = await fetch(`${WEB}/${lang}/security`, { headers: await asBrowser(x), redirect: 'manual' });
     check('a server action posted from another origin (CSRF) is refused; the session survives', !!actionField && forged.status >= 400 && still.status === 200, `${actionField} ${forged.status} ${still.status}`);
     for (const l of LOCALES) await signOutChecks(signedIn[l].x, l, signedIn[l].who);
 
     const opened = [];
+    for (const gl of LOCALES) {
+      stamp(`[${gl}] adaptive controls (G3, doc 15): a new device is announced; a session used from another browser is ended`);
+      const who = await citizen(browser, gl);
+      const A = await newContext(browser, gl);
+      const B = await newContext(browser, gl);
+      const H = await newContext(browser, gl);
+      opened.push(A, B, H);
+      await webSignIn(A, gl, who);
+      await A.page.goto(`${WEB}/${gl}/security`);
+      const base = (await mails(who.email)).length;
+      const quietFirst = !(await mailMatching(who.email, 0, G3_MAIL[gl].newDevice, 3000));
+      await webSignIn(B, gl, who);
+      await B.page.goto(`${WEB}/${gl}/security`);
+      const announced = await mailMatching(who.email, base, G3_MAIL[gl].newDevice);
+      check(`[${gl}] first device: no notice; a sign-in from a second browser: "new sign-in" e-mail in ${gl}, naming the browser`,
+        quietFirst && !!announced && LANG[gl].script.test(announced.subject) && /Chrome · Linux/.test(announced.text), JSON.stringify({ quietFirst, subject: announced?.subject }));
+      const stolen = (await B.context.cookies(WEB)).find((c) => /civora_session$/.test(c.name));
+      await H.context.addCookies([{ name: stolen.name, value: stolen.value, url: WEB, httpOnly: true, secure: stolen.secure, sameSite: 'Strict' }]);
+      const before = (await mails(who.email)).length;
+      await H.page.goto(`${WEB}/${gl}/security`);
+      const thiefRefused = H.page.url().startsWith(KC) && !(await visible(H.page, '[data-testid=sign-out]'));
+      await B.page.goto(`${WEB}/${gl}/security`);
+      const ownerAsked = B.page.url().startsWith(KC) && (await visible(B.page, '#username, #password'));
+      const ended = await mailMatching(who.email, before, G3_MAIL[gl].ended);
+      const kcUser = (await admin('GET', `civora-citizens/users?exact=true&email=${encodeURIComponent(who.email)}`))[0];
+      const kcSessions = await admin('GET', `civora-citizens/users/${kcUser.id}/sessions`);
+      await A.page.goto(`${WEB}/${gl}/security`);
+      const otherGoesOn = await visible(A.page, '[data-testid=sign-out]');
+      check(`[${gl}] a session cookie copied to another browser: refused there, the session ended (also at Keycloak: its owner must sign in again), "session ended" e-mail in ${gl}; the other session goes on`,
+        thiefRefused && ownerAsked && !!ended && LANG[gl].script.test(ended.subject) && kcSessions.length === 1 && otherGoesOn,
+        JSON.stringify({ thiefRefused, ownerAsked, ended: ended?.subject, kcSessions: kcSessions.length, otherGoesOn, h: H.page.url().slice(0, 80) }));
+    }
+
     for (const ml of LOCALES) {
       stamp(`[${ml}] mandates and acting on behalf of the principal (P3-F6)`);
       const principal = await citizen(browser, ml);

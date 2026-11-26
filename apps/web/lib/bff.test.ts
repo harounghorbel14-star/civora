@@ -3,8 +3,8 @@ import { createHash, generateKeyPairSync } from 'node:crypto';
 import { before, describe, it } from 'node:test';
 import { calculateJwkThumbprint, createLocalJWKSet, decodeProtectedHeader, exportJWK, generateKeyPair, jwtVerify, SignJWT, type JWK } from 'jose';
 import { loadConfig, type WebConfig } from './config';
-import { pendingCookie, sessionCookie } from './cookies';
-import { coreCall, SignedOut, StepUpRequired } from './core';
+import { deviceCookie, pendingCookie, sessionCookie, validDeviceId } from './cookies';
+import { contextHeaders, coreCall, SignedOut, StepUpRequired } from './core';
 import { negotiateLang, langOf } from './locales';
 import { CATALOGUES, describeScopes, translator } from './messages';
 import { NOTICES } from './notices';
@@ -54,6 +54,12 @@ describe('cookies', () => {
     const https = { ...cfg, hostPrefix: true };
     assert.equal(sessionCookie(https).name, '__Host-civora_session');
     assert.deepEqual(pendingCookie(cfg).options, { httpOnly: true, secure: true, sameSite: 'lax', path: '/auth/callback', maxAge: 600 });
+  });
+  it('device (adaptive controls): HttpOnly, Secure, SameSite=Lax (back from Keycloak), path /, 400 days; only a well-formed id counts', () => {
+    assert.deepEqual(deviceCookie(cfg), { name: 'civora_device', options: { httpOnly: true, secure: true, sameSite: 'lax', path: '/', maxAge: 400 * 86400 } });
+    assert.equal(deviceCookie({ ...cfg, hostPrefix: true }).name, '__Host-civora_device');
+    assert.equal(validDeviceId('A'.repeat(43)), 'A'.repeat(43));
+    for (const bad of [undefined, '', 'short', 'A'.repeat(44), `${'A'.repeat(42)}=`]) assert.equal(validDeviceId(bad), null, String(bad));
   });
 });
 
@@ -230,6 +236,21 @@ describe('calls to the core', () => {
     assert.equal(store.get(s.id)?.tokens.refreshToken, 'rt2');
     assert.equal(store.get(s.id)?.tokens.idToken, 'it', 'the ID token is kept for sign-out');
     assert.equal(calls.length, 2);
+  });
+  it('tells the core which browser the call is for: the device id\'s digest (never the id) and the User-Agent', async () => {
+    const id = 'B'.repeat(43);
+    const h = contextHeaders({ deviceId: id, userAgent: 'Mozilla/5.0 (X11; Linux x86_64) Chrome/131.0\u0000\u00e9' });
+    assert.deepEqual(h, { 'civora-device': createHash('sha256').update(id).digest('base64url'), 'civora-user-agent': 'Mozilla/5.0 (X11; Linux x86_64) Chrome/131.0' });
+    assert.ok(!Object.values(h).some((v) => v.includes(id)), 'the device id itself never leaves the web app');
+    assert.deepEqual(contextHeaders({ deviceId: null, userAgent: null }), {});
+    assert.deepEqual(contextHeaders(undefined), {});
+    const now = 1_000_000;
+    const store = new MemorySessionStore({ idleMs: 600_000, maxMs: 3_600_000, now: () => now });
+    const s = store.create('p', tokens(now), DPOP);
+    let seen: Record<string, string> = {};
+    const f = (async (_u: string, init: RequestInit) => { seen = init.headers as Record<string, string>; return reply(200); }) as unknown as typeof fetch;
+    await coreCall(cfg, store, s, '/v1/me', { browser: { deviceId: id, userAgent: 'UA' } }, f, now);
+    assert.deepEqual([seen['civora-device'], seen['civora-user-agent']], [h['civora-device'], 'UA']);
   });
   it('step-up (insufficient_user_authentication) keeps the session; any other 401 or a refused refresh signs out', async () => {
     const now = 1_000_000;

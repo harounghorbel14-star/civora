@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import type { WebConfig } from './config';
 import { dpopProof, refreshTokens } from './oidc';
 import type { MemorySessionStore, Session } from './session';
@@ -14,13 +15,29 @@ export interface CoreResult<T = unknown> {
 
 const REFRESH_MARGIN_MS = 30_000;
 
+/** The browser this call is made for (adaptive controls, doc phase-3/15): its device id (cookie) and User-Agent. */
+export interface BrowserContext {
+  deviceId: string | null;
+  userAgent: string | null;
+}
+
+/** Headers that tell the core which browser the call is for: the device id's digest (never the id) and the User-Agent. */
+export function contextHeaders(b: BrowserContext | undefined): Record<string, string> {
+  if (!b) return {};
+  const ua = (b.userAgent ?? '').replace(/[^\x20-\x7e]/g, '').slice(0, 512);
+  return {
+    ...(b.deviceId ? { 'civora-device': createHash('sha256').update(b.deviceId, 'ascii').digest('base64url') } : {}),
+    ...(ua ? { 'civora-user-agent': ua } : {}),
+  };
+}
+
 /** Calls civora-core with the session's DPoP-bound access token, refreshing it first when it is about to expire. */
 export async function coreCall<T = unknown>(
   cfg: WebConfig,
   store: MemorySessionStore,
   session: Session,
   path: string,
-  init: { method?: string; body?: unknown; correlationId?: string } = {},
+  init: { method?: string; body?: unknown; correlationId?: string; browser?: BrowserContext } = {},
   fetchFn: typeof fetch = fetch,
   now = Date.now(),
 ): Promise<CoreResult<T>> {
@@ -45,6 +62,7 @@ export async function coreCall<T = unknown>(
       accept: 'application/json',
       ...(init.body !== undefined ? { 'content-type': 'application/json' } : {}),
       ...(init.correlationId ? { 'x-request-id': init.correlationId } : {}),
+      ...contextHeaders(init.browser),
     },
     body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
     signal: AbortSignal.timeout(15_000),
