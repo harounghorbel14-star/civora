@@ -37,13 +37,15 @@
 | 6+ | Gap G4 (ASVS L3, SR-4): the web app as a confidential client (`private_key_jwt`), pushed authorization requests required, DPoP-bound access tokens checked by the core with single-use proofs; the mobile client requires PAR and DPoP in the realm | **Done for the web app** (local); the other clients remain (doc 14 §5) | [14](14-sender-constrained-tokens.md): whole realms run **279 checks, all passed** (1084 s; new N24–N27, web app 68 checks through the new sign-in); 177 tests (core 122 with PostgreSQL, web 24) |
 | 6+ | GitHub on the G4 commits (head `36e90e8`) | CI runs 96 and 97 **green** (CodeQL check passing after N24 stopped logging the token endpoint's answer); nightly run 38 **green, 12 of 12 jobs** | Merged into `main`: PR #17 (`5194ff8`). On the way: a test placeholder flagged by gitleaks (built at run time now), the dev cell's web-client key (pinned now), a CodeQL finding read from the job log (new CI step) |
 | 6+ | Gap G3 (ASVS V8.2.4, SR-5): adaptive controls on the device and browser of every session: a new device or a long absence is notified, a session used from another device or browser is ended at Keycloak and refused, notices in ar/fr/en | **Done** (local) | [15](15-adaptive-controls.md): whole realms run **286 checks, all passed** (1284 s; new: device cookie, new-device e-mail and stolen-cookie checks in three languages); 188 tests (core 131 with PostgreSQL, web 26) |
+| 6+ | GitHub on the G3 commits | CI runs 102 and 103 **green** (CodeQL check passing); nightly run 40 **green, 12 of 12 jobs** on the last code commit | Merged into `main`: PR #18 (`8a89e19`) |
+| 6+ | Rest of G1 (ASVS V6.3.5, V6.3.7): notices from Keycloak's sign-in events: right password with a failed second step, repeated failures, a sign-in after failures, a way to sign in added or changed; event shapes observed on Keycloak 26.8.1 first | **Done** (local); V6.3.7 keeps one open item (e-mail changes on Keycloak's account pages: decision) | [15 §7](15-adaptive-controls.md): realms run **296 checks** (295 in the full run, E1 fixed and the login part re-run 80/80; new: 9 notice checks in three languages and the lockout notice); 195 tests (core 138 with PostgreSQL, web 26) |
 
-## Completion estimate (26 Nov 2026, updated after G4 and G3)
+## Completion estimate (26 Nov 2026, updated after G4, G3 and G1)
 
 Each of the 43 work items of the specification ([00](00-phase-3-start-and-specification-audit.md); objectives,
 dependency, time and budget lines excluded) scored by what is built **and tested**: 0, 25, 50, 75 or 100 %.
 **Phase 3: about 95 %** (41.0 of 43). Acceptance criteria: **3 of 3 met** (AC1, AC2 self-review, AC3).
-Time: 6 of 6 planned weeks used. Not reached 100 %: the mobile app and its Detox job (A2, T2, T1), G5 and the rest of G4 and G1 (SEC1), the web app's edge route (SEC2), SMS sign-in (F1, Q3-7), production re-proofing evidence (SEC4, Q3-4), counter-assisted flows (RISK, Phase 6). The scoring is an engineering estimate, not an acceptance decision.
+Time: 6 of 6 planned weeks used. Not reached 100 %: the mobile app and its Detox job (A2, T2, T1), G5, the rest of G4 and one V6.3.7 item (SEC1), the web app's edge route (SEC2), SMS sign-in (F1, Q3-7), production re-proofing evidence (SEC4, Q3-4), counter-assisted flows (RISK, Phase 6). The scoring is an engineering estimate, not an acceptance decision.
 
 | Item | Done | What is missing |
 |---|---|---|
@@ -74,12 +76,12 @@ Time: 6 of 6 planned weeks used. Not reached 100 %: the mobile app and its Detox
 | P3-API4 authenticators | 100% | doc 04 |
 | P3-API5 mandates | 100% |  |
 | P3-API6 identity links (simulated eID) | 100% | start (step-up), complete, list (doc 06) |
-| P3-SEC1 ASVS L3 | 75% | assessment (doc 11), updated after week 6: 124 of 143 applicable L1–L3 requirements met in V3, V6–V10; G2 (recovery) closed, G1 partly; G4 partly closed (doc 14: web app confidential with PAR and DPoP; five V10 rows now partial, no longer gaps); G3 closed (doc 15: adaptive controls, V8.2.4 met with deviation D4); 125 of 143 met, 1 gap left; open: G4 for the other clients, G1 failed-sign-in notices, G5 HSTS preload |
+| P3-SEC1 ASVS L3 | 75% | assessment (doc 11), updated after week 6: 124 of 143 applicable L1–L3 requirements met in V3, V6–V10; G2 (recovery) closed, G1 partly; G4 partly closed (doc 14: web app confidential with PAR and DPoP; five V10 rows now partial, no longer gaps); G3 closed (doc 15: adaptive controls, V8.2.4 met with deviation D4); G1 mostly closed (doc 15 §7: sign-in event notices, V6.3.5 met); 126 of 143 met, 1 gap left; open: G4 for the other clients, e-mail changes on Keycloak's account pages (V6.3.7, decision), G5 HSTS preload |
 | P3-SEC2 rate limits | 75% | every route reviewed and limited, checked by the gateway test (doc 11 §5); quotas per person and institution (R-P3-15, week 6); open: the web app's edge route (ADR-030, PG-8) |
 | P3-SEC3 credential stuffing | 100% |  |
 | P3-SEC4 recovery re-proofing | 75% | built and tested with the simulated eID (level of the link, same answer, notices; doc 12); which evidence is acceptable in production is founder/counsel decision Q3-4 |
 | P3-SEC5 officers require FIDO2 | 100% | approved models: founder decision Q3-5 |
-| P3-T1 unit + integration | 75% | 188 tests (core 131 with PostgreSQL, web 26) and the realms integration run (286 checks); grows with each feature |
+| P3-T1 unit + integration | 75% | 195 tests (core 138 with PostgreSQL, web 26) and the realms integration run (296 checks); grows with each feature |
 | P3-T2 E2E Playwright, Detox | 75% | Playwright through the web app in three languages (doc 09); Detox planned, needs its emulator job (doc 10) |
 | P3-T3 negative tests (session fixation, CSRF, token replay) | 100% | 27 attack checks (N1–N27, doc 11 §6; N24–N27 for PAR, client assertions and DPoP, doc 14) besides the earlier forgery, replay and WebAuthn checks |
 | P3-T4 mandate-scope authorisation tests | 100% | Cedar policies with 20 decision cases and 8 negative controls; the core answers permissions from them (doc 11 §7); domain endpoints use the same engine when they arrive |
