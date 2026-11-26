@@ -36,10 +36,14 @@ function intIn(env: NodeJS.ProcessEnv, name: string, fallback: number, min: numb
   return v;
 }
 
-export function loadConfig(env: NodeJS.ProcessEnv = process.env): WebConfig {
+/** Reads the client key file (mounted from the cell's secret store); replaceable in tests, which never write a key to disk. */
+export type KeyFileReader = (path: string) => string;
+const readKeyFile: KeyFileReader = (path) => readFileSync(path, 'utf8');
+
+export function loadConfig(env: NodeJS.ProcessEnv = process.env, readKey: KeyFileReader = readKeyFile): WebConfig {
   const keyFile = env.OIDC_CLIENT_KEY_FILE;
   if (!keyFile) throw new Error('OIDC_CLIENT_KEY_FILE is not set (the client signs its requests with private_key_jwt)');
-  const clientKeyPem = readFileSync(keyFile, 'utf8');
+  const clientKeyPem = readKey(keyFile);
   if (!/-----BEGIN PRIVATE KEY-----/.test(clientKeyPem)) throw new Error('OIDC_CLIENT_KEY_FILE: a PKCS #8 PEM private key');
   const need = (name: string): string => {
     const v = env[name];

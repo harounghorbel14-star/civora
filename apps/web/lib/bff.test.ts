@@ -1,8 +1,5 @@
 import { strict as assert } from 'node:assert';
 import { createHash, generateKeyPairSync } from 'node:crypto';
-import { mkdtempSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { before, describe, it } from 'node:test';
 import { calculateJwkThumbprint, createLocalJWKSet, decodeProtectedHeader, exportJWK, generateKeyPair, jwtVerify, SignJWT, type JWK } from 'jose';
 import { loadConfig, type WebConfig } from './config';
@@ -17,13 +14,18 @@ import { type DpopKey, MemorySessionStore, type Tokens } from './session';
 
 // The client's signing key (private_key_jwt) and a session's DPoP key, made for the tests.
 const clientPair = generateKeyPairSync('ec', { namedCurve: 'P-256' });
-const keyFile = join(mkdtempSync(join(tmpdir(), 'web-key-')), 'client.pem');
-writeFileSync(keyFile, clientPair.privateKey.export({ type: 'pkcs8', format: 'pem' }) as string, { mode: 0o600 });
+// The key stays in memory: the configuration reads it through a reader, as it would read the mounted file.
+const keyFile = '/run/secrets/civora-web-test.pem';
+const clientPem = clientPair.privateKey.export({ type: 'pkcs8', format: 'pem' }) as string;
+const readKey = (path: string): string => {
+  if (path !== keyFile) throw new Error(`unexpected key file ${path}`);
+  return clientPem;
+};
 const dpopPair = generateKeyPairSync('ec', { namedCurve: 'P-256' });
 const DPOP: DpopKey = { privateJwk: dpopPair.privateKey.export({ format: 'jwk' }) as JWK, publicJwk: dpopPair.publicKey.export({ format: 'jwk' }) as JWK };
 const env = { CIVORA_ENV: 'test', APP_ORIGIN: 'http://localhost:3100', OIDC_ISSUER: 'http://localhost:8080/realms/civora-citizens', CORE_URL: 'http://127.0.0.1:3000', OIDC_CLIENT_KEY_FILE: keyFile };
 const b64sha256 = (s: string) => createHash('sha256').update(s, 'ascii').digest('base64url');
-const cfg: WebConfig = loadConfig(env);
+const cfg: WebConfig = loadConfig(env, readKey);
 const tokens = (now: number, accessIn = 300): Tokens => ({ accessToken: 'at', refreshToken: 'rt', idToken: 'it', accessExpiresAt: now + accessIn * 1000, refreshExpiresAt: now + 1800_000 });
 
 describe('configuration', () => {
@@ -31,17 +33,18 @@ describe('configuration', () => {
     assert.equal(cfg.clientId, 'civora-web');
     assert.equal(cfg.secureCookies, true, 'localhost is a secure context');
     assert.equal(cfg.hostPrefix, false);
-    assert.throws(() => loadConfig({ ...env, CIVORA_ENV: 'prod' }), /https/);
-    assert.throws(() => loadConfig({ ...env, APP_ORIGIN: 'http://app.example.invalid' }), /https/);
-    assert.throws(() => loadConfig({ ...env, APP_ORIGIN: 'http://localhost:3100/x' }), /origin/);
-    const prod = loadConfig({ ...env, CIVORA_ENV: 'prod', APP_ORIGIN: 'https://app.example.invalid', OIDC_ISSUER: 'https://id.example.invalid/realms/civora-citizens' });
+    assert.throws(() => loadConfig({ ...env, CIVORA_ENV: 'prod' }, readKey), /https/);
+    assert.throws(() => loadConfig({ ...env, APP_ORIGIN: 'http://app.example.invalid' }, readKey), /https/);
+    assert.throws(() => loadConfig({ ...env, APP_ORIGIN: 'http://localhost:3100/x' }, readKey), /origin/);
+    const prod = loadConfig({ ...env, CIVORA_ENV: 'prod', APP_ORIGIN: 'https://app.example.invalid', OIDC_ISSUER: 'https://id.example.invalid/realms/civora-citizens' }, readKey);
     assert.equal(prod.hostPrefix, true);
     const { OIDC_CLIENT_KEY_FILE: _unused, ...noKey } = env;
-    assert.throws(() => loadConfig(noKey), /OIDC_CLIENT_KEY_FILE/, 'no client key: refused (fail closed)');
+    assert.throws(() => loadConfig(noKey, readKey), /OIDC_CLIENT_KEY_FILE/, 'no client key: refused (fail closed)');
+    assert.throws(() => loadConfig(env, () => 'not a key'), /PKCS #8 PEM/, 'a file that is not a private key: refused');
   });
   it('session limits: idle 30 min and absolute 8 h by default; absolute never below idle', () => {
     assert.deepEqual([cfg.sessionIdleSeconds, cfg.sessionMaxSeconds], [1800, 28800]);
-    assert.throws(() => loadConfig({ ...env, SESSION_IDLE_SECONDS: '3600', SESSION_MAX_SECONDS: '600' }), /SESSION_MAX_SECONDS/);
+    assert.throws(() => loadConfig({ ...env, SESSION_IDLE_SECONDS: '3600', SESSION_MAX_SECONDS: '600' }, readKey), /SESSION_MAX_SECONDS/);
   });
 });
 
