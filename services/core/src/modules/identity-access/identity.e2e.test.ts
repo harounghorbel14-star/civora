@@ -302,6 +302,29 @@ describe('identity and mandates, end to end (Phase 3 week 1)', { skip: !adminUrl
     assert.equal(visibleToNobody, 0, 'without a person set, no row is visible');
   });
 
+  it('database: sign-in events (G1) as the application role: handled once, failures counted, notices at most daily, functions only', async () => {
+    const c = new Client({ connectionString: appDbUrl });
+    await c.connect();
+    const d = (s: string) => createHash('sha256').update(s).digest();
+    const seq: string[] = [];
+    const kinds = ['failure', 'failure', 'failure', 'failure', 'failure', 'failure', 'success', 'second-factor-failure', 'second-factor-failure',
+      'credential-change', 'failure', 'failure', 'failure', 'success'];
+    for (const [i, k] of kinds.entries()) {
+      const r = (await c.query('select notice, failures from iam.record_signin_event($1, $2, $3, now())', [d(`ev-${i}`), d('account-1'), k])).rows[0];
+      seq.push(`${r.notice ?? '-'}:${r.failures}`);
+    }
+    assert.deepEqual(seq, ['-:1', '-:2', '-:3', '-:4', 'failed-attempts:5', '-:6', 'signed-in-after-failures:6', 'second-factor-failed:1', '-:2',
+      'credential-change:0', '-:3', '-:4', '-:5', 'signed-in-after-failures:5'], 'the second time five failures are reached the same day sends nothing');
+    const replay = (await c.query('select notice from iam.record_signin_event($1, $2, $3, now())', [d('ev-0'), d('account-1'), 'failure'])).rows[0].notice;
+    assert.equal(replay, 'duplicate', 'an event read again (another replica, an overlap) is handled once');
+    const old = (await c.query("select notice, failures from iam.record_signin_event($1, $2, 'failure', now() + interval '2 hours')", [d('ev-late'), d('account-1')])).rows[0];
+    assert.equal(old.failures, 1, 'failures more than an hour apart start a new window');
+    await assert.rejects(c.query('select * from iam.signin_watch'), /permission denied/);
+    await assert.rejects(c.query('select * from iam.signin_event_seen'), /permission denied/);
+    await assert.rejects(c.query("select iam.record_signin_event($1, $1, 'nonsense', now())", [d('x')]), /invalid sign-in event/);
+    await c.end();
+  });
+
   it('database: branches, teams and unit roles per institution (P3-R3), invitations become memberships at first sign-in', async () => {
     const T1 = '11111111-1111-4111-8111-111111111111';
     const T2 = '22222222-2222-4222-8222-222222222222';

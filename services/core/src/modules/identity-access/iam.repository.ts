@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { Pool, type PoolClient } from 'pg';
 import type { Outcome, Signal } from './adaptive-context';
+import type { Kind } from './signin-events';
 import type { VerifiedToken } from './token-verifier';
 
 export interface PersonView {
@@ -265,6 +266,13 @@ export class IamRepository {
         [signal.session, signal.device, signal.strength, signal.label]);
       return { outcome: r.rows[0]!.outcome, longAbsence: r.rows[0]!.long_absence };
     });
+  }
+
+  /** Sign-in events (doc phase-3/15 §7): handled once; returns what to tell the person, if anything. */
+  async recordSignInEvent(event: Buffer, account: Buffer, kind: Kind, atMs: number): Promise<{ notice: string | null; failures: number }> {
+    const r = await this.pool.query<{ notice: string | null; failures: number }>('select notice, failures from iam.record_signin_event($1, $2, $3, $4)',
+      [event, account, kind, new Date(atMs)]);
+    return { notice: r.rows[0]!.notice, failures: r.rows[0]!.failures };
   }
 
   /** Records a DPoP proof identifier (digest); false when it was already used (replay). */

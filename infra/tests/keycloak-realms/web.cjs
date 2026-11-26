@@ -89,6 +89,22 @@ async function keycloakUntil(page, who, selector) {
   return { shown: await visible(page, selector), steps: [...done].join('+') || 'none' };
 }
 
+/** One attempt on Keycloak's sign-in page from the web app: the password, then (if asked) a code; never completes on purpose. */
+async function keycloakAttempt(x, lang, who, password, code) {
+  await x.page.goto(`${WEB}/${lang}`);
+  await x.page.locator('[data-testid=sign-in]').first().click();
+  await x.page.waitForURL((u) => u.href.startsWith(KC), { timeout: 10000 }).catch(() => undefined);
+  await waitFor(() => visible(x.page, '#password'), 10000);
+  if (await visible(x.page, '#username')) await x.page.locator('#username').fill(who.email);
+  await x.page.locator('#password').fill(password);
+  await submit(x.page);
+  if (code !== undefined && await waitFor(() => visible(x.page, '#otp'), 10000)) {
+    await x.page.locator('#otp').fill(code);
+    await submit(x.page);
+  }
+  await sleep(500);
+}
+
 async function webSignIn(x, lang, who) {
   await x.page.goto(`${WEB}/${lang}`);
   await x.page.locator('[data-testid=sign-in]').first().click();
@@ -111,23 +127,8 @@ async function asBrowser(x) {
   const cookie = (await x.context.cookies(WEB)).filter((c) => /civora_(session|device)$/.test(c.name)).map((c) => `${c.name}=${c.value}`).join('; ');
   return { cookie, 'user-agent': await x.page.evaluate(() => navigator.userAgent) };
 }
-// Subjects of the adaptive-control notices (security-notices.ts), per language.
-const G3_MAIL = {
-  ar: { newDevice: /دخول جديد/, ended: /أنهينا جلسة/ },
-  fr: { newDevice: /Nouvelle connexion/, ended: /Nous avons fermé une session/ },
-  en: { newDevice: /New sign-in/, ended: /We ended a session/ },
-};
-/** The first e-mail to `to`, after the first `before` ones, whose subject matches; null if none within `ms`. */
-async function mailMatching(to, before, subject, ms = 15000) {
-  const until = Date.now() + ms;
-  while (Date.now() < until) {
-    const list = await mails(to);
-    const m = list.slice(0, Math.max(0, list.length - before)).find((x) => subject.test(x.Subject));
-    if (m) return { subject: m.Subject, text: (await (await fetch(`${process.env.MAIL_URL}/api/v1/message/${m.ID}`)).json()).Text };
-    await sleep(300);
-  }
-  return null;
-}
+const G3_MAIL = lib.NOTICE;
+const mailMatching = lib.mailMatching;
 
 async function statusCode(email, before) {
   const until = Date.now() + 15000;
@@ -338,6 +339,26 @@ async function signOutChecks(x, lang, who) {
       check(`[${gl}] a session cookie copied to another browser: refused there, the session ended (also at Keycloak: its owner must sign in again), "session ended" e-mail in ${gl}; the other session goes on`,
         thiefRefused && ownerAsked && !!ended && LANG[gl].script.test(ended.subject) && kcSessions.length === 1 && otherGoesOn,
         JSON.stringify({ thiefRefused, ownerAsked, ended: ended?.subject, kcSessions: kcSessions.length, otherGoesOn, h: H.page.url().slice(0, 80) }));
+
+      stamp(`[${gl}] sign-in event notices (G1, doc 15 §7): a failed second step, a sign-in after failures, a way to sign in added`);
+      const P = await newContext(browser, gl);
+      const Q = await newContext(browser, gl);
+      opened.push(P, Q);
+      const beforePartial = (await mails(who.email)).length;
+      await keycloakAttempt(P, gl, who, who.password, '000000');
+      const partial = await mailMatching(who.email, beforePartial, G3_MAIL[gl].secondStep, 20000);
+      check(`[${gl}] right password, wrong authenticator code: "second step failed" e-mail in ${gl}, naming the authenticator app`,
+        !!partial && LANG[gl].script.test(partial.subject), partial?.subject);
+      for (let i = 0; i < 3; i++) { await keycloakAttempt(Q, gl, who, `${who.password}-wrong`); await sleep(1100); }
+      const beforeAfter = (await mails(who.email)).length;
+      await webSignIn(Q, gl, who);
+      const after = await mailMatching(who.email, beforeAfter, G3_MAIL[gl].afterFailures, 20000);
+      check(`[${gl}] a sign-in after failed attempts: e-mail in ${gl} with the number of failures (4: the failed second step and 3 wrong passwords)`,
+        !!after && LANG[gl].script.test(after.subject) && /4/.test(after.text), JSON.stringify({ subject: after?.subject, text: after?.text?.slice(0, 160) }));
+      const journeyUser = signedIn[gl]?.who;
+      const added = journeyUser ? await mailMatching(journeyUser.email, 0, G3_MAIL[gl].added, 20000) : null;
+      check(`[${gl}] a passkey added from the web app (Keycloak's page, inside a sign-in): "a way to sign in was added" e-mail in ${gl}; none at activation`,
+        !!added && LANG[gl].script.test(added.subject) && !(await mailMatching(who.email, 0, G3_MAIL[gl].added, 1000)), added?.subject);
     }
 
     for (const ml of LOCALES) {

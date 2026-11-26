@@ -132,6 +132,7 @@ async function securityChecks(browser, citizen, officer) {
   stamp('account enumeration (R-P3-1): the answers must not depend on whether an address has an account');
   // E1. Registration: same answer for a new, a pending and an activated address.
   const pending = `pending.${tag()}@example.invalid`;
+  const citizenMailsBefore = (await mails(citizen.email)).length; // earlier security notices (a passkey added from the app) are not registration mail
   const answers = [];
   for (const [what, email] of [['new', `new.${tag()}@example.invalid`], ['pending', pending], ['pending again', pending], ['activated', citizen.email]]) {
     const r = await core(undefined, '/v1/registrations', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, locale: 'en' }) });
@@ -142,7 +143,7 @@ async function securityChecks(browser, citizen, officer) {
   info(`E1 registration answer times (ms): ${answers.map((x) => `${x.what} ${x.ms}`).join(', ')} (work is done after the answer)`);
   await sleep(4000);
   check('E1 activated address: no e-mail sent; pending address asked twice: one e-mail (per-address bound)',
-    (await mails(citizen.email)).length === 1 && (await mails(pending)).length === 1, `${(await mails(citizen.email)).length} / ${(await mails(pending)).length}`);
+    (await mails(citizen.email)).length === citizenMailsBefore && (await mails(pending)).length === 1, `${(await mails(citizen.email)).length - citizenMailsBefore} / ${(await mails(pending)).length}`);
   const resp = await core(undefined, '/v1/registrations', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: 'not-an-address' }) });
   check('E1 malformed address: 400 (format only, says nothing about accounts)', resp.status === 400, resp.status);
 
@@ -176,6 +177,9 @@ async function securityChecks(browser, citizen, officer) {
   check('E3 brute force: account locked after 5 wrong passwords (C9)', locked);
   check('E3 locked account answers exactly like an unknown address', `${lockedTry.status}:${lockedTry.message}` === `${unknownTry.status}:${unknownTry.message}`,
     `${lockedTry.message} vs ${unknownTry.message}`);
+  // G1 (doc 15 §7): the owner is told about repeated failed attempts (no language on this account: Arabic, the default).
+  const failedNotice = await lib.mailMatching(victim, 0, lib.NOTICE.ar.failedAttempts, 20000);
+  check('E3 the account\'s owner is told about the failed attempts (security notice from the sign-in events, ar)', !!failedNotice && /5/.test(failedNotice.text), failedNotice?.subject);
 
   stamp('first enrolment (R-P3-3): only the activation link gives first credentials; login never enrols a factor');
   // F1/F2. An account that has a password but no second factor (e.g. set by an administrator by mistake) is refused.
