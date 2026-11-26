@@ -33,13 +33,15 @@
 | 5 | Mandate scopes as Cedar policies (T4); negative tests (T3); ASVS 5.0 L3 assessment of the identity system (SEC1) with fixes (password deny list and context words, session ending with step-up and "end all others", web app resource isolation, CSP reports, HSTS); rate limits on every route (SEC2); every flow in AR/FR/EN (AC1) | **Done** (local) | [11](11-security-verification.md): whole realms run **254 checks, all passed** (22 negative, 58 web app); 154 unit and database tests; gateway 20/20; dev cell 17/17; ASVS: 121 of 143 applicable met |
 | 5 | GitHub on `ca766aa` | CI run 63 **green**; nightly run 30 **green** after re-running the Valkey-on-k3s job (a failover-timing race, doc 13 SR-14) | Merged into `main`: PR #10 (`d27c490`) |
 | 6 | Account recovery by re-proofing at the simulated eID (D5, SEC4), security notices, simulated SMS channel (F1), pairwise mirror (DB6), quotas (R-P3-15), assisted use (RISK); internal security review (AC2), readiness report, acceptance checklist | **Done** (local) | [12](12-recovery-notices-sms-pairwise.md), [13](13-security-review-and-readiness.md): whole realms run **274 checks, all passed** (recovery in three languages, pairwise mirror verified against Keycloak, SAML replay refused, N23); 170 unit and database tests; gateway 21/21; dev cell 17/17; no open high finding |
+| 6 | GitHub on the week-6 commit | CI run 81 **green**; nightly run 34 **green** | Merged into `main`: PR #16 (`1302642`) |
+| 6+ | Gap G4 (ASVS L3, SR-4): the web app as a confidential client (`private_key_jwt`), pushed authorization requests required, DPoP-bound access tokens checked by the core with single-use proofs; the mobile client requires PAR and DPoP in the realm | **Done for the web app** (local); the other clients remain (doc 14 §5) | [14](14-sender-constrained-tokens.md): whole realms run **279 checks, all passed** (1084 s; new N24–N27, web app 68 checks through the new sign-in); 177 tests (core 122 with PostgreSQL, web 24) |
 
-## Completion estimate (25 Nov 2026, updated after week 6)
+## Completion estimate (26 Nov 2026, updated after G4)
 
 Each of the 43 work items of the specification ([00](00-phase-3-start-and-specification-audit.md); objectives,
 dependency, time and budget lines excluded) scored by what is built **and tested**: 0, 25, 50, 75 or 100 %.
 **Phase 3: about 95 %** (41.0 of 43). Acceptance criteria: **3 of 3 met** (AC1, AC2 self-review, AC3).
-Time: 6 of 6 planned weeks used. Not reached 100 %: the mobile app and its Detox job (A2, T2, T1), G3/G4/G5 (SEC1), the web app's edge route (SEC2), SMS sign-in (F1, Q3-7), production re-proofing evidence (SEC4, Q3-4), counter-assisted flows (RISK, Phase 6). The scoring is an engineering estimate, not an acceptance decision.
+Time: 6 of 6 planned weeks used. Not reached 100 %: the mobile app and its Detox job (A2, T2, T1), G3, G5 and the rest of G4 (SEC1), the web app's edge route (SEC2), SMS sign-in (F1, Q3-7), production re-proofing evidence (SEC4, Q3-4), counter-assisted flows (RISK, Phase 6). The scoring is an engineering estimate, not an acceptance decision.
 
 | Item | Done | What is missing |
 |---|---|---|
@@ -70,14 +72,14 @@ Time: 6 of 6 planned weeks used. Not reached 100 %: the mobile app and its Detox
 | P3-API4 authenticators | 100% | doc 04 |
 | P3-API5 mandates | 100% |  |
 | P3-API6 identity links (simulated eID) | 100% | start (step-up), complete, list (doc 06) |
-| P3-SEC1 ASVS L3 | 75% | assessment (doc 11), updated after week 6: 124 of 143 applicable L1–L3 requirements met in V3, V6–V10; G2 (recovery) closed, G1 partly; open: G3 adaptive controls, G4 PAR/DPoP/private_key_jwt, G5 HSTS preload |
+| P3-SEC1 ASVS L3 | 75% | assessment (doc 11), updated after week 6: 124 of 143 applicable L1–L3 requirements met in V3, V6–V10; G2 (recovery) closed, G1 partly; G4 partly closed (doc 14: web app confidential with PAR and DPoP; five V10 rows now partial, no longer gaps); open: G3 adaptive controls, G4 for the other clients, G5 HSTS preload |
 | P3-SEC2 rate limits | 75% | every route reviewed and limited, checked by the gateway test (doc 11 §5); quotas per person and institution (R-P3-15, week 6); open: the web app's edge route (ADR-030, PG-8) |
 | P3-SEC3 credential stuffing | 100% |  |
 | P3-SEC4 recovery re-proofing | 75% | built and tested with the simulated eID (level of the link, same answer, notices; doc 12); which evidence is acceptable in production is founder/counsel decision Q3-4 |
 | P3-SEC5 officers require FIDO2 | 100% | approved models: founder decision Q3-5 |
-| P3-T1 unit + integration | 75% | 139 tests (core 99 with PostgreSQL, web 22) and the realms integration run (199 checks); grows with each feature |
+| P3-T1 unit + integration | 75% | 177 tests (core 122 with PostgreSQL, web 24) and the realms integration run (279 checks); grows with each feature |
 | P3-T2 E2E Playwright, Detox | 75% | Playwright through the web app in three languages (doc 09); Detox planned, needs its emulator job (doc 10) |
-| P3-T3 negative tests (session fixation, CSRF, token replay) | 100% | 22 attack checks (N1–N22, doc 11 §6) besides the earlier forgery, replay and WebAuthn checks |
+| P3-T3 negative tests (session fixation, CSRF, token replay) | 100% | 27 attack checks (N1–N27, doc 11 §6; N24–N27 for PAR, client assertions and DPoP, doc 14) besides the earlier forgery, replay and WebAuthn checks |
 | P3-T4 mandate-scope authorisation tests | 100% | Cedar policies with 20 decision cases and 8 negative controls; the core answers permissions from them (doc 11 §7); domain endpoints use the same engine when they arrive |
 | P3-AC1 all auth flows E2E in AR/FR/EN | 100% | every flow in each of the three languages (doc 11 §8) |
 | P3-AC2 no high findings in internal security review | 100% | self-review done, no open high finding; one high found and fixed before merge (doc 13); external test: PG-8 |
