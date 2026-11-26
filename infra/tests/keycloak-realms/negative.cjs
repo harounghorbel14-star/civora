@@ -240,8 +240,10 @@ async function registerWebApp() {
       body: JSON.stringify({ client_name: 'attacker app', redirect_uris: ['https://attacker.invalid/cb'] }) });
     check('N22 anonymous dynamic client registration is refused in both realms (no unknown client applications)', [dcr.status, dcrStaff.status].every((st) => st === 401 || st === 403), `${dcr.status} ${dcrStaff.status}`);
     stamp('the web app\'s client at ASVS L3: private_key_jwt, pushed authorization requests, DPoP-bound tokens (Phase 3 doc 14)');
-    const noAuth = await form(TOKEN, { grant_type: 'authorization_code', client_id: 'civora-web', code: 'x', redirect_uri: WEB_CB, code_verifier: 'v'.repeat(43) });
-    check('N24 civora-web without client authentication (no signed assertion): refused (invalid_client)', noAuth.status >= 400 && noAuth.body.error === 'invalid_client', JSON.stringify(noAuth.body));
+    // Only the status and the error code are shown on failure: a token endpoint's answer is never logged whole.
+    const anonymous = await form(TOKEN, { grant_type: 'authorization_code', client_id: 'civora-web', code: 'x', redirect_uri: WEB_CB, code_verifier: 'v'.repeat(43) });
+    const anonymousError = typeof anonymous.body?.error === 'string' ? anonymous.body.error : '(no error code)';
+    check('N24 civora-web without client authentication (no signed assertion): refused (invalid_client)', anonymous.status >= 400 && anonymousError === 'invalid_client', `${anonymous.status} ${anonymousError}`);
     const direct = await fetch(`${KC}/realms/${REALM}/protocol/openid-connect/auth?${new URLSearchParams({ client_id: 'civora-web', response_type: 'code', scope: 'openid',
       redirect_uri: WEB_CB, state: 's', code_challenge: b64url(crypto.randomBytes(32)), code_challenge_method: 'S256' })}`, { redirect: 'manual' });
     const directTo = direct.headers.get('location') ?? '';
