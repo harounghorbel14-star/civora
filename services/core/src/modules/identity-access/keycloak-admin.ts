@@ -1,3 +1,4 @@
+import { type KeycloakEvent, WATCHED_EVENTS } from './signin-events';
 import { readSecret } from '../../config/app-config';
 import type { Realm } from './token-verifier';
 
@@ -213,6 +214,8 @@ export interface AccountDirectory {
   listCredentials(userId: string): Promise<IdpCredential[]>;
   deleteCredential(userId: string, credentialId: string): Promise<void>;
   contact?(userId: string): Promise<{ email: string; locale: string | null } | null>;
+  /** Stored sign-in events of the watched types since a time (epoch ms), newest first (needs the view-events role). */
+  events?(sinceMs: number, first: number, max: number): Promise<KeycloakEvent[]>;
 }
 
 export class KeycloakAccountDirectory implements AccountDirectory {
@@ -228,6 +231,12 @@ export class KeycloakAccountDirectory implements AccountDirectory {
 
   async deleteSession(sessionId: string): Promise<void> {
     await this.admin.call('DELETE', `/sessions/${encodeURIComponent(sessionId)}`);
+  }
+
+  async events(sinceMs: number, first: number, max: number): Promise<KeycloakEvent[]> {
+    const q = new URLSearchParams({ dateFrom: String(Math.max(0, Math.floor(sinceMs))), first: String(first), max: String(max) });
+    for (const t of WATCHED_EVENTS) q.append('type', t);
+    return this.admin.json<KeycloakEvent[]>('GET', `/events?${q}`);
   }
 
   async listCredentials(userId: string): Promise<IdpCredential[]> {

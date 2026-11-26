@@ -125,7 +125,7 @@ curl -sf --noproxy '*' -H "Authorization: Bearer $KC_ADMIN_TOKEN" "$kc/admin/rea
   | python3 -c 'import json,sys; c=json.load(sys.stdin); c["redirectUris"]=[sys.argv[1]]; print(json.dumps(c))' "$eid_cb" \
   | curl -sf --noproxy '*' -X PUT -H "Authorization: Bearer $KC_ADMIN_TOKEN" -H 'content-type: application/json' --data @- "$kc/admin/realms/sim-national-eid/clients/$eid_client"
 eid_env=(EID_SIM_ISSUER="$kc/realms/sim-national-eid" EID_SIM_CLIENT_SECRET_FILE="$work/eid.secret" EID_REDIRECT_URI="$eid_cb"
-  IDENTITY_CLAIM_DIGEST_KEY_FILE="$work/digest.key"
+  IDENTITY_CLAIM_DIGEST_KEY_FILE="$work/digest.key" SIGNIN_EVENTS_POLL_SECONDS=2
   # Customer status page (P3-R2): synthetic cases; one-time codes by the simulated e-mail channel to the mail catcher.
   SYNTHETIC_CASES=on MESSAGING_SMTP_HOST=127.0.0.1 MESSAGING_SMTP_PORT="$mail_smtp"
   # Week 6: SMS through the simulated channel (register M-01; delivery only, never a sign-in factor); the relying

@@ -10,3 +10,4 @@ export const STATUS_ACCESS = Symbol('STATUS_ACCESS');
 export const POLICY_ENGINE = Symbol('POLICY_ENGINE');
 export const ACCOUNT_RECOVERY = Symbol('ACCOUNT_RECOVERY');
 export const ADAPTIVE_CONTROLS = Symbol('ADAPTIVE_CONTROLS');
+export const SIGNIN_EVENTS = Symbol('SIGNIN_EVENTS');

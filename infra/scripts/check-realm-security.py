@@ -208,7 +208,7 @@ STATES = {
     "staff": [{"password"}, {"password", "security-key"}, {"password", "otp"}, {"password", "otp", "passkey"},
               {"security-key"}],  # last: an account created by institution SSO, key enrolled
 }
-SERVICE_ROLES = {"realm-management": {"manage-users", "view-users", "query-users"}}
+SERVICE_ROLES = {"realm-management": {"manage-users", "view-users", "query-users", "view-events"}}
 
 
 def user_profile(r):
@@ -258,6 +258,13 @@ def _violations(r, profile, require_approved_keys=False):
         v.append("brute-force protection must be on")
     if int(r.get("failureFactor", 30)) > 5:
         v.append("lockout after at most 5 failures")
+    if profile in ("citizens", "staff"):
+        # Sign-in events feed the person's security notices (ASVS V6.3.5, V6.3.7; Phase 3 doc 15 §7): stored briefly.
+        types = set(r.get("enabledEventTypes") or [])
+        if not r.get("eventsEnabled") or not {"LOGIN", "LOGIN_ERROR", "UPDATE_CREDENTIAL", "REMOVE_CREDENTIAL"} <= types:
+            v.append("sign-in events stored (LOGIN, LOGIN_ERROR, UPDATE_CREDENTIAL, REMOVE_CREDENTIAL) for the security notices")
+        if not 600 <= int(r.get("eventsExpiration") or 0) <= 86400:
+            v.append("sign-in events kept between 10 minutes and one day (they hold addresses)")
     pol = r.get("passwordPolicy", "")
     m = re.search(r"length\((\d+)\)", pol)
     if not m or int(m.group(1)) < 12:
@@ -511,6 +518,9 @@ def mutations(profile, live=False, approved=False):
             mobile = lambda r: first(r, lambda c: c.get("clientId") == "civora-mobile")
             m["mobile app without PAR"] = lambda r: mobile(r)["attributes"].pop("require.pushed.authorization.requests")
             m["mobile app without DPoP"] = lambda r: mobile(r)["attributes"].pop("dpop.bound.access.tokens")
+        m["sign-in events not stored"] = lambda r: r.update(eventsEnabled=False)
+        m["sign-in events kept forever"] = lambda r: r.pop("eventsExpiration", None)
+        m["failed sign-ins not recorded"] = lambda r: r.update(enabledEventTypes=["LOGIN"])
         m["no deny list of common passwords"] = lambda r: r.update(passwordPolicy=r["passwordPolicy"].replace(" and passwordBlacklist(civora-deny.txt)", ""))
         m["a context word allowed"] = lambda r: r.update(passwordPolicy=r["passwordPolicy"].replace("(?:civora|", "(?:"))
         m["unmanaged attributes enabled"] = lambda r: _set_up(r, unmanagedAttributePolicy="ENABLED")

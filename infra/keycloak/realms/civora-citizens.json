@@ -7,6 +7,9 @@
   "duplicateEmailsAllowed": false,
   "resetPasswordAllowed": false,
   "bruteForceProtected": true,
+  "eventsEnabled": true,
+  "eventsExpiration": 3600,
+  "enabledEventTypes": ["LOGIN", "LOGIN_ERROR", "UPDATE_CREDENTIAL", "REMOVE_CREDENTIAL"],
   "failureFactor": 5,
   "permanentLockout": false,
   "waitIncrementSeconds": 60,
@@ -469,7 +472,8 @@
         "realm-management": [
           "manage-users",
           "view-users",
-          "query-users"
+          "query-users",
+          "view-events"
         ]
       }
     }

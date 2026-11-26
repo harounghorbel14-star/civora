@@ -108,6 +108,24 @@ async function activationMail(to, ms = 15000) {
   return null;
 }
 
+/** The first e-mail to `to` whose subject matches, among those after the first `before`; null if none within `ms`. */
+async function mailMatching(to, before, subject, ms = 15000) {
+  const until = Date.now() + ms;
+  while (Date.now() < until) {
+    const list = await mails(to);
+    const m = list.slice(0, Math.max(0, list.length - before)).find((x) => subject.test(x.Subject));
+    if (m) return { subject: m.Subject, text: (await (await fetch(`${MAIL}/api/v1/message/${m.ID}`)).json()).Text };
+    await sleep(300);
+  }
+  return null;
+}
+// Subjects of the core's security notices (security-notices.ts), per language.
+const NOTICE = {
+  ar: { newDevice: /دخول جديد/, ended: /أنهينا جلسة/, secondStep: /الخطوة الثانية فشلت/, afterFailures: /بعد محاولات فاشلة/, failedAttempts: /محاولات دخول فاشلة/, added: /أُضيفت أو غُيّرت وسيلة دخول/ },
+  fr: { newDevice: /Nouvelle connexion/, ended: /Nous avons fermé une session/, secondStep: /deuxième étape échouée/, afterFailures: /après des tentatives échouées/, failedAttempts: /Tentatives de connexion échouées/, added: /a été ajouté ou modifié/ },
+  en: { newDevice: /New sign-in/, ended: /We ended a session/, secondStep: /second step failed/, afterFailures: /after failed attempts/, failedAttempts: /Failed attempts to sign in/, added: /was added or changed/ },
+};
+
 /**
  * The two e-mails of an account recovery (P3-SEC4) sent after `before` messages: the activation link (from Keycloak)
  * and the recovery notice (from the core). Null for each one that did not arrive within `ms`.
@@ -270,7 +288,7 @@ async function signIn(ctx, { realm, client, cb, email, password, secret, passkey
   return code ? (await exchange(realm, client, code, a.verifier, cb)).body : {};
 }
 
-module.exports = {
+module.exports = { mailMatching, NOTICE,
   signIn,
   KC, CORE, MAIL, ARTIFACTS, LOCALES, WEB_CB, WS_CB, RP1_CB, RP2_CB, TENANT, TEST_AAGUID, POLICY, LANG,
   TEST_APP, check, failures, info, stamp, b64url, rnd, tag, claims, pw, sleep, median, form, refreshAdmin, admin, adminToken: () => adminToken,

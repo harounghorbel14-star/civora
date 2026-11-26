@@ -18,12 +18,13 @@ import { RegistrationsController } from './registrations.controller';
 import { IdentityLinksController, type IdentityLinksDeps, loadIdentityDigestKey } from './identity-links.controller';
 import { StatusAccess } from './status-access';
 import { AccountRecovery } from './account-recovery';
-import { contextNotices, securityNotices } from './security-notices';
+import { contextNotices, securityNotices, signInNotices } from './security-notices';
+import { loadPollSeconds, SignInEventsService, SignInEventWatcher } from './signin-events';
 import { AdaptiveControls, loadAdaptiveConfig } from './adaptive-context';
 import { RecoveryController } from './recovery.controller';
 import { StatusAccessController } from './status-access.controller';
 import { loadOidcConfig, TokenVerifier } from './token-verifier';
-import { ACCOUNT_RECOVERY, ACCOUNT_SECURITY, ADAPTIVE_CONTROLS, IAM_REPOSITORY, IDENTITY_LINKS, INVITATIONS, POLICY_ENGINE, STATUS_ACCESS, REGISTRATION_SERVICE, STEP_UP_MAX_AGE, TOKEN_VERIFIER } from './tokens';
+import { ACCOUNT_RECOVERY, ACCOUNT_SECURITY, ADAPTIVE_CONTROLS, SIGNIN_EVENTS, IAM_REPOSITORY, IDENTITY_LINKS, INVITATIONS, POLICY_ENGINE, STATUS_ACCESS, REGISTRATION_SERVICE, STEP_UP_MAX_AGE, TOKEN_VERIFIER } from './tokens';
 
 /**
  * Bounded context: identity-access (Phase 3: citizen and staff accounts, profile, mandates, organisation, identity links).
@@ -90,6 +91,33 @@ import { ACCOUNT_RECOVERY, ACCOUNT_SECURITY, ADAPTIVE_CONTROLS, IAM_REPOSITORY, 
           notice: contextNotices(directories, messaging, log),
           log,
         }, loadAdaptiveConfig(), key);
+      },
+    },
+    {
+      // Sign-in event notices (rest of G1, doc phase-3/15 §7): the database, the cell's digest key, the messaging port and
+      // at least one realm whose provisioner can read events. Off otherwise (and with SIGNIN_EVENTS=off).
+      provide: SIGNIN_EVENTS,
+      inject: [IAM_REPOSITORY, MESSAGING],
+      useFactory: (repo: IamRepository | null, messaging: MessagingChannel | null): SignInEventsService => {
+        const log = (entry: Record<string, unknown>) => process.stdout.write(JSON.stringify({ ts: new Date().toISOString(), service: 'civora-core', context: 'signin-events', ...entry }) + '\n');
+        const seconds = loadPollSeconds();
+        const key = loadIdentityDigestKey();
+        const directories: Partial<Record<'citizens' | 'staff', KeycloakAccountDirectory>> = {};
+        for (const realm of ['citizens', 'staff'] as const) {
+          const cfg = loadAdminConfig(realm);
+          if (cfg) directories[realm] = new KeycloakAccountDirectory(new KeycloakAdmin(cfg));
+        }
+        const realms = (['citizens', 'staff'] as const).filter((r) => directories[r]);
+        if (!repo || !key || !messaging || !realms.length || !seconds) return new SignInEventsService(null, 0, log);
+        const watcher = new SignInEventWatcher({
+          realms: [...realms],
+          events: (realm, since, first, max) => directories[realm]!.events(since, first, max),
+          credentialType: async (realm, userId, id) => (await directories[realm]!.listCredentials(userId)).find((c) => c.id === id)?.type ?? null,
+          record: (event, account, kind, at) => repo.recordSignInEvent(event, account, kind, at),
+          notify: signInNotices(directories, messaging),
+          log,
+        }, key);
+        return new SignInEventsService(watcher, seconds, log);
       },
     },
     {
