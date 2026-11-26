@@ -20,3 +20,4 @@
 12. [11 — Security verification](11-security-verification.md) (week 5): ASVS 5.0 L1–L3 assessment of the identity system (153 requirements), fixes, rate-limit review, negative tests, mandate scopes in Cedar, every flow in three languages.
 13. [12 — Recovery, notices, SMS, pairwise mirror](12-recovery-notices-sms-pairwise.md) (week 6): account recovery by re-proofing at the simulated eID, security notices, the simulated SMS channel and decision Q3-7, the pairwise mirror, assisted use.
 14. [13 — Security review and readiness](13-security-review-and-readiness.md) (week 6): internal security review (P3-AC2), readiness report, acceptance criteria.
+15. [14 — Web app at ASVS L3: `private_key_jwt`, PAR, DPoP](14-sender-constrained-tokens.md) (after week 6): the web app as a confidential client with pushed authorization requests and DPoP-bound tokens checked by the core (gap G4, partly closed).

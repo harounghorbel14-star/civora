@@ -30,7 +30,14 @@ describe('access-token verification (doc 06; P3-SEC1, P3-T3 token replay/forgery
 
   it('accepts a valid citizen access token', async () => {
     const v = await verifier.verify(await sign({ locale: 'fr-TN' }));
-    assert.deepEqual(v, { realm: 'citizens', subject: 'user-1', tenantId: null, locale: 'fr-TN', authTime: null, acr: null, sessionId: null, roles: [] });
+    assert.deepEqual(v, { realm: 'citizens', subject: 'user-1', tenantId: null, locale: 'fr-TN', authTime: null, acr: null, sessionId: null, roles: [], jkt: null, clientId: null });
+    // DPoP-bound tokens (RFC 9449): typ DPoP with cnf.jkt; any other combination is refused here, the proof is the guard's.
+    const jkt = 'A'.repeat(43);
+    const bound = await verifier.verify(await sign({ typ: 'DPoP', cnf: { jkt }, azp: 'civora-web' }));
+    assert.deepEqual([bound.jkt, bound.clientId], [jkt, 'civora-web']);
+    await assert.rejects(verifier.verify(await sign({ typ: 'DPoP' })), /not an access token/, 'DPoP type without a bound key');
+    await assert.rejects(verifier.verify(await sign({ typ: 'Bearer', cnf: { jkt } })), /not an access token/, 'a bound key on a bearer type');
+    await assert.rejects(verifier.verify(await sign({ typ: 'DPoP', cnf: { 'x5t#S256': 'abc' } })), /unsupported confirmation/, 'other confirmation methods');
     // Step-up and sessions read auth_time, acr and sid; malformed values are ignored, never trusted.
     const t = Math.floor(Date.now() / 1000) - 10;
     const w = await verifier.verify(await sign({ auth_time: t, acr: '1', sid: 'f3a1c2d4-0000-4000-8000-000000000001' }));

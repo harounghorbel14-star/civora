@@ -1,19 +1,23 @@
-import { createHash, randomBytes } from 'node:crypto';
-import { createRemoteJWKSet, jwtVerify, type JWTVerifyGetKey } from 'jose';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
+import { createRemoteJWKSet, exportJWK, generateKeyPair, importJWK, importPKCS8, jwtVerify, type JWK, type JWTVerifyGetKey, SignJWT } from 'jose';
 import type { WebConfig } from './config';
-import type { Tokens } from './session';
+import type { DpopKey, Tokens } from './session';
 
 /**
- * OpenID Connect for the backend-for-frontend: authorization code with PKCE S256, state and nonce; the code is
- * exchanged and the ID token verified on the server; refresh tokens rotate (the realm refuses reuse); sign-out ends
- * the Keycloak session from the server.
+ * OpenID Connect for the backend-for-frontend, at ASVS 5.0 level 3 (doc phase-3/14): a confidential client that
+ * authenticates with a signed JWT (`private_key_jwt`, V10.4.16); every authorization request pushed to Keycloak first
+ * (PAR, V10.4.12–V10.4.13), the browser carrying only a one-minute reference; authorization code with PKCE S256, state
+ * and nonce kept on the server; access tokens bound to a key per session (DPoP, V10.3.5, V10.4.14): the core refuses
+ * them without a fresh proof from that key, which never leaves this server. Refresh tokens rotate; sign-out ends the
+ * Keycloak session from the server.
  */
 export const callbackPath = '/auth/callback';
 export const randomToken = (): string => randomBytes(32).toString('base64url');
+const b64sha256 = (s: string): string => createHash('sha256').update(s, 'ascii').digest('base64url');
 
 export function pkce(): { verifier: string; challenge: string } {
   const verifier = randomToken();
-  return { verifier, challenge: createHash('sha256').update(verifier).digest('base64url') };
+  return { verifier, challenge: b64sha256(verifier) };
 }
 
 export interface AuthorizeOptions {
@@ -28,21 +32,74 @@ export interface AuthorizeOptions {
   kcAction?: string;
 }
 
-export function authorizeUrl(cfg: WebConfig, o: AuthorizeOptions): string {
-  const q = new URLSearchParams({
-    client_id: cfg.clientId,
-    redirect_uri: cfg.appOrigin + callbackPath,
+// ---------------------------------------------------------------- client authentication (private_key_jwt)
+
+const ASSERTION_TYPE = 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer';
+const clientKeys = new Map<string, ReturnType<typeof importPKCS8>>();
+
+/** A one-minute, single-use JWT signed with this app's key: how the app proves it is the civora-web client. */
+export async function clientAssertion(cfg: WebConfig, now = Date.now()): Promise<string> {
+  if (!clientKeys.has(cfg.clientKeyPem)) clientKeys.set(cfg.clientKeyPem, importPKCS8(cfg.clientKeyPem, 'ES256'));
+  const key = await clientKeys.get(cfg.clientKeyPem)!;
+  const iat = Math.floor(now / 1000);
+  return new SignJWT({}).setProtectedHeader({ alg: 'ES256', typ: 'JWT', kid: cfg.clientKeyId })
+    .setIssuer(cfg.clientId).setSubject(cfg.clientId).setAudience(cfg.issuer).setJti(randomUUID()).setIssuedAt(iat).setExpirationTime(iat + 60)
+    .sign(key);
+}
+
+async function clientAuth(cfg: WebConfig): Promise<Record<string, string>> {
+  return { client_id: cfg.clientId, client_assertion_type: ASSERTION_TYPE, client_assertion: await clientAssertion(cfg) };
+}
+
+// ---------------------------------------------------------------- DPoP (RFC 9449)
+
+/** A new key for one session; its tokens are bound to it. Kept as JWK so a shared session store can hold it (PG-7). */
+export async function newDpopKey(): Promise<DpopKey> {
+  const { publicKey, privateKey } = await generateKeyPair('ES256', { extractable: true });
+  return { privateJwk: await exportJWK(privateKey), publicJwk: await exportJWK(publicKey) };
+}
+
+/** A proof for one request: method, URL (no query), time, a fresh id, and the access token it goes with. */
+export async function dpopProof(key: DpopKey, htm: string, htu: string, accessToken?: string): Promise<string> {
+  const k = await importJWK(key.privateJwk as JWK, 'ES256');
+  return new SignJWT({ htm, htu: htu.split(/[?#]/)[0], jti: randomUUID(), ...(accessToken ? { ath: b64sha256(accessToken) } : {}) })
+    .setProtectedHeader({ alg: 'ES256', typ: 'dpop+jwt', jwk: key.publicJwk as JWK })
+    .setIssuedAt()
+    .sign(k);
+}
+
+// ---------------------------------------------------------------- authorization (PAR)
+
+function authorizationParams(cfg: WebConfig, o: AuthorizeOptions): Record<string, string> {
+  return {
     response_type: 'code',
+    redirect_uri: cfg.appOrigin + callbackPath,
     scope: 'openid',
     state: o.state,
     nonce: o.nonce,
     code_challenge: o.challenge,
     code_challenge_method: 'S256',
+    ...(o.uiLocale ? { ui_locales: o.uiLocale } : {}),
+    ...(o.reauth ? { prompt: 'login', max_age: '0' } : {}),
+    ...(o.kcAction ? { kc_action: o.kcAction } : {}),
+  };
+}
+
+/**
+ * Pushes the authorization request to Keycloak (authenticated), and returns where to send the browser: the
+ * authorization endpoint with only the client id and the request reference (valid one minute, single use).
+ */
+export async function pushAuthorization(cfg: WebConfig, o: AuthorizeOptions, fetchFn: typeof fetch = fetch): Promise<string> {
+  const res = await fetchFn(`${cfg.issuerInternal}/protocol/openid-connect/ext/par/request`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ ...authorizationParams(cfg, o), ...(await clientAuth(cfg)) }),
+    signal: AbortSignal.timeout(10_000),
   });
-  if (o.uiLocale) q.set('ui_locales', o.uiLocale);
-  if (o.reauth) { q.set('prompt', 'login'); q.set('max_age', '0'); }
-  if (o.kcAction) q.set('kc_action', o.kcAction);
-  return `${cfg.issuer}/protocol/openid-connect/auth?${q}`;
+  if (res.status !== 201) throw new OidcError(`pushed authorization request answered ${res.status}`);
+  const b = (await res.json()) as { request_uri?: unknown };
+  if (typeof b.request_uri !== 'string' || !b.request_uri.startsWith('urn:ietf:params:oauth:request_uri:')) throw new OidcError('no request_uri');
+  return `${cfg.issuer}/protocol/openid-connect/auth?${new URLSearchParams({ client_id: cfg.clientId, request_uri: b.request_uri })}`;
 }
 
 export class OidcError extends Error {}
@@ -67,23 +124,24 @@ function toTokens(r: TokenResponse, now: number, previousIdToken?: string): Toke
   };
 }
 
-async function tokenRequest(cfg: WebConfig, body: Record<string, string>, fetchFn: typeof fetch): Promise<TokenResponse> {
-  const res = await fetchFn(`${cfg.issuerInternal}/protocol/openid-connect/token`, {
+async function tokenRequest(cfg: WebConfig, body: Record<string, string>, dpop: DpopKey, fetchFn: typeof fetch): Promise<TokenResponse> {
+  const url = `${cfg.issuerInternal}/protocol/openid-connect/token`;
+  const res = await fetchFn(url, {
     method: 'POST',
-    headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ client_id: cfg.clientId, ...body }),
+    headers: { 'content-type': 'application/x-www-form-urlencoded', dpop: await dpopProof(dpop, 'POST', url) },
+    body: new URLSearchParams({ ...(await clientAuth(cfg)), ...body }),
     signal: AbortSignal.timeout(10_000),
   });
   if (!res.ok) throw new OidcError(`token endpoint answered ${res.status}`);
   return (await res.json()) as TokenResponse;
 }
 
-export async function exchangeCode(cfg: WebConfig, code: string, verifier: string, fetchFn: typeof fetch = fetch, now = Date.now()): Promise<Tokens> {
-  return toTokens(await tokenRequest(cfg, { grant_type: 'authorization_code', code, redirect_uri: cfg.appOrigin + callbackPath, code_verifier: verifier }, fetchFn), now);
+export async function exchangeCode(cfg: WebConfig, code: string, verifier: string, dpop: DpopKey, fetchFn: typeof fetch = fetch, now = Date.now()): Promise<Tokens> {
+  return toTokens(await tokenRequest(cfg, { grant_type: 'authorization_code', code, redirect_uri: cfg.appOrigin + callbackPath, code_verifier: verifier }, dpop, fetchFn), now);
 }
 
-export async function refreshTokens(cfg: WebConfig, t: Tokens, fetchFn: typeof fetch = fetch, now = Date.now()): Promise<Tokens> {
-  return toTokens(await tokenRequest(cfg, { grant_type: 'refresh_token', refresh_token: t.refreshToken }, fetchFn), now, t.idToken);
+export async function refreshTokens(cfg: WebConfig, t: Tokens, dpop: DpopKey, fetchFn: typeof fetch = fetch, now = Date.now()): Promise<Tokens> {
+  return toTokens(await tokenRequest(cfg, { grant_type: 'refresh_token', refresh_token: t.refreshToken }, dpop, fetchFn), now, t.idToken);
 }
 
 let jwks: JWTVerifyGetKey | undefined;
@@ -103,7 +161,7 @@ export async function endKeycloakSession(cfg: WebConfig, t: Tokens, fetchFn: typ
     const res = await fetchFn(`${cfg.issuerInternal}/protocol/openid-connect/logout`, {
       method: 'POST',
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ client_id: cfg.clientId, refresh_token: t.refreshToken }),
+      body: new URLSearchParams({ ...(await clientAuth(cfg)), refresh_token: t.refreshToken }),
       signal: AbortSignal.timeout(5000),
     });
     return res.ok;

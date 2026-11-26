@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import type { JWK } from 'jose';
 
 /**
  * Server-side sessions of the backend-for-frontend. The browser holds only an opaque, random session id in an
@@ -15,6 +16,12 @@ export interface Tokens {
   refreshExpiresAt: number;
 }
 
+/** The session's DPoP key (RFC 9449): its access tokens are bound to it; it never leaves this server. */
+export interface DpopKey {
+  privateJwk: JWK;
+  publicJwk: JWK;
+}
+
 export interface ActingContext {
   mandateId: string;
   scopes: string[];
@@ -25,6 +32,7 @@ export interface Session {
   id: string;
   subject: string;
   tokens: Tokens;
+  dpop: DpopKey;
   createdAt: number;
   lastSeenAt: number;
   absoluteExpiresAt: number;
@@ -60,14 +68,14 @@ export class MemorySessionStore {
     return (this.opts.now ?? Date.now)();
   }
 
-  create(subject: string, tokens: Tokens): Session {
+  create(subject: string, tokens: Tokens, dpop: DpopKey): Session {
     const t = this.now();
     // Oldest first (insertion order): drop the sessions past their absolute limit at the head of the map.
     for (const [k, v] of this.sessions) {
       if (t > v.absoluteExpiresAt || t > v.tokens.refreshExpiresAt) this.sessions.delete(k);
       else break;
     }
-    const s: Session = { id: newId(), subject, tokens, createdAt: t, lastSeenAt: t, absoluteExpiresAt: t + this.opts.maxMs };
+    const s: Session = { id: newId(), subject, tokens, dpop, createdAt: t, lastSeenAt: t, absoluteExpiresAt: t + this.opts.maxMs };
     this.sessions.set(s.id, s);
     return s;
   }

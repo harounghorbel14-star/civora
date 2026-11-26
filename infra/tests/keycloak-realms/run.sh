@@ -79,13 +79,19 @@ stamp "Keycloak 26.8.1 up; civora-citizens, civora-staff and the SIMULATORS (nat
 KC_ADMIN_TOKEN=$(curl -sf --noproxy '*' "$kc/realms/master/protocol/openid-connect/token" -d grant_type=password -d client_id=admin-cli \
   -d username=admin --data-urlencode "password=$kc_pw" | python3 -c 'import json,sys;print(json.load(sys.stdin)["access_token"])')
 export KC_ADMIN_TOKEN
+# The web app's signing key for its client assertions (private_key_jwt; Phase 3 doc 14): made per run, the public half
+# installed on the civora-web client by the policy (deployment setting, never in Git).
+node -e 'const c=require("node:crypto"),fs=require("node:fs");const k=c.generateKeyPairSync("ec",{namedCurve:"P-256"});
+fs.writeFileSync(process.argv[1],k.privateKey.export({type:"pkcs8",format:"pem"}),{mode:0o600});
+fs.writeFileSync(process.argv[2],JSON.stringify({keys:[{...k.publicKey.export({format:"jwk"}),kid:"civora-web-1",use:"sig",alg:"ES256"}]}));' \
+  "$work/web-client.pem" "$work/web-client.jwks.json"
 echo "Live realms (after import and policy):"
 for p in citizens staff; do
   curl -sf --noproxy '*' -X POST -H "Authorization: Bearer $KC_ADMIN_TOKEN" "$kc/admin/realms/civora-$p/partial-export?exportClients=true&exportGroupsAndRoles=true" > "$work/$p.imported.json"
   before=$(python3 "$checker" "$work/$p.imported.json" --profile "$p" --live | grep -c FAIL || true)
   echo "  info civora-$p as imported, before policy: $before rule(s) not met (Keycloak's built-in defaults)"
   extra=(--smtp-host kr-mail --smtp-port 1025)
-  [ "$p" = citizens ] && extra+=(--provisioner-secret-out "$work/provisioner.secret" --pairwise-out "$work/pairwise.json")
+  [ "$p" = citizens ] && extra+=(--provisioner-secret-out "$work/provisioner.secret" --pairwise-out "$work/pairwise.json" --web-client-jwks "$work/web-client.jwks.json")
   [ "$p" = staff ] && extra+=(--provisioner-secret-out "$work/staff-provisioner.secret")
   [ "$p" = staff ] && extra+=(--approved-keys "$approved")
   python3 "$repo/infra/keycloak/apply-realm-policy.py" --server "$kc" --realm "civora-$p" --profile "$p" --export "$work/$p.live.json" "${extra[@]}" | sed 's/^/  /'
@@ -93,6 +99,19 @@ for p in citizens staff; do
     echo "  ok   live civora-$p conforms ($(grep -c 'control rejected' <<<"$out") negative controls rejected)"
   else echo "$out"; fail=1; fi
 done
+# The test harness signs in as an ordinary first-party public client with PKCE (test only, never in a realm file):
+# civora-web is now confidential with PAR and DPoP, used by the web app itself and by the negative checks with its key.
+curl -sf --noproxy '*' -H "Authorization: Bearer $KC_ADMIN_TOKEN" "$kc/admin/realms/civora-citizens/clients?clientId=civora-web" \
+  | python3 -c 'import json,sys
+c=json.load(sys.stdin)[0]
+for k in ("id","secret"): c.pop(k, None)
+for m in c.get("protocolMappers", []): m.pop("id", None)
+c.update(clientId="civora-test-app", name="Test harness (test only)", publicClient=True, clientAuthenticatorType="client-secret")
+for k in ("use.jwks.url","use.jwks.string","jwks.string","token.endpoint.auth.signing.alg","require.pushed.authorization.requests","dpop.bound.access.tokens"):
+    c["attributes"].pop(k, None)
+print(json.dumps(c))' \
+  | curl -sf --noproxy '*' -X POST -H "Authorization: Bearer $KC_ADMIN_TOKEN" -H 'content-type: application/json' --data @- "$kc/admin/realms/civora-citizens/clients" \
+  && echo "  info test-only public client civora-test-app created for the harness" || { echo "  FAIL test client"; fail=1; }
 
 # Simulated national eID: the core's client secret is generated here (never in Git); a random key for identifier digests.
 eid_client=$(curl -sf --noproxy '*' -H "Authorization: Bearer $KC_ADMIN_TOKEN" "$kc/admin/realms/sim-national-eid/clients?clientId=civora-core-eid" | python3 -c 'import json,sys;print(json.load(sys.stdin)[0]["id"])')
@@ -124,6 +143,7 @@ stamp "civora-core up (database role civora_core_app; issuers: the two realms; r
 grep -q . "$work/provisioner.secret" && grep -q . "$work/staff-provisioner.secret" || { echo "  FAIL provisioner secrets not written"; exit 1; }
 if part web || part negative; then
   (cd "$repo/apps/web" && CIVORA_ENV=test APP_ORIGIN="$web" OIDC_ISSUER="$kc/realms/civora-citizens" CORE_URL="http://127.0.0.1:$core_port" \
+    OIDC_CLIENT_KEY_FILE="$work/web-client.pem" OIDC_CLIENT_KEY_ID=civora-web-1 \
     NEXT_TELEMETRY_DISABLED=1 exec node_modules/.bin/next start -p "$web_port" -H 127.0.0.1) >"$work/web.log" 2>&1 &
   web_pid=$!
   waited=0; for _ in $(seq 1 60); do curl -sf --noproxy '*' -o /dev/null "$web/en" && { waited=1; break; }; sleep 1; done
@@ -153,6 +173,7 @@ part web && { KC_URL="$kc" CORE_URL="http://127.0.0.1:$core_port" MAIL_URL="$mai
   NO_PROXY="localhost,127.0.0.1,${NO_PROXY:-}" no_proxy="localhost,127.0.0.1,${no_proxy:-}" node "$here/web.cjs" || fail=1; }
 part negative && echo "Negative tests (P3-T3): fixation, code and token replay, PKCE, redirects, CSRF, framing, CORS:"
 part negative && { KC_URL="$kc" CORE_URL="http://127.0.0.1:$core_port" MAIL_URL="$mail" KC_ADMIN_PASSWORD="$kc_pw" WEB_URL="$web" \
+  WEB_CLIENT_KEY_FILE="$work/web-client.pem" \
   ARTIFACT_DIR="${ARTIFACT_DIR:-$work/artifacts}" NO_PROXY="localhost,127.0.0.1,${NO_PROXY:-}" no_proxy="localhost,127.0.0.1,${no_proxy:-}" node "$here/negative.cjs" || fail=1; }
 if part eid; then
 echo "Identity links through the SIMULATED national eID (P3-D4, P3-API6):"
