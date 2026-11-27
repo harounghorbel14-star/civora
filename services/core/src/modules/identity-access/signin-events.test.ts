@@ -13,7 +13,9 @@ const types = async (_u: string, id: string) => (id === 'otp-1' ? 'otp' : id ===
 describe('sign-in events: what each one means (ASVS V6.3.5, V6.3.7)', () => {
   it('failures: a wrong password, or a failure on a second-factor credential (right password, failed second step)', async () => {
     assert.deepEqual(await classify(wrongPassword(1), [], types), { kind: 'failure' });
-    assert.deepEqual(await classify(wrongCode(1), [], types), { kind: 'second-factor-failure' });
+    assert.deepEqual(await classify(wrongCode(1), [], types), { kind: 'second-factor-failure', credential: 'otp' });
+    const sms = { ...wrongPassword(1), details: { code_id: 'c1', civora_second_factor: 'sms' } };
+    assert.deepEqual(await classify(sms, [], types), { kind: 'second-factor-failure', credential: 'sms' }, 'a wrong SMS code (doc 17): the password was right');
     const passkey = { ...wrongCode(1), details: { selected_credential_id: 'pk-1' } };
     assert.deepEqual(await classify(passkey, [], types), { kind: 'failure' }, 'a passkey is a first factor: a plain failure');
     assert.equal(await classify({ ...wrongPassword(1), error: 'expired_code' }, [], types), null, 'not an authentication failure');

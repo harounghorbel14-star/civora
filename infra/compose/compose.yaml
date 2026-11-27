@@ -97,6 +97,8 @@ services:
       # (back-channel). Needed by the core's eID adapter, which exchanges codes inside the cell.
       KC_HOSTNAME: http://localhost:8080
       KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      # The SMS sign-in step may use the SIMULATED channel (synthetic numbers, the mail catcher): dev cell only (doc 17).
+      CIVORA_SIMULATED_SMS: allowed
     ports: ["127.0.0.1:8080:8080"]
     # Realms imported on first start; infra/scripts/dev-cell-up.sh then applies the post-import policy and checks
     # the live realms (infra/keycloak/apply-realm-policy.py, infra/scripts/check-realm-security.py --live).
@@ -105,6 +107,8 @@ services:
       - ../keycloak/realms/civora-citizens.json:/opt/keycloak/data/import/civora-citizens.json:ro
       - ../keycloak/realms/civora-staff.json:/opt/keycloak/data/import/civora-staff.json:ro
       - ../keycloak/password-deny-list/civora-deny.txt:/opt/keycloak/data/password-blacklists/civora-deny.txt:ro
+      # CIVORA extension (SMS sign-in step), built by infra/scripts/dev-cell-up.sh (Phase 3 doc 17).
+      - ./.generated/keycloak-providers:/opt/keycloak/providers:ro
       # SIMULATED national eID (synthetic identities only; dev cell and tests, never staging or production).
       - ../keycloak/simulators/sim-national-eid.json:/opt/keycloak/data/import/sim-national-eid.json:ro
     depends_on:

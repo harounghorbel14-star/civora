@@ -59,7 +59,7 @@ offered as authentication options (V6.6.1). The two cannot both hold. What is bu
   stronger methods offered, risk explained), recorded as an L3 deviation. The provider itself is still Q3-1 (PG-6).
 - **Decided on 27 Nov 2026:** option (b) for citizens and staff, as a delivery channel and a fallback factor, recorded
   as ASVS deviation D5; officers keep FIDO2 only (P3-SEC5). The number is verified first, and recovery by phone needs
-  the e-mailed link too ([doc 16](16-contact-details-and-phone-recovery.md)); the sign-in factor follows in doc 17.
+  the e-mailed link too ([doc 16](16-contact-details-and-phone-recovery.md)); the sign-in factor is [doc 17](17-sms-sign-in-factor.md).
 
 ## 4. Pairwise subjects mirrored (P3-DB6)
 

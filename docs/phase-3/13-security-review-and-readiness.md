@@ -41,7 +41,7 @@
 | SR-11 | Low | No rotation procedure for the identifier digest key | Open, **PG-2** | R-P3-12 |
 | SR-12 | Low | Changes made on Keycloak's own pages (adding a passkey, a new password) send no notice | Open, G1 | doc 12 §2 |
 | SR-13 | Info | Two moderate advisories in a transitive dependency of the migration tool (`glob`, `minimatch` under `node-pg-migrate`) | Accepted | Used only when migrations run, never on a request path; CI fails on high or critical |
-| SR-14 | Info | A Phase 2 failover test (Valkey on k3s) can race when the deleted primary pod returns within Sentinel's down-after time | Open (test robustness, Phase 2) | Seen once in nightly 30; the durability checks passed; re-run green |
+| SR-14 | Info | A Phase 2 failover test (Valkey on k3s) can race when the deleted primary pod returns within Sentinel's down-after time | **Closed 27 Nov 2026** | Seen in nightly runs 30, 49 and 51 (k3s recreated the pod in about 4 s, under the 5 s down-after time, so Sentinel saw a reboot and promoted nothing; no confirmed write was lost). The test now cordons the node before deleting the pod, as a node drain does, checks that the pod stays pending while a replica is promoted, then uncordons it and checks that the pod rejoins as a replica |
 
 Checked and found sound (selection): no account enumeration (registration, login, recovery, status page — same answers
 and timing); refresh-token rotation with reuse detection; authorization-code replay revokes issued tokens; PKCE

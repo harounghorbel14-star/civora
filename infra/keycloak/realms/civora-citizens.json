@@ -40,7 +40,7 @@
   "verifyEmail": true,
   "attributes": {
     "civora.profile": "citizens",
-    "civora.purpose": "Citizens of one country cell (P3-A1). Passkeys first; password + TOTP as the alternative; SMS only as a simulated fallback until a provider is chosen (Q3-1). Accounts are created by the core and activated by an e-mailed link (no self-registration page, no enumeration)."
+    "civora.purpose": "Citizens of one country cell (P3-A1). Passkeys first; password + TOTP as the alternative; a code by SMS to a verified number as the fallback second step (decision Q3-7, deviation D5; simulated until a provider is chosen, Q3-1). Accounts are created by the core and activated by an e-mailed link (no self-registration page, no enumeration)."
   },
   "webAuthnPolicyPasswordlessRpEntityName": "CIVORA",
   "webAuthnPolicyPasswordlessSignatureAlgorithms": [
@@ -144,10 +144,17 @@
         },
         {
           "authenticator": "auth-otp-form",
-          "requirement": "REQUIRED",
+          "requirement": "ALTERNATIVE",
           "authenticatorFlow": false,
           "userSetupAllowed": false,
           "priority": 20
+        },
+        {
+          "authenticator": "civora-sms-otp",
+          "requirement": "ALTERNATIVE",
+          "authenticatorFlow": false,
+          "userSetupAllowed": false,
+          "priority": 30
         }
       ]
     },
@@ -453,15 +460,18 @@
   "localizationTexts": {
     "ar": {
       "civoraRealmName": "CIVORA — فضاء المواطنين",
-      "civoraNoSecondFactor": "لا يمكن الدخول: هذا الحساب لم يُفعَّل بعد. استعمل رابط التفعيل الذي وصلك بالبريد الإلكتروني."
+      "civoraNoSecondFactor": "لا يمكن الدخول: هذا الحساب لم يُفعَّل بعد. استعمل رابط التفعيل الذي وصلك بالبريد الإلكتروني.",
+      "credentialSetupRequired": "وسيلة الدخول هذه غير متاحة لهذا الحساب. أعد المحاولة واختر وسيلة أخرى."
     },
     "fr": {
       "civoraRealmName": "CIVORA — Espace citoyens",
-      "civoraNoSecondFactor": "Connexion impossible : ce compte n'est pas encore activé. Utilisez le lien d'activation reçu par e-mail."
+      "civoraNoSecondFactor": "Connexion impossible : ce compte n'est pas encore activé. Utilisez le lien d'activation reçu par e-mail.",
+      "credentialSetupRequired": "Ce moyen de connexion n’est pas disponible pour ce compte. Recommencez et choisissez-en un autre."
     },
     "en": {
       "civoraRealmName": "CIVORA — Citizens",
-      "civoraNoSecondFactor": "You cannot sign in: this account is not activated yet. Use the activation link you received by e-mail."
+      "civoraNoSecondFactor": "You cannot sign in: this account is not activated yet. Use the activation link you received by e-mail.",
+      "credentialSetupRequired": "This way to sign in is not available for this account. Start again and choose another one."
     }
   },
   "users": [

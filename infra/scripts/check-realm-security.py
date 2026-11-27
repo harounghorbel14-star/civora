@@ -37,6 +37,7 @@ NEEDS = {
     "auth-username-password-form": "password",
     "auth-password-form": "password",
     "auth-otp-form": "otp",
+    "civora-sms-otp": "sms",  # CIVORA extension (doc phase-3/17): a code to the verified number; never for the excluded role
     "webauthn-authenticator": "security-key",
     "webauthn-authenticator-passwordless": "passkey",
     "deny-access-authenticator": "impossible",
@@ -94,6 +95,8 @@ def can_complete(r, alias, held, account=None):
 
 def _authenticator(e, st, ctx, where):
     auth = e.get("authenticator")
+    if auth == "civora-sms-otp" and (sms_excluded(ctx["realm"], st["account"]) or not st["identified"]):
+        return False  # officers never; and the step needs an account already identified (it requires a user)
     if auth not in NEEDS:
         UNKNOWN.add(f"{where}/{auth}")
         return True
@@ -149,8 +152,16 @@ def _conditions_hold(flow_alias, st, ctx):
     for c in [e for e in execs if _is_condition(e)]:
         kind = c.get("authenticator")
         if kind == "conditional-user-configured":
-            needs = [NEEDS.get(x.get("authenticator")) for x in execs if not x.get("authenticatorFlow") and not _is_condition(x)]
-            ok = all(n is None or n in st["account"] for n in needs)
+            # Keycloak: every REQUIRED step configured; with none, at least one ALTERNATIVE step configured.
+            steps = [x for x in execs if not x.get("authenticatorFlow") and not _is_condition(x)]
+            def configured(x):
+                n = NEEDS.get(x.get("authenticator"))
+                if x.get("authenticator") == "civora-sms-otp" and sms_excluded(ctx["realm"], st["account"]):
+                    return False
+                return n is None or n in st["account"]
+            required = [x for x in steps if x.get("requirement") == "REQUIRED"]
+            alternative = [x for x in steps if x.get("requirement") == "ALTERNATIVE"]
+            ok = all(configured(x) for x in required) if required else (any(configured(x) for x in alternative) if alternative else True)
         elif kind == "conditional-sub-flow-executed":
             cfg = ctx["cfgs"].get(c.get("authenticatorConfig"), {})
             ran = cfg.get("flow_to_check") in st["executed"]
@@ -204,10 +215,19 @@ def contains_authenticator(r, alias, authenticator, depth=0):
 # Account states checked per profile: a password alone must never complete the login, whatever the account holds
 # (including an account that has no second factor yet).
 STATES = {
-    "citizens": [{"password"}, {"password", "otp"}, {"password", "passkey"}, {"password", "otp", "passkey"}, {"passkey"}, set()],
+    "citizens": [{"password"}, {"password", "otp"}, {"password", "passkey"}, {"password", "otp", "passkey"}, {"passkey"}, set(),
+                 {"password", "sms"}, {"password", "otp", "sms"}],
     "staff": [{"password"}, {"password", "security-key"}, {"password", "otp"}, {"password", "otp", "passkey"},
-              {"security-key"}],  # last: an account created by institution SSO, key enrolled
+              {"security-key"},  # an account created by institution SSO, key enrolled
+              {"password", "sms"}, {"password", "security-key", "sms"}],
 }
+SMS_EXCLUDED_ROLE = "civora.sms.excludedRole"
+
+
+def sms_excluded(r, account):
+    """The SMS step is never usable by a holder of the realm's excluded role (account marker "role:<name>")."""
+    role = (r.get("attributes") or {}).get(SMS_EXCLUDED_ROLE)
+    return bool(role) and f"role:{role}" in account
 SERVICE_ROLES = {"realm-management": {"manage-users", "view-users", "query-users", "view-events"}}
 
 
@@ -353,6 +373,14 @@ def _violations(r, profile, require_approved_keys=False):
                 what = "+".join(sorted(state)) or "no credentials"
                 v.append(f"browser flow: a password alone completes the login of an account holding {what}"
                          + (" (a missing second factor is enrolled at login by whoever is there)" if state <= {"password"} else ""))
+        if contains_authenticator(r, browser, "civora-sms-otp"):
+            texts = r.get("localizationTexts") or {}
+            missing = [lang for lang in ("ar", "fr", "en") if not (texts.get(lang) or {}).get("credentialSetupRequired")]
+            if missing:
+                v.append(f"the SMS step needs the refusal text credentialSetupRequired in {', '.join(missing)} (Keycloak's own page otherwise; doc 17)")
+        for state in STATES[profile]:
+            if "sms" in state and can_complete(r, browser, {"sms"}, state):
+                v.append(f"browser flow: an SMS code alone completes the login of an account holding {'+'.join(sorted(state))}")
         if contains_authenticator(r, browser, "auth-username-form"):
             v.append("browser flow asks for the username alone first: the answer reveals whether an account exists")
         for c in r.get("clients", []):
@@ -428,6 +456,12 @@ def _violations(r, profile, require_approved_keys=False):
         for state in STATES["staff"]:
             if can_complete(r, r.get("browserFlow"), {"password", "otp", "passkey", "external-idp"}, state):
                 v.append(f"browser flow can be completed without a FIDO2 security key for an account holding {'+'.join(sorted(state))} (P3-SEC5)")
+            # Officers: never without the key, even holding a verified phone (decision Q3-7 keeps P3-SEC5 for them).
+            officer = set(state) | {"role:officer", "sms"}
+            if can_complete(r, r.get("browserFlow"), {"password", "otp", "passkey", "external-idp", "sms", "role:officer"}, officer):
+                v.append(f"an officer holding {'+'.join(sorted(state))} and a verified phone can sign in without the security key (P3-SEC5)")
+        if contains_authenticator(r, r.get("browserFlow"), "civora-sms-otp") and (r.get("attributes") or {}).get(SMS_EXCLUDED_ROLE) != "officer":
+            v.append(f"the SMS step must exclude officers: realm attribute {SMS_EXCLUDED_ROLE} = officer (P3-SEC5)")
         if not can_complete(r, r.get("browserFlow"), {"password", "security-key"}, {"password", "security-key"}):
             v.append("browser flow cannot be completed with password + security key")
         if r.get("webAuthnPolicyUserVerificationRequirement") != "required":
@@ -545,6 +579,9 @@ def mutations(profile, live=False, approved=False):
         m["phone number editable by the user"] = _attr_editable_by_user("phone_number")
         m["phone verification flag missing"] = _drop_attr("phone_number_verified")
         m["username edit allowed"] = lambda r: r.update(editUsernameAllowed=True)
+        m["SMS refusal text missing"] = lambda r: [t.pop("credentialSetupRequired", None) for t in (r.get("localizationTexts") or {}).values()]
+        m["SMS step instead of the password"] = lambda r: [e.update(authenticator="auth-username-form") for f in r["authenticationFlows"]
+            for e in f["authenticationExecutions"] if e.get("authenticator") == "auth-username-password-form" and f["alias"] in ("citizens-password", "staff-forms")]
         m["UPDATE_EMAIL action enabled"] = lambda r: r.setdefault("requiredActions", []).append(
             {"alias": "UPDATE_EMAIL", "name": "Update Email", "providerId": "UPDATE_EMAIL", "enabled": True, "defaultAction": False, "priority": 70, "config": {}})
         m["client without kind"] = lambda r: public_app(r)["attributes"].pop("civora.client-kind")
@@ -586,6 +623,7 @@ def mutations(profile, live=False, approved=False):
             {"alias": "browser", "authenticationExecutions": [{"authenticator": "auth-cookie", "requirement": "ALTERNATIVE"},
                                                               {"authenticator": "auth-username-password-form", "requirement": "ALTERNATIVE"}]}])
         m["tenant editable by the user"] = _tenant_editable_by_user
+        m["SMS step offered to officers"] = lambda r: r["attributes"].pop("civora.sms.excludedRole")
         m["self-registration"] = lambda r: r.update(registrationAllowed=True)
         m["attestation not verified (any key accepted)"] = lambda r: r.update(webAuthnPolicyAttestationConveyancePreference="none")
         m["staff token without tenant"] = lambda r: public_app(r).update(protocolMappers=[x for x in public_app(r)["protocolMappers"]
@@ -672,7 +710,14 @@ def main():
         profile = args[args.index("--profile") + 1]
         if profile not in ALLOWED_DEFAULT_ROLES:
             sys.exit(f"unknown profile {profile}")
-    realm = json.load(open(args[0]))
+    def unique_keys(pairs):
+        # A duplicated key is silently dropped by JSON parsers (Keycloak's too): refuse the file instead.
+        seen = [k for k, _ in pairs]
+        dup = sorted({k for k in seen if seen.count(k) > 1})
+        if dup:
+            sys.exit(f"{args[0]}: duplicated key(s) {', '.join(dup)}: only one would be imported")
+        return dict(pairs)
+    realm = json.load(open(args[0]), object_pairs_hook=unique_keys)
     live = "--live" in args
     approved = "--require-approved-keys" in args
     found = violations(realm, profile, live, approved)

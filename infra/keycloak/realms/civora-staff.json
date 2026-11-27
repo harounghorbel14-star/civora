@@ -39,7 +39,8 @@
   "registrationAllowed": false,
   "attributes": {
     "civora.profile": "staff",
-    "civora.purpose": "Staff of the institutions (tenants) of one cell, and officers (P3-A1). Every account needs a FIDO2 security key (P3-SEC5): local accounts enrol it from an e-mailed invitation before the password; institution SSO accounts (P3-R1) enrol it at their first sign-in through the institution's identity provider."
+    "civora.sms.excludedRole": "officer",
+    "civora.purpose": "Staff of the institutions (tenants) of one cell, and officers (P3-A1). Every account needs a FIDO2 security key (P3-SEC5): local accounts enrol it from an e-mailed invitation before the password; institution SSO accounts (P3-R1) enrol it at their first sign-in through the institution's identity provider. Staff who are not officers may use a code by SMS to a verified number when the key is not at hand (decision Q3-7, deviation D5); officers never (civora.sms.excludedRole)."
   },
   "webAuthnPolicyRpEntityName": "CIVORA Workspace",
   "webAuthnPolicySignatureAlgorithms": [
@@ -127,10 +128,17 @@
         },
         {
           "authenticator": "webauthn-authenticator",
-          "requirement": "REQUIRED",
+          "requirement": "ALTERNATIVE",
           "authenticatorFlow": false,
           "userSetupAllowed": false,
           "priority": 20
+        },
+        {
+          "authenticator": "civora-sms-otp",
+          "requirement": "ALTERNATIVE",
+          "authenticatorFlow": false,
+          "userSetupAllowed": false,
+          "priority": 30
         }
       ]
     },
@@ -434,15 +442,18 @@
   "localizationTexts": {
     "ar": {
       "civoraRealmName": "CIVORA — فضاء الأعوان",
-      "civoraNoSecurityKey": "لا يمكن الدخول دون مفتاح أمان مسجَّل. استعمل رابط الدعوة أو اتصل بمسؤول مؤسستك."
+      "civoraNoSecurityKey": "لا يمكن الدخول دون مفتاح أمان مسجَّل. استعمل رابط الدعوة أو اتصل بمسؤول مؤسستك.",
+      "credentialSetupRequired": "وسيلة الدخول هذه غير متاحة لهذا الحساب. أعد المحاولة واختر وسيلة أخرى."
     },
     "fr": {
       "civoraRealmName": "CIVORA — Espace agents",
-      "civoraNoSecurityKey": "Connexion impossible sans clé de sécurité enregistrée. Utilisez le lien d'invitation ou contactez l'administrateur de votre institution."
+      "civoraNoSecurityKey": "Connexion impossible sans clé de sécurité enregistrée. Utilisez le lien d'invitation ou contactez l'administrateur de votre institution.",
+      "credentialSetupRequired": "Ce moyen de connexion n’est pas disponible pour ce compte. Recommencez et choisissez-en un autre."
     },
     "en": {
       "civoraRealmName": "CIVORA — Staff and officers",
-      "civoraNoSecurityKey": "You cannot sign in without an enrolled security key. Use your invitation link or contact your institution's administrator."
+      "civoraNoSecurityKey": "You cannot sign in without an enrolled security key. Use your invitation link or contact your institution's administrator.",
+      "credentialSetupRequired": "This way to sign in is not available for this account. Start again and choose another one."
     }
   },
   "webAuthnPolicyAcceptableAaguids": [],

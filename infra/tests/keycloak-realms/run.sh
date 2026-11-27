@@ -26,8 +26,8 @@ trap cleanup EXIT
 rnd() { head -c 48 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c "$1"; }
 free_port() { python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1])'; }
 fail=0
-# PARTS: comma-separated subset of login,account,org,eid,sso,web,negative (all by default; the nightly workflow runs two halves in parallel).
-part() { [[ ",${PARTS:-login,account,org,eid,sso,web,negative}," == *",$1,"* ]]; }
+# PARTS: comma-separated subset of login,account,org,eid,sso,web,negative,sms (all by default; the nightly workflow runs two halves in parallel).
+part() { [[ ",${PARTS:-login,account,org,eid,sso,web,negative,sms}," == *",$1,"* ]]; }
 checker="$repo/infra/scripts/check-realm-security.py"
 
 echo "Realm files (Git):"
@@ -51,7 +51,16 @@ chmod 644 "$work"/truststores/*
 kc_port=$(free_port)
 mkdir -p "$work/import" && cp "$repo"/infra/keycloak/realms/civora-*.json "$repo"/infra/keycloak/simulators/sim-*.json "$work/import/" \
   && chmod 755 "$work/import" && chmod 644 "$work"/import/*
+# The CIVORA Keycloak extension (SMS sign-in step, Phase 3 doc 17): the realms' flows use it. CI builds it in an earlier
+# step; here it is (re)built only when the JAR is missing or older than its sources, and a failed build shows why.
+ext="$repo/infra/keycloak/extensions/civora-sms"
+jar="$ext/target/civora-keycloak-sms-0.1.0.jar"
+if [ ! -s "$jar" ] || [ -n "$(find "$ext/src" "$ext/pom.xml" -newer "$jar" -type f | head -1)" ]; then
+  "$ext/build.sh" || { echo "  FAIL the Keycloak extension does not build (Maven 3.9 and Java 21: $ext/build.sh)"; exit 1; }
+fi
+mkdir -p "$work/providers" && cp "$jar" "$work/providers/" && chmod 755 "$work/providers" && chmod 644 "$work"/providers/*.jar
 docker run -d --name kr-keycloak --network "$net" -p "127.0.0.1:$kc_port:8080" -e KC_BOOTSTRAP_ADMIN_USERNAME=admin -e KC_BOOTSTRAP_ADMIN_PASSWORD="$kc_pw" \
+  -e CIVORA_SIMULATED_SMS=allowed -v "$work/providers:/opt/keycloak/providers:ro" \
   -e KC_HOSTNAME="http://localhost:$kc_port" -v "$work/import:/opt/keycloak/data/import:ro" -v "$work/truststores:/opt/keycloak/conf/truststores:ro" \
   -v "$repo/infra/keycloak/password-deny-list/civora-deny.txt:/opt/keycloak/data/password-blacklists/civora-deny.txt:ro" \
   "$keycloak_image" start-dev --import-realm >/dev/null
@@ -90,7 +99,7 @@ for p in citizens staff; do
   curl -sf --noproxy '*' -X POST -H "Authorization: Bearer $KC_ADMIN_TOKEN" "$kc/admin/realms/civora-$p/partial-export?exportClients=true&exportGroupsAndRoles=true" > "$work/$p.imported.json"
   before=$(python3 "$checker" "$work/$p.imported.json" --profile "$p" --live | grep -c FAIL || true)
   echo "  info civora-$p as imported, before policy: $before rule(s) not met (Keycloak's built-in defaults)"
-  extra=(--smtp-host kr-mail --smtp-port 1025)
+  extra=(--smtp-host kr-mail --smtp-port 1025 --sms-sender simulated)
   [ "$p" = citizens ] && extra+=(--provisioner-secret-out "$work/provisioner.secret" --pairwise-out "$work/pairwise.json" --web-client-jwks "$work/web-client.jwks.json")
   [ "$p" = staff ] && extra+=(--provisioner-secret-out "$work/staff-provisioner.secret")
   [ "$p" = staff ] && extra+=(--approved-keys "$approved")
@@ -171,6 +180,9 @@ part web && echo "Citizen web app in ${LOCALES:-ar,fr,en}: journeys, status page
 part web && { KC_URL="$kc" CORE_URL="http://127.0.0.1:$core_port" MAIL_URL="$mail" KC_ADMIN_PASSWORD="$kc_pw" WEB_URL="$web" REPO_DIR="$repo" \
   STEP_UP_MAX_AGE_SECONDS=30 EID_IDS_OUT="$work/eid-ids.txt" ARTIFACT_DIR="${ARTIFACT_DIR:-$work/artifacts}" \
   NO_PROXY="localhost,127.0.0.1,${NO_PROXY:-}" no_proxy="localhost,127.0.0.1,${no_proxy:-}" node "$here/web.cjs" || fail=1; }
+part sms && echo "SMS sign-in step (doc 17; decision Q3-7, deviation D5): citizens and staff who are not officers, in ${LOCALES:-ar,fr,en}:"
+part sms && { KC_URL="$kc" CORE_URL="http://127.0.0.1:$core_port" MAIL_URL="$mail" KC_ADMIN_PASSWORD="$kc_pw" ARTIFACT_DIR="${ARTIFACT_DIR:-$work/artifacts}" \
+  NO_PROXY="localhost,127.0.0.1,${NO_PROXY:-}" no_proxy="localhost,127.0.0.1,${no_proxy:-}" node "$here/sms.cjs" || fail=1; }
 part negative && echo "Negative tests (P3-T3): fixation, code and token replay, PKCE, redirects, CSRF, framing, CORS:"
 part negative && { KC_URL="$kc" CORE_URL="http://127.0.0.1:$core_port" MAIL_URL="$mail" KC_ADMIN_PASSWORD="$kc_pw" WEB_URL="$web" \
   WEB_CLIENT_KEY_FILE="$work/web-client.pem" \

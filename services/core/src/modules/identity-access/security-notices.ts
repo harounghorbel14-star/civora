@@ -98,7 +98,7 @@ const SIGNIN_TEXT: Record<string, { texts: Record<SignInNoticeType, { subject: s
       'credential-added': { subject: 'أُضيفت أو غُيّرت وسيلة دخول في حسابك في CIVORA', body: 'يوم {date} أُضيفت أو غُيّرت وسيلة الدخول التالية في حسابك: {kind}. إن لم تكن أنت من قام بذلك، استعد حسابك فورًا واتصل بالدعم.' },
       'credential-removed': { subject: 'تمت إزالة وسيلة دخول من حسابك في CIVORA', body: 'يوم {date} أُزيلت من حسابك وسيلة الدخول التالية: {kind}. إن لم تكن أنت من قام بذلك، استعد حسابك فورًا واتصل بالدعم.' },
     },
-    kinds: { password: 'كلمة السر', otp: 'تطبيق المصادقة', webauthn: 'مفتاح الأمان', 'webauthn-passwordless': 'مفتاح المرور' },
+    kinds: { password: 'كلمة السر', otp: 'تطبيق المصادقة', webauthn: 'مفتاح الأمان', 'webauthn-passwordless': 'مفتاح المرور', sms: 'الرمز برسالة قصيرة' },
     anyKind: 'وسيلة دخول',
   },
   fr: {
@@ -109,7 +109,7 @@ const SIGNIN_TEXT: Record<string, { texts: Record<SignInNoticeType, { subject: s
       'credential-added': { subject: 'Un moyen de connexion a été ajouté ou modifié sur votre compte CIVORA', body: 'Le {date}, ce moyen de connexion a été ajouté ou modifié sur votre compte : {kind}. Si ce n’était pas vous, récupérez votre compte immédiatement et contactez l’assistance.' },
       'credential-removed': { subject: 'Un moyen de connexion a été retiré de votre compte CIVORA', body: 'Le {date}, ce moyen de connexion a été retiré de votre compte : {kind}. Si ce n’était pas vous, récupérez votre compte immédiatement et contactez l’assistance.' },
     },
-    kinds: { password: 'mot de passe', otp: 'application d’authentification', webauthn: 'clé de sécurité', 'webauthn-passwordless': 'clé d’accès (passkey)' },
+    kinds: { password: 'mot de passe', otp: 'application d’authentification', webauthn: 'clé de sécurité', 'webauthn-passwordless': 'clé d’accès (passkey)', sms: 'code par SMS' },
     anyKind: 'moyen de connexion',
   },
   en: {
@@ -120,7 +120,7 @@ const SIGNIN_TEXT: Record<string, { texts: Record<SignInNoticeType, { subject: s
       'credential-added': { subject: 'A way to sign in was added or changed on your CIVORA account', body: 'On {date}, this way to sign in was added or changed on your account: {kind}. If this was not you, recover your account at once and contact support.' },
       'credential-removed': { subject: 'A way to sign in was removed from your CIVORA account', body: 'On {date}, this way to sign in was removed from your account: {kind}. If this was not you, recover your account at once and contact support.' },
     },
-    kinds: { password: 'password', otp: 'authenticator app', webauthn: 'security key', 'webauthn-passwordless': 'passkey' },
+    kinds: { password: 'password', otp: 'authenticator app', webauthn: 'security key', 'webauthn-passwordless': 'passkey', sms: 'code by SMS' },
     anyKind: 'a way to sign in',
   },
 };

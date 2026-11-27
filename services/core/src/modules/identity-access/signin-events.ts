@@ -7,7 +7,7 @@ import type { Realm } from './token-verifier';
  * LOGIN_ERROR, UPDATE_CREDENTIAL and REMOVE_CREDENTIAL events for one hour (realm policy); the core reads them with the
  * provisioner's view-events role and tells the person, in their language:
  *  - second-factor-failed: the password was right, the second step failed (a failure on a selected credential of a
- *    second-factor type: the authenticator app or a security key);
+ *    second-factor type: the authenticator app or a security key; or the SMS step, which marks its own errors);
  *  - failed-attempts: 5 failures within an hour;
  *  - signed-in-after-failures: a successful sign-in after 3 or more failures within the hour;
  *  - credential-added: a way to sign in added or changed on Keycloak's pages from inside a sign-in (an app asked for it).
@@ -48,8 +48,11 @@ export async function classify(e: KeycloakEvent, batch: KeycloakEvent[], credent
       return { kind: 'success' };
     case 'LOGIN_ERROR': {
       if (!e.error || !FAILURES.has(e.error)) return null;
+      // The SMS step (extension civora-keycloak-sms, doc phase-3/17) has no credential; it marks its errors itself.
+      if (e.details?.civora_second_factor === 'sms') return { kind: 'second-factor-failure', credential: 'sms' };
       const selected = e.details?.selected_credential_id;
-      if (selected && SECOND_FACTORS.has((await credentialType(e.userId, selected)) ?? '')) return { kind: 'second-factor-failure' };
+      const type = selected ? await credentialType(e.userId, selected) : null;
+      if (type && SECOND_FACTORS.has(type)) return { kind: 'second-factor-failure', credential: type };
       return { kind: 'failure' };
     }
     case 'UPDATE_CREDENTIAL': {

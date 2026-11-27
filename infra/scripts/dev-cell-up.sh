@@ -61,6 +61,15 @@ b = lambda x: base64.urlsafe_b64encode(x).rstrip(b"=").decode()
 print(json.dumps({"keys": [{"kty": "EC", "crv": "P-256", "x": b(d[-64:-32]), "y": b(d[-32:]), "kid": "civora-web-1", "use": "sig", "alg": "ES256"}]}))' \
   > .generated/web-client.jwks.json
 
+# The CIVORA Keycloak extension (SMS sign-in step, Phase 3 doc 17): the realms' flows use it, so Keycloak needs it.
+# Built with Maven and Java 21 (both on GitHub's Ubuntu runners); mounted read-only into /opt/keycloak/providers.
+mkdir -p .generated/keycloak-providers
+if [[ "${SKIP_BUILD:-0}" != "1" || ! -s .generated/keycloak-providers/civora-keycloak-sms.jar ]]; then
+  "$here/keycloak/extensions/civora-sms/build.sh"   # MVN=/path/to/mvn when Maven is not on the PATH
+  install -m 644 "$here/keycloak/extensions/civora-sms/target/civora-keycloak-sms-0.1.0.jar" .generated/keycloak-providers/civora-keycloak-sms.jar
+fi
+chmod 755 .generated/keycloak-providers
+
 # 2. Build the application image and start everything; wait for health checks.
 #    PROXY_CA=/path/ca.crt passes a TLS-inspecting proxy's CA as a build secret (never stored in the image).
 if [[ "${SKIP_BUILD:-0}" != "1" ]]; then
@@ -83,8 +92,8 @@ export KC_ADMIN_TOKEN
 for spec in "civora-citizens citizens" "civora-staff staff" "civora-dev dev"; do
   set -- $spec
   extra=(--smtp-host mail --smtp-port 1025)
-  [ "$2" = citizens ] && extra+=(--provisioner-secret-out .generated/provisioner.secret --web-client-jwks .generated/web-client.jwks.json)
-  [ "$2" = staff ] && extra+=(--provisioner-secret-out .generated/staff-provisioner.secret)
+  [ "$2" = citizens ] && extra+=(--provisioner-secret-out .generated/provisioner.secret --web-client-jwks .generated/web-client.jwks.json --sms-sender simulated)
+  [ "$2" = staff ] && extra+=(--provisioner-secret-out .generated/staff-provisioner.secret --sms-sender simulated)
   python3 "$here/keycloak/apply-realm-policy.py" --server http://localhost:8080 --realm "$1" --profile "$2" --export ".generated/$1.live.json" "${extra[@]}" >/dev/null
 done
 # SIMULATED national eID: a fresh secret for the core's relying-party client (never committed).
