@@ -49,14 +49,16 @@ export class CatalogueController {
   @Get('v1/services')
   @ApiOperation({ summary: 'Published services, by category, or searched (Arabic and French normalised)' })
   async list(@Query('category') category?: string, @Query('q') q?: string): Promise<unknown> {
-    // A repeated query key arrives as an array: only a single string is accepted.
-    if ((q !== undefined && typeof q !== 'string') || (category !== undefined && typeof category !== 'string')) throw new BadRequestException('q and category are single values');
+    // A repeated query key arrives as an array: only a single string is accepted, and only the narrowed value is used.
+    const query: string | undefined = typeof q === 'string' ? q : undefined;
+    const cat: string | undefined = typeof category === 'string' ? category : undefined;
+    if ((q !== undefined && query === undefined) || (category !== undefined && cat === undefined)) throw new BadRequestException('q and category are single values');
     try {
-      if (q !== undefined) {
-        if (q.length < 2 || q.length > 200) throw new BadRequestException('q: 2 to 200 characters');
-        return await this.c().searchView(q);
+      if (query !== undefined) {
+        if (query.length < 2 || query.length > 200) throw new BadRequestException('q: 2 to 200 characters');
+        return await this.c().searchView(query);
       }
-      return (await this.c().list(category)).map((s) => ({ code: s.code, slug: s.slug, category: s.category, version: s.version, title: s.title, summary: s.summary,
+      return (await this.c().list(cat)).map((s) => ({ code: s.code, slug: s.slug, category: s.category, version: s.version, title: s.title, summary: s.summary,
         institution: s.institution, last_verified_on: s.lastVerifiedOn }));
     } catch (e) { rethrow(e); }
   }
@@ -102,8 +104,9 @@ export class CatalogueController {
   @Get('v1/offices')
   @ApiOperation({ summary: 'Offices (office locator), optionally by governorate' })
   async offices(@Query('governorate') governorate?: string): Promise<unknown> {
-    if (governorate !== undefined && (typeof governorate !== 'string' || governorate.length > 60)) throw new BadRequestException('governorate is a single value');
-    try { return await this.c().offices(governorate); } catch (e) { rethrow(e); }
+    const gov: string | undefined = typeof governorate === 'string' ? governorate : undefined;
+    if ((governorate !== undefined && gov === undefined) || (gov !== undefined && gov.length > 60)) throw new BadRequestException('governorate is a single value');
+    try { return await this.c().offices(gov); } catch (e) { rethrow(e); }
   }
 
   @Get('v1/catalogue/keys')
