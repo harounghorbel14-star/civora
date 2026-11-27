@@ -26,7 +26,7 @@ trap cleanup EXIT
 rnd() { head -c 48 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c "$1"; }
 free_port() { python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1])'; }
 fail=0
-# PARTS (development only; CI runs everything): comma-separated subset of login,account,org,eid,sso,web,negative.
+# PARTS: comma-separated subset of login,account,org,eid,sso,web,negative (all by default; the nightly workflow runs two halves in parallel).
 part() { [[ ",${PARTS:-login,account,org,eid,sso,web,negative}," == *",$1,"* ]]; }
 checker="$repo/infra/scripts/check-realm-security.py"
 
@@ -175,11 +175,12 @@ part negative && echo "Negative tests (P3-T3): fixation, code and token replay, 
 part negative && { KC_URL="$kc" CORE_URL="http://127.0.0.1:$core_port" MAIL_URL="$mail" KC_ADMIN_PASSWORD="$kc_pw" WEB_URL="$web" \
   WEB_CLIENT_KEY_FILE="$work/web-client.pem" \
   ARTIFACT_DIR="${ARTIFACT_DIR:-$work/artifacts}" NO_PROXY="localhost,127.0.0.1,${NO_PROXY:-}" no_proxy="localhost,127.0.0.1,${no_proxy:-}" node "$here/negative.cjs" || fail=1; }
-if part eid; then
-echo "Identity links through the SIMULATED national eID (P3-D4, P3-API6):"
-KC_URL="$kc" CORE_URL="http://127.0.0.1:$core_port" MAIL_URL="$mail" KC_ADMIN_PASSWORD="$kc_pw" ARTIFACT_DIR="${ARTIFACT_DIR:-$work/artifacts}" \
+part eid && echo "Identity links through the SIMULATED national eID (P3-D4, P3-API6):"
+part eid && { KC_URL="$kc" CORE_URL="http://127.0.0.1:$core_port" MAIL_URL="$mail" KC_ADMIN_PASSWORD="$kc_pw" ARTIFACT_DIR="${ARTIFACT_DIR:-$work/artifacts}" \
   STEP_UP_MAX_AGE_SECONDS=30 EID_IDS_OUT="$work/eid-ids.txt" EID_REDIRECT_URI="$eid_cb" \
-  NO_PROXY="localhost,127.0.0.1,${NO_PROXY:-}" no_proxy="localhost,127.0.0.1,${no_proxy:-}" node "$here/eid.cjs" || fail=1
+  NO_PROXY="localhost,127.0.0.1,${NO_PROXY:-}" no_proxy="localhost,127.0.0.1,${no_proxy:-}" node "$here/eid.cjs" || fail=1; }
+# The eID and web parts both create synthetic national identities: none may appear in the database or the logs.
+if part eid || part web; then
 if [ -s "$work/eid-ids.txt" ]; then
   docker exec kr-db pg_dump -U civora_core -d civora_core --data-only > "$work/core-db.sql" 2>/dev/null
   logs=("$work/core-db.sql" "$work/core.log"); [ -f "$work/web.log" ] && logs+=("$work/web.log")
@@ -187,7 +188,8 @@ if [ -s "$work/eid-ids.txt" ]; then
   digests=$(docker exec kr-db psql -U civora_core -d civora_core -Atc "select count(*) from iam.identity_claim where claim_type = 'national-id-link'")
   if [ "$leaked" = 0 ] && [ "${digests:-0}" -gt 0 ]; then echo "  ok   no national identifier in the core database (full dump), the core log or the web app log; $digests keyed digest(s) stored"
   else echo "  FAIL national identifier found in the core database or log (or no digest stored)"; fail=1; fi
-  if grep -q '"context":"integration".*"outcome":"ok"' "$work/core.log" && grep -q '"context":"integration".*"outcome":"rejected"' "$work/core.log"; then
+  if ! part eid; then :
+  elif grep -q '"context":"integration".*"outcome":"ok"' "$work/core.log" && grep -q '"context":"integration".*"outcome":"rejected"' "$work/core.log"; then
     echo "  ok   integration log: one line per eID call (adapter, mode, purpose, outcome, latency), accepted and refused answers"
   else echo "  FAIL integration log lines missing for the eID calls"; fail=1; fi
 else echo "  FAIL the eID test wrote no identifiers to check"; fail=1; fi

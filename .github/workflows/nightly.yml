@@ -149,9 +149,17 @@ jobs:
         run: infra/tests/valkey-ha/run.sh | tee -a "$GITHUB_STEP_SUMMARY"
 
   identity-realms:
-    name: Citizens and staff realms (Keycloak 26.8.1) — real logins in Chromium (passkeys, TOTP, FIDO2), live conformance, core accepts the tokens
+    # Two halves in parallel, each with its own Keycloak, core and web app (run.sh PARTS): the whole run took 24 of its
+    # 25 minutes on 26 Nov, and the contact-detail and SMS checks of 27 Nov add more.
+    name: Citizens and staff realms (Keycloak 26.8.1) — ${{ matrix.half }} — real logins in Chromium, live conformance, core accepts the tokens
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { half: "sign-in and security", parts: "login,account,org,eid,sso,negative" }
+          - { half: "web app and SMS", parts: "web,sms" }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { persist-credentials: false }
@@ -168,11 +176,12 @@ jobs:
         env:
           NODE_PATH: ${{ runner.temp }}/pw/node_modules
           ARTIFACT_DIR: ${{ runner.temp }}/realm-screenshots
+          PARTS: ${{ matrix.parts }}
         run: infra/tests/keycloak-realms/run.sh | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Screenshots of failed steps (synthetic users only)
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with: { name: realm-screenshots, path: "${{ runner.temp }}/realm-screenshots", retention-days: 7, if-no-files-found: ignore }
+        with: { name: "realm-screenshots-${{ strategy.job-index }}", path: "${{ runner.temp }}/realm-screenshots", retention-days: 7, if-no-files-found: ignore }
 
   api-gateway:
     name: Edge API gateway (APISIX 3.19, ADR-030) — Keycloak tokens, rate limit, body limit, routes, headers
