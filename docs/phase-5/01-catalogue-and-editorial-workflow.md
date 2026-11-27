@@ -66,10 +66,11 @@ accents folded. "الهوية" finds "للهويّة"; "resume" finds "Résumé"
 | Route | Who |
 |---|---|
 | `GET /v1/services` (`?category=`, `?q=`), `GET /v1/services/{code}`, `GET /v1/services/{code}/versions`, `GET /v1/services/{code}/versions/{v}`, `GET /v1/services/{code}/versions/{v}/content`, `GET /v1/catalogue/keys` | public |
-| `GET /v1/offices` (`?governorate=`) | public |
+| `GET /v1/offices` (`?governorate=`): each office with its id and the source that lists it | public |
 | `POST /v1/admin/services`, `PUT /v1/admin/services/{id}/versions/{v}`, `POST /v1/admin/services/{id}/versions/{v}:submit` | editor |
 | `POST /v1/admin/services/{id}/versions/{v}:approve`, `:request-changes`, `:publish` | approver (not the author) |
 | `POST /v1/admin/sources` | editor |
+| `POST /v1/admin/offices` (added in week 3, [02 §7](02-public-pages.md)) | editor |
 | `POST /v1/feedback/content-errors` | public (the gateway limits requests per client) |
 
 ## 7. Results (27 Nov 2026)

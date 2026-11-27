@@ -8,7 +8,12 @@ import { after, before, describe, it } from 'node:test';
 import type { INestApplication } from '@nestjs/common';
 import { exportJWK, generateKeyPair, SignJWT } from 'jose';
 import { Client } from 'pg';
+import { buildSite, coreFetcher, loadSnapshot } from '@civora/directory';
 import { verifyContent } from './catalogue.service';
+
+// The cell's own time zone (UTC+1): dates must reach pages unshifted (catalogueTypes in catalogue.module.ts).
+// Test files run in their own process, so this changes nothing elsewhere.
+process.env.TZ = 'Africa/Tunis';
 
 /**
  * Phase 5, end to end: the editorial back office (P5-D2, P5-API3, P5-SEC1) and the public catalogue (P5-API1, P5-API4)
@@ -168,5 +173,37 @@ describe('services directory, end to end (Phase 5)', { skip }, () => {
     assert.equal((await http('GET', '/v1/offices?governorate=a&governorate=b')).status, 400);
     assert.equal((await http('POST', '/v1/feedback/content-errors', undefined, { service_code: 'TN-TST-002', version: 2, message: 'Le montant indiqué semble ancien.' })).status, 201);
     assert.equal((await http('POST', '/v1/feedback/content-errors', undefined, { service_code: 'TN-NOPE-1', version: 1, message: 'no such service here' })).status, 404);
+  });
+
+  it('offices (P5-F2): editors register them from a source; the list carries the source and the exact date, in the cell\'s time zone', async () => {
+    const office = { code: 'tunis-e2e-office', name: ar('مكتب اختبار', 'Bureau de test'), institution: ar('بلدية', 'Municipalité'), governorate: 'Tunis',
+      address: ar('عنوان تجريبي', 'Adresse de test'), latitude: 36.8, longitude: 10.18, hours: ar('8:00–17:00', '8 h – 17 h'), source_id: sourceId, last_verified_on: '2026-11-22' };
+    assert.equal((await http('POST', '/v1/admin/offices', await sign(`citizen-${randomUUID()}`), office)).status, 403);
+    assert.equal((await http('POST', '/v1/admin/offices', await sign(`staff-${randomUUID()}`, { tenant: randomUUID(), roles: ['catalogue-editor'] }), office)).status, 403);
+    assert.equal((await http('POST', '/v1/admin/offices', await editor(), { ...office, latitude: 48.85, longitude: 2.35 })).status, 400, 'outside Tunisia');
+    assert.equal((await http('POST', '/v1/admin/offices', await editor(), { ...office, source_id: 'not-a-uuid' })).status, 400);
+    const r = await http('POST', '/v1/admin/offices', await editor(), office);
+    assert.equal(r.status, 201, JSON.stringify(r.body));
+    const list = (await http('GET', '/v1/offices?governorate=Tunis')).body as Record<string, any>[];
+    assert.equal(list.length, 1);
+    assert.equal(list[0]!.id, r.body.id);
+    assert.equal(list[0]!.last_verified_on, '2026-11-22', 'the date as stored, not the day before');
+    assert.equal(list[0]!.source.url, 'https://example.invalid/catalogue-e2e');
+    assert.match(list[0]!.source.accessed_on, /^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it('the static public pages built from this core: signatures from the HSM verified, every published version, nothing else (P5-D3, A2)', async () => {
+    const snap = await loadSnapshot(coreFetcher(base));
+    assert.deepEqual(snap.services.map((s) => [s.current.content.code, s.versions.map((v) => v.content.version)]), [['TN-TST-002', [2, 1]]]);
+    const page = (await http('GET', '/v1/services/TN-TST-002')).body;
+    assert.equal(snap.services[0]!.current.digest, page.integrity.content_digest, 'the page shows the digest of the signed bytes');
+    assert.equal(snap.services[0]!.current.kid, 'catalogue-content-1');
+    const { files } = buildSite(snap, { origin: 'https://www.civora-cell.invalid' });
+    const fr = files.get('fr/services/test-extract/index.html')!;
+    assert.ok(fr.includes('Extrait de naissance (test)') && fr.includes('https://example.invalid/catalogue-e2e'));
+    assert.ok(fr.includes(page.integrity.content_digest));
+    assert.ok(files.has('ar/services/test-extract/v/1/index.html') && files.has('fr/offices/index.html'));
+    assert.match(files.get('fr/offices/index.html')!, /Bureau de test/);
+    assert.match(fr, new RegExp(`Dernière vérification le ${new Intl.DateTimeFormat('fr-TN', { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(`${page.last_verified_on}T12:00:00Z`))}`));
   });
 });

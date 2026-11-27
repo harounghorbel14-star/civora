@@ -124,6 +124,12 @@ export class Catalogue {
     return this.repo.addSource(src);
   }
 
+  /** Editors register the offices that procedures send people to, each from an official source (P5-F2). */
+  async addOffice(e: Editor, o: Parameters<CatalogueRepository['addOffice']>[0]): Promise<string> {
+    this.require(e, ROLES.editor);
+    return this.repo.addOffice(o);
+  }
+
   offices(governorate?: string): Promise<Record<string, unknown>[]> {
     return this.repo.offices(governorate);
   }

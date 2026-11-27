@@ -6,7 +6,7 @@
 | Dependencies | "P2; content team; source permissions (X-04/X-06 in Section 12)" (Phase 0 §19). **P2** done. **Content team**: none yet (founder). **X-04** (Dalil procedures content, Presidency of Government): *authorisation required*; until then the Phase 0 matrix allows **manual curation from public pages**. **X-06** (open data portal): not started |
 | Roadmap | The 15 phases are unchanged (canonical order 0 → 15). Phase 5 keeps its full original scope, deliverables and acceptance criteria (P1-D4). Phase 4's renewal deep-links (P4-F6) point at this catalogue's service pages |
 | Data | Procedures are public information. Each published fact carries a citation to an official source (a legal text in the official journal, or an official government page), with the date it was last verified. Nothing is published without a source, and no source is invented |
-| Status | **In progress** — weeks 1–2 built on 27 Nov 2026: catalogue schema, editorial workflow with four-eyes approval and signed versions, read API, search with Arabic normalisation, error reports ([01](01-catalogue-and-editorial-workflow.md)). Next: public pages (week 3), then curation of the procedures |
+| Status | **In progress** — weeks 1–2 built on 27 Nov 2026: catalogue schema, editorial workflow with four-eyes approval and signed versions, read API, search with Arabic normalisation, error reports ([01](01-catalogue-and-editorial-workflow.md)). Then the deployment wiring ([01 §8](01-catalogue-and-editorial-workflow.md)) and the public pages, generated from the signed content ([02](02-public-pages.md)). Next: search page, error-report form and serving in a cell, then curation of the procedures |
 
 ## 1. Original Phase 5 specification (Phase 0 §19, word for word)
 
@@ -77,10 +77,10 @@
 | 3 | Public pages with static generation (D3, A2) in ar/fr/en; search with Arabic normalisation (D4, A3); office locator (F2) | accessibility checks; search tests in Arabic and French |
 | 4–5 | Curation of ≥ 60 procedures with citations (D5); link checking (T2); content QA checklist (T1); integrity monitoring (SEC3) | AC1, AC2 |
 
-## 5. Completion estimate (27 Nov 2026, after weeks 1–2 and the deployment wiring)
+## 5. Completion estimate (27 Nov 2026, after weeks 1–2, the deployment wiring and the public pages)
 
 Each of the 31 work items of §1 (objective, dependency, time, budget and risk lines excluded) scored by what is built
-**and tested**: 0, 25, 50, 75 or 100 %. **Phase 5: about 63 %** (19.5 of 31), counted the same way as Phases 3 and 4.
+**and tested**: 0, 25, 50, 75 or 100 %. **Phase 5: about 73 %** (22.75 of 31), counted the same way as Phases 3 and 4.
 The count flatters the phase: **neither acceptance criterion is met**, and its main deliverable is not started — no
 procedure has been curated yet (AC1 needs 60 with 100 % citation coverage; AC2 a median last-verified age under
 90 days). An engineering estimate, not an acceptance decision.
@@ -89,23 +89,23 @@ procedure has been curated yet (AC1 needs 60 with 100 % citation coverage; AC2 a
 |---|---|---|
 | D1 data model | 100% | — |
 | D2 editorial back office, four-eyes | 75% | API and rules done; the editors' screens (with the Workspace, Phase 6, or a minimal page) |
-| D3 public pages (SEO) | 0% | week 3 |
-| D4 search | 75% | API with Arabic normalisation done; the search page (week 3) |
+| D3 public pages (SEO) | 75% | generated from the signed content, with sitemap, alternates, schema.org ([02](02-public-pages.md)); serving in a cell and the rebuild on publication next |
+| D4 search | 75% | API with Arabic normalisation done; the search page (needs a server: the web app, next) |
 | D5 ≥ 60 procedures with citations | 0% | weeks 4–5; needs official sources read one by one (X-04) and the content team for approval (Q5-1) |
 | A1 pg-public | 75% | own schema, migrations, connection; dev cell, chart and k3s rehearsal wired ([01 §8](01-catalogue-and-editorial-workflow.md)); 100 % once the nightly dev-cell and k3s runs pass with it. Staging nodes wait for the provider |
-| A2 static generation | 0% | week 3 |
+| A2 static generation | 75% | the generator, failing closed ([02](02-public-pages.md)); the rebuild on publication and the gateway route next |
 | A3 FTS + Arabic normalisation | 100% | — |
-| F1 service pages | 50% | the page's data and API; the page itself week 3 |
-| F2 office locator | 50% | data and API; the page and map week 3 |
+| F1 service pages | 100% | steps, documents, fees, offices, hours, sources, last verified ([02 §3](02-public-pages.md)) |
+| F2 office locator | 75% | the offices page by governorate with map links, the editors' office API; no office is curated yet (Q5-3) |
 | F3 change history | 100% | — |
 | F4 report an error | 75% | API; the handling screen for editors |
 | DB1–DB6 | 100% each | — |
 | API1–API4 | 100% each | — |
 | SEC1 editorial RBAC | 100% | — |
 | SEC2 signed content versions | 100% | — |
-| SEC3 integrity monitoring | 50% | anyone can check a page; the scheduled monitor that checks every page is week 4 |
+| SEC3 integrity monitoring | 75% | anyone can check a page; every site build checks every signature and writes nothing otherwise; the scheduled monitor is week 4 |
 | T1 content QA checklist | 0% | week 4 |
-| T2 link checking | 0% | week 4 |
-| T3 accessibility | 0% | week 3 (pages) |
+| T2 link checking | 25% | every internal link checked at each build (tests); the official sources' links week 4 |
+| T3 accessibility | 50% | structure checked on every page (tests); screenshots checked by eye; an automated audit in a browser and a review with assistive-technology users next |
 | T4 translation review | 0% | needs native legal-language editors (Q5-1); the field records `pending` until then |
 | AC1, AC2 | 0% | curation |

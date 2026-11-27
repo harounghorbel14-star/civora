@@ -1140,6 +1140,60 @@
         ],
         "type": "object"
       },
+      "OfficeDto": {
+        "properties": {
+          "address": {
+            "description": "{ ar, fr, en? }",
+            "type": "object"
+          },
+          "code": {
+            "description": "Lower case, digits and hyphens",
+            "example": "tunis-civil-status-1",
+            "type": "string"
+          },
+          "governorate": {
+            "example": "Tunis",
+            "type": "string"
+          },
+          "hours": {
+            "description": "Opening hours as the source states them: { ar, fr, en? }",
+            "type": "object"
+          },
+          "institution": {
+            "description": "{ ar, fr, en? }",
+            "type": "object"
+          },
+          "last_verified_on": {
+            "format": "date",
+            "type": "string"
+          },
+          "latitude": {
+            "description": "With longitude, inside Tunisia",
+            "type": "number"
+          },
+          "longitude": {
+            "type": "number"
+          },
+          "name": {
+            "description": "{ ar, fr, en? }",
+            "type": "object"
+          },
+          "source_id": {
+            "description": "The registered source that lists this office",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "institution",
+          "governorate",
+          "address",
+          "source_id",
+          "last_verified_on"
+        ],
+        "type": "object"
+      },
       "PackInfo": {
         "properties": {
           "digest": {
@@ -1796,6 +1850,36 @@
         "summary": "Readiness probe",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/v1/admin/offices": {
+      "post": {
+        "operationId": "CatalogueOfficesController_add",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfficeDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Register an office (editor) as an official page lists it",
+        "tags": [
+          "catalogue"
         ]
       }
     },
