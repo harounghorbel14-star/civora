@@ -39,6 +39,11 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { persist-credentials: false }
+      - name: Maven repository cache for the Keycloak extension (Maven Central rate-limits shared runners with HTTP 429)
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        with:
+          path: ~/.m2/repository
+          key: maven-civora-sms-${{ hashFiles('infra/keycloak/extensions/civora-sms/pom.xml') }}
       - name: Compose dev cell up from scratch + smoke tests
         # The Keycloak extension is built with the runner's Java 21 (doc phase-3/17).
         run: JAVA_HOME="$JAVA_HOME_21_X64" infra/scripts/dev-cell-up.sh --fresh | tee -a "$GITHUB_STEP_SUMMARY"
@@ -169,6 +174,11 @@ jobs:
         with: { node-version: "22", cache: pnpm }
       - name: Build the core
         run: pnpm install --frozen-lockfile && pnpm build
+      - name: Maven repository cache for the Keycloak extension (Maven Central rate-limits shared runners with HTTP 429)
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        with:
+          path: ~/.m2/repository
+          key: maven-civora-sms-${{ hashFiles('infra/keycloak/extensions/civora-sms/pom.xml') }}
       - name: Keycloak extension (SMS sign-in step, doc phase-3/17), Java 21 and Maven of the runner image
         run: infra/keycloak/extensions/civora-sms/build.sh
       - name: Playwright 1.63.0 (published 2026-09-04) with Chromium
