@@ -53,9 +53,12 @@ jobs:
       - run: pnpm build
       - name: Country-pack integrity (signed manifest digests)
         run: pnpm packs:verify
+      - name: SoftHSM 2 and OpenSC (Ubuntu packages) for the issuer-key tests (Phase 4 doc 02)
+        run: sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends softhsm2 opensc
       - name: Tests (unit, e2e, migrations against PostgreSQL 16)
         env:
           TEST_DATABASE_URL: postgres://civora_test:ci-only-not-a-secret@localhost:5432/civora_test
+          CIVORA_HSM_TESTS: required
         run: pnpm test
       - name: Architecture fitness (module boundaries, synthetic identifiers only)
         run: pnpm arch:check
@@ -116,6 +119,8 @@ jobs:
           python3 infra/scripts/check-realm-security.py infra/compose/keycloak/civora-dev-realm.json --profile dev --self-test
           python3 infra/scripts/check-realm-security.py infra/keycloak/realms/civora-citizens.json --profile citizens --self-test
           python3 infra/scripts/check-realm-security.py infra/keycloak/realms/civora-staff.json --profile staff --self-test
+      - name: HSTS preload readiness (Phase 3 doc 18, gap G5) — the checker against local TLS test servers, one negative control per rule
+        run: infra/tests/hsts-preload/run.sh
       - name: Maven repository cache for the Keycloak extension (Maven Central rate-limits shared runners with HTTP 429)
         uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
         with:

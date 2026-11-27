@@ -121,6 +121,23 @@
         ],
         "type": "object"
       },
+      "BackupDto": {
+        "properties": {
+          "ciphertext": {
+            "description": "AES-256-GCM on the device: 12-byte IV, ciphertext, 16-byte tag; base64url. The cell never has the key",
+            "type": "string"
+          },
+          "key_id": {
+            "description": "Identifier of the backup key (base64url SHA-256, 43 characters), so the device knows which key opens it",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ciphertext",
+          "key_id"
+        ],
+        "type": "object"
+      },
       "Challenge": {
         "properties": {
           "challengeId": {
@@ -292,6 +309,29 @@
         ],
         "type": "object"
       },
+      "ContentErrorDto": {
+        "properties": {
+          "message": {
+            "description": "5 to 2000 characters. No name or contact is asked for or kept",
+            "example": "The fee changed with the decree of …",
+            "type": "string"
+          },
+          "service_code": {
+            "example": "TN-CIV-001",
+            "type": "string"
+          },
+          "version": {
+            "example": 2,
+            "type": "number"
+          }
+        },
+        "required": [
+          "service_code",
+          "version",
+          "message"
+        ],
+        "type": "object"
+      },
       "CreateMandate": {
         "properties": {
           "expiresAt": {
@@ -453,6 +493,49 @@
         "required": [
           "kind",
           "keycloakAction"
+        ],
+        "type": "object"
+      },
+      "EntryDto": {
+        "properties": {
+          "backup": {
+            "$ref": "#/components/schemas/BackupDto"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "issued_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "issuer": {
+            "example": "https://wallet.civora-cell.invalid/issuers/demo-civil-registry",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/StatusRefDto"
+          },
+          "vct": {
+            "example": "urn:civora:tn:synthetic:residence-certificate:1",
+            "type": "string"
+          }
+        },
+        "required": [
+          "vct",
+          "issuer",
+          "issued_at",
+          "expires_at",
+          "id",
+          "created_at"
         ],
         "type": "object"
       },
@@ -955,6 +1038,108 @@
         ],
         "type": "object"
       },
+      "NewEntryDto": {
+        "properties": {
+          "backup": {
+            "$ref": "#/components/schemas/BackupDto"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "issued_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "issuer": {
+            "example": "https://wallet.civora-cell.invalid/issuers/demo-civil-registry",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/StatusRefDto"
+          },
+          "vct": {
+            "example": "urn:civora:tn:synthetic:residence-certificate:1",
+            "type": "string"
+          }
+        },
+        "required": [
+          "vct",
+          "issuer",
+          "issued_at",
+          "expires_at"
+        ],
+        "type": "object"
+      },
+      "NewServiceDto": {
+        "properties": {
+          "category": {
+            "example": "civil-status",
+            "type": "string"
+          },
+          "code": {
+            "example": "TN-CIV-001",
+            "type": "string"
+          },
+          "draft": {
+            "description": "The first draft: title, summary, institution, change_note, last_verified_on, requirements[{kind, position, text, amount_tnd?, source_ids}], office_ids",
+            "type": "object"
+          },
+          "slug": {
+            "example": "birth-certificate-extract",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "slug",
+          "category",
+          "draft"
+        ],
+        "type": "object"
+      },
+      "OfferRequest": {
+        "properties": {
+          "credential_configuration_id": {
+            "description": "credential_configuration_id from the issuer metadata",
+            "example": "residence-certificate-1",
+            "type": "string"
+          }
+        },
+        "required": [
+          "credential_configuration_id"
+        ],
+        "type": "object"
+      },
+      "OfferResponse": {
+        "properties": {
+          "credential_offer": {
+            "description": "OpenID4VCI credential offer (by value). Holds the pre-authorised code; no personal data",
+            "type": "object"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "offer_uri": {
+            "description": "The offer as a URI, for the QR code (P4-F1)",
+            "example": "openid-credential-offer://?credential_offer=…",
+            "type": "string"
+          },
+          "tx_code": {
+            "description": "Transaction code to type into the wallet; shown once, never in the QR code",
+            "example": "493027",
+            "type": "string"
+          }
+        },
+        "required": [
+          "credential_offer",
+          "offer_uri",
+          "tx_code",
+          "expires_at"
+        ],
+        "type": "object"
+      },
       "PackInfo": {
         "properties": {
           "digest": {
@@ -1151,6 +1336,35 @@
         ],
         "type": "object"
       },
+      "RequestDto": {
+        "properties": {
+          "claims": {
+            "description": "Claim paths needed (only those the verifier is registered for)",
+            "example": [
+              "address/locality"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "client_id": {
+            "description": "The institution's registered verifier",
+            "example": "verifier.civora-cell.invalid",
+            "type": "string"
+          },
+          "vct": {
+            "example": "urn:civora:tn:synthetic:residence-certificate:1",
+            "type": "string"
+          }
+        },
+        "required": [
+          "client_id",
+          "vct",
+          "claims"
+        ],
+        "type": "object"
+      },
       "RoleBody": {
         "properties": {
           "role": {
@@ -1208,6 +1422,52 @@
           "startedAt",
           "lastAccessAt",
           "applications"
+        ],
+        "type": "object"
+      },
+      "SourceDto": {
+        "properties": {
+          "accessed_on": {
+            "format": "date",
+            "type": "string"
+          },
+          "jort_reference": {
+            "description": "Official journal (JORT) reference; required for legal texts",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "legal-text",
+              "official-page"
+            ],
+            "type": "string"
+          },
+          "language": {
+            "enum": [
+              "ar",
+              "fr",
+              "en"
+            ],
+            "type": "string"
+          },
+          "publisher": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "url": {
+            "example": "https://…",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "title",
+          "publisher",
+          "url",
+          "language",
+          "accessed_on"
         ],
         "type": "object"
       },
@@ -1295,6 +1555,23 @@
         ],
         "type": "object"
       },
+      "StatusRefDto": {
+        "properties": {
+          "idx": {
+            "example": 4711,
+            "type": "number"
+          },
+          "uri": {
+            "example": "https://wallet.civora-cell.invalid/v1/status-lists/1",
+            "type": "string"
+          }
+        },
+        "required": [
+          "uri",
+          "idx"
+        ],
+        "type": "object"
+      },
       "UnitDto": {
         "properties": {
           "id": {
@@ -1323,6 +1600,23 @@
           "id",
           "kind",
           "name"
+        ],
+        "type": "object"
+      },
+      "VerifyDto": {
+        "properties": {
+          "presentation": {
+            "description": "The SD-JWT VC presentation (with key binding to this verifier and the request nonce) scanned from the holder's QR code",
+            "type": "string"
+          },
+          "request_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "presentation"
         ],
         "type": "object"
       },
@@ -1384,6 +1678,78 @@
   "jsonSchemaDialect": "https://spec.openapis.org/oas/3.1/dialect/base",
   "openapi": "3.1.0",
   "paths": {
+    "/.well-known/jwt-vc-issuer/issuers/{slug}": {
+      "get": {
+        "operationId": "WalletWellKnownController_jwtVcIssuer",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "JWT VC issuer metadata of a demo issuer (SD-JWT VC): its public signing keys",
+        "tags": [
+          "wallet"
+        ]
+      }
+    },
+    "/.well-known/oauth-authorization-server/issuers/{slug}": {
+      "get": {
+        "operationId": "WalletWellKnownController_as",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Authorization server metadata of a demo issuer (RFC 8414): token endpoint, pre-authorised code grant, DPoP",
+        "tags": [
+          "wallet"
+        ]
+      }
+    },
+    "/.well-known/openid-credential-issuer/issuers/{slug}": {
+      "get": {
+        "operationId": "WalletWellKnownController_issuer",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Credential issuer metadata of a demo issuer (OpenID4VCI 1.0)",
+        "tags": [
+          "wallet"
+        ]
+      }
+    },
     "/health": {
       "get": {
         "description": "Returns 200 while the process is alive. `status` is `degraded` when a configured dependency is down. Contains no personal data.",
@@ -1430,6 +1796,180 @@
         "summary": "Readiness probe",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/v1/admin/services": {
+      "post": {
+        "operationId": "CatalogueAdminController_create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewServiceDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a service with its first draft (editor)",
+        "tags": [
+          "catalogue"
+        ]
+      }
+    },
+    "/v1/admin/services/{id}/versions/{action}": {
+      "post": {
+        "operationId": "CatalogueAdminController_act",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "action",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Workflow: {v}:submit (editor), {v}:approve (approver, not the author; signs), {v}:request-changes, {v}:publish",
+        "tags": [
+          "catalogue"
+        ]
+      }
+    },
+    "/v1/admin/services/{id}/versions/{v}": {
+      "put": {
+        "operationId": "CatalogueAdminController_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "v",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Write a draft version (editor): the next version, or an existing draft",
+        "tags": [
+          "catalogue"
+        ]
+      }
+    },
+    "/v1/admin/sources": {
+      "post": {
+        "operationId": "CatalogueSourcesController_add",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Register a source (editor): an official page or a legal text with its JORT reference",
+        "tags": [
+          "catalogue"
+        ]
+      }
+    },
+    "/v1/catalogue/keys": {
+      "get": {
+        "operationId": "CatalogueController_keys",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "The public keys that sign catalogue content (integrity checks)",
+        "tags": [
+          "catalogue"
+        ]
+      }
+    },
+    "/v1/feedback/content-errors": {
+      "post": {
+        "operationId": "CatalogueController_report",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContentErrorDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Report an error on a service page (no personal data)",
+        "tags": [
+          "catalogue"
         ]
       }
     },
@@ -1565,6 +2105,52 @@
         "summary": "Complete a link attempt with the code and state the eID returned",
         "tags": [
           "identity"
+        ]
+      }
+    },
+    "/v1/issuers/{slug}/credential-offers": {
+      "post": {
+        "operationId": "CredentialOffersController_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfferRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Offer a credential of this demo issuer to the signed-in person (pre-authorised code and transaction code)",
+        "tags": [
+          "wallet"
         ]
       }
     },
@@ -2408,6 +2994,217 @@
         ]
       }
     },
+    "/v1/offices": {
+      "get": {
+        "operationId": "CatalogueController_offices",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "governorate",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Offices (office locator), optionally by governorate",
+        "tags": [
+          "catalogue"
+        ]
+      }
+    },
+    "/v1/oid4vci/credential": {
+      "post": {
+        "operationId": "Oid4vciController_credential",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Credential endpoint: an SD-JWT VC bound to the key of the proof, signed in the HSM",
+        "tags": [
+          "wallet"
+        ]
+      }
+    },
+    "/v1/oid4vci/nonce": {
+      "post": {
+        "operationId": "Oid4vciController_nonce",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Nonce endpoint: a fresh c_nonce for the key proof (single use, 5 minutes)",
+        "tags": [
+          "wallet"
+        ]
+      }
+    },
+    "/v1/oid4vci/token": {
+      "post": {
+        "operationId": "Oid4vciController_token",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Token endpoint: pre-authorised code and transaction code for a DPoP-bound access token",
+        "tags": [
+          "wallet"
+        ]
+      }
+    },
+    "/v1/oid4vp/log": {
+      "get": {
+        "operationId": "Oid4vpController_log",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The presentation log of the institution's verifiers (claim names only), for its administrators",
+        "tags": [
+          "wallet"
+        ]
+      }
+    },
+    "/v1/oid4vp/requests": {
+      "post": {
+        "operationId": "Oid4vpController_create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a presentation request (QR code: client_id and request_uri only)",
+        "tags": [
+          "wallet"
+        ]
+      }
+    },
+    "/v1/oid4vp/requests/{id}": {
+      "get": {
+        "operationId": "Oid4vpController_result",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The outcome for the staff member who made the request: pending, expired, rejected (reason) or accepted (the claims, once)",
+        "tags": [
+          "wallet"
+        ]
+      }
+    },
+    "/v1/oid4vp/requests/{id}/object": {
+      "get": {
+        "operationId": "Oid4vpController_object",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "The signed request object (typ oauth-authz-req+jwt), for the wallet",
+        "tags": [
+          "wallet"
+        ]
+      }
+    },
+    "/v1/oid4vp/responses": {
+      "post": {
+        "operationId": "Oid4vpController_response",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "The wallet's response (response_mode direct_post: vp_token and state)",
+        "tags": [
+          "wallet"
+        ]
+      }
+    },
+    "/v1/oid4vp/verifiers/{clientId}": {
+      "get": {
+        "operationId": "Oid4vpController_registry",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "clientId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "The cell's verifier registry (Q4-3): a registered verifier's names, request-signing key and what it may ask for",
+        "tags": [
+          "wallet"
+        ]
+      }
+    },
     "/v1/org/units": {
       "get": {
         "operationId": "listUnits",
@@ -2887,6 +3684,150 @@
         ]
       }
     },
+    "/v1/services": {
+      "get": {
+        "operationId": "CatalogueController_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "category",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Published services, by category, or searched (Arabic and French normalised)",
+        "tags": [
+          "catalogue"
+        ]
+      }
+    },
+    "/v1/services/{code}": {
+      "get": {
+        "operationId": "CatalogueController_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "code",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "A service page: steps, documents, conditions, fees, offices, sources, last verified, signature",
+        "tags": [
+          "catalogue"
+        ]
+      }
+    },
+    "/v1/services/{code}/versions": {
+      "get": {
+        "operationId": "CatalogueController_history",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "code",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Change history of a service (published and superseded versions)",
+        "tags": [
+          "catalogue"
+        ]
+      }
+    },
+    "/v1/services/{code}/versions/{v}": {
+      "get": {
+        "operationId": "CatalogueController_version",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "code",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "v",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "A published or superseded version of a service",
+        "tags": [
+          "catalogue"
+        ]
+      }
+    },
+    "/v1/services/{code}/versions/{v}/content": {
+      "get": {
+        "operationId": "CatalogueController_content",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "code",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "v",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "The exact signed content of a version and its detached signature (integrity check)",
+        "tags": [
+          "catalogue"
+        ]
+      }
+    },
     "/v1/staff/invitations": {
       "post": {
         "operationId": "inviteStaff",
@@ -3012,6 +3953,154 @@
         "summary": "Show the case status with the one-time code",
         "tags": [
           "status"
+        ]
+      }
+    },
+    "/v1/status-lists/{id}": {
+      "get": {
+        "operationId": "StatusListsController_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "A status list token (application/statuslist+jwt)",
+        "tags": [
+          "wallet"
+        ]
+      }
+    },
+    "/v1/verify": {
+      "post": {
+        "operationId": "Oid4vpController_verify",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Verify a presentation scanned by the verifier's device for one of its requests (QR presentation)",
+        "tags": [
+          "wallet"
+        ]
+      }
+    },
+    "/v1/wallet/credentials": {
+      "get": {
+        "operationId": "WalletEntriesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EntryDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The signed-in person's wallet entries (metadata and encrypted backups)",
+        "tags": [
+          "wallet"
+        ]
+      },
+      "post": {
+        "operationId": "WalletEntriesController_add",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewEntryDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntryDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Record a credential held on the device (metadata, optional encrypted backup); at most 200",
+        "tags": [
+          "wallet"
+        ]
+      }
+    },
+    "/v1/wallet/credentials/{id}": {
+      "delete": {
+        "operationId": "WalletEntriesController_remove",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a wallet entry (and its backup)",
+        "tags": [
+          "wallet"
         ]
       }
     }

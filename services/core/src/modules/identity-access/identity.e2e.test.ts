@@ -31,7 +31,9 @@ describe('identity and mandates, end to end (Phase 3 week 1)', { skip: !adminUrl
     const admin = new Client({ connectionString: adminUrl });
     await admin.connect();
     await admin.query(`create database ${dbName}`);
-    const appPw = `e2e-${process.pid}-only`;
+    // One fixed test-only password for every test file: the files run in parallel and share this role, so a
+    // password per file would lock the others out mid-run.
+    const appPw = 'test-only-civora-core-app';
     try { await admin.query("create role civora_core_app login nobypassrls"); } catch { /* exists */ }
     await admin.query(`alter role civora_core_app login nobypassrls password '${appPw}'`);
     await admin.end();

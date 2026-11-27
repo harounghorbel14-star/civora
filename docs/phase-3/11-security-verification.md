@@ -121,7 +121,7 @@ citizens and staff as a delivery channel and a fallback factor, recorded as devi
 | G2 | V6.4.3, V6.4.4 | No account recovery | **Closed in week 6** ([doc 12 §1](12-recovery-notices-sms-pairwise.md)): re-proofing at the (simulated) eID at the level of the identity link, tested in three languages |
 | G3 | V8.2.4 (and part of V8.4.2) | No adaptive controls (new device, location, time) | **Closed on 26 Nov** ([doc 15](15-adaptive-controls.md)): device and browser of every session; new device notified (D4), a session used from another device or browser ended; location and time of day deliberately not used |
 | G4 | V10.3.5, V10.4.12–V10.4.14, V10.4.16 | No pushed authorization requests (PAR), no sender-constrained tokens (DPoP), no `private_key_jwt` | **Partly closed on 26 Nov** ([doc 14](14-sender-constrained-tokens.md)): the web app is confidential (`private_key_jwt`), PAR required, DPoP-bound tokens checked by the core with single-use proofs; the mobile client requires PAR and DPoP in the realm. Open (doc 14 §5): the Workspace client (Phase 6), the mobile app itself (A2), relying parties and the provisioner (`private_key_jwt`), Keycloak's account console, a DPoP-aware edge route |
-| G5 | V3.7.4 | The production domain is not on the HSTS preload list | Needs the production domain (founder decision); before the pilot (PG-8) |
+| G5 | V3.7.4 | The production domain is not on the HSTS preload list | **Prepared and tested with the placeholder domain** (founder decision of 27 Nov 2026; [doc 18](18-hsts-preload-readiness.md)): the web app sends the preload header, a checker tests every list requirement with negative controls in CI. Open until the production domain is chosen, submitted and appears in Chromium's list; before the pilot (PG-8) |
 
 
 ## 5. Rate limits: every endpoint reviewed (P3-SEC2)
@@ -412,5 +412,5 @@ Status key: Met; Met, deviation documented (§3); Partial; Gap (§4); Not applic
 | V3.7.1 | L2 | Supported client technologies only | Met | standard web platform |
 | V3.7.2 | L2 | Redirects only to allow-listed hosts | Met | own Keycloak and the configured eID only; foreign `returnTo` refused (N16) |
 | V3.7.3 | L3 | Notice before leaving for another site | Met | the only other site is the national eID, announced on the identity page |
-| V3.7.4 | L3 | Domain on the HSTS preload list | Gap | G5 |
+| V3.7.4 | L3 | Domain on the HSTS preload list | Gap (prepared: doc 18) | G5 |
 | V3.7.5 | L3 | Behaviour when browser features are missing | Partial | without WebAuthn the passkey option is unavailable and password + TOTP remains; no explicit warning page yet (W6 with assisted flows) |

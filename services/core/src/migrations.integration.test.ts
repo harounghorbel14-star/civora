@@ -35,4 +35,23 @@ describe('base schema migrations (O-DB1, O-DB2)', { skip: !url && 'TEST_DATABASE
     run('up');
     assert.deepEqual(await schemas(), ['audit', 'config', 'iam']);
   });
+
+  it('the public catalogue migrations (pg-public, Phase 5) apply, roll back and re-apply on their own table', async () => {
+    const runPublic = (direction: 'up' | 'down', count?: string) =>
+      execFileSync(bin, [direction, ...(count ? [count] : []), '--migrations-dir', 'migrations-public', '--migration-file-language', 'sql', '--migrations-table', 'schema_migrations_public', '--check-order'],
+        { cwd: root, env: { ...process.env, DATABASE_URL: url }, stdio: 'pipe' });
+    const has = async (): Promise<boolean> => {
+      const c = new Client({ connectionString: url });
+      await c.connect();
+      const r = await c.query("select 1 from pg_namespace where nspname = 'catalogue'");
+      await c.end();
+      return r.rowCount === 1;
+    };
+    runPublic('up');
+    assert.equal(await has(), true);
+    runPublic('down', String(readdirSync(resolve(root, 'migrations-public')).filter((f) => f.endsWith('.sql')).length));
+    assert.equal(await has(), false);
+    runPublic('up');
+    assert.equal(await has(), true);
+  });
 });

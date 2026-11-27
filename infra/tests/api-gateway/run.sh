@@ -83,8 +83,8 @@ check "5. no admin API on the data plane (port 9180 refuses)" "! gw --max-time 3
 hdrs=$(gw -D - -o /dev/null http://gw-apisix:9080/health | tr -d '\r')
 check "6. Server header without version" "echo \"$hdrs\" | grep -i '^server:' | grep -qv '[0-9]'"
 check "6. request id added (X-Request-Id)" "echo \"$hdrs\" | grep -qi '^x-request-id: [0-9a-f-]\{20,\}'"
-check "6. security headers (nosniff, no referrer, HSTS)" \
-  "echo \"$hdrs\" | grep -qi '^x-content-type-options: nosniff' && echo \"$hdrs\" | grep -qi '^referrer-policy: no-referrer' && echo \"$hdrs\" | grep -qi '^strict-transport-security: max-age='"
+check "6. security headers (nosniff, no referrer, HSTS fit for the preload list: 2 years, sub-domains, preload)" \
+  "echo \"$hdrs\" | grep -qi '^x-content-type-options: nosniff' && echo \"$hdrs\" | grep -qi '^referrer-policy: no-referrer' && echo \"$hdrs\" | grep -qi '^strict-transport-security: max-age=63072000; includeSubDomains; preload'"
 # 7. Credential stuffing (Phase 3 doc 03, R-P3-6): one client trying a password on many different accounts. Each
 #    submission names another account, so Keycloak's per-account lockout never triggers; the gateway limit does.
 check "7. login submissions for 20 different accounts from one client are passed on, the 21st gets 429" \
