@@ -10,7 +10,8 @@ global_rules:
           set:
             X-Content-Type-Options: nosniff
             Referrer-Policy: no-referrer
-            Strict-Transport-Security: "max-age=31536000; includeSubDomains"
+            # Two years, sub-domains, preload: what the HSTS preload list requires (ASVS V3.7.4, Phase 3 doc 18).
+            Strict-Transport-Security: "max-age=63072000; includeSubDomains; preload"
 routes:
   - id: health
     uri: /health
