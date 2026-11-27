@@ -30,6 +30,10 @@ a { color: var(--link); }
 .tagline { color: var(--text-2); margin-inline-start: .75rem; font-size: .9rem; }
 .top ul, .crumbs ol { display: flex; flex-wrap: wrap; gap: .25rem 1rem; list-style: none; margin: 0; padding: 0; }
 .top a[aria-current] { font-weight: 700; color: var(--text); text-decoration: none; }
+.search { display: flex; gap: .4rem; align-items: center; }
+.search input { font: inherit; padding: .4rem .6rem; border: 1px solid var(--control); border-radius: var(--radius); background: var(--bg-surface); color: var(--text); min-height: 44px; inline-size: 14rem; max-inline-size: 60vw; }
+.search button { font: inherit; padding: .45rem 1rem; border-radius: var(--radius); border: 1px solid var(--brand); background: var(--brand); color: var(--on-brand); cursor: pointer; min-height: 44px; }
+.search button:hover { background: var(--brand-hover); }
 .crumbs { max-width: 52rem; margin: 0 auto; padding: .75rem 1.25rem 0; font-size: .9rem; }
 .crumbs li + li::before { content: "›"; margin-inline-end: .5rem; color: var(--text-2); }
 html[dir="rtl"] .crumbs li + li::before { content: "‹"; }

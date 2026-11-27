@@ -176,12 +176,32 @@ describe('public directory pages (Phase 5, P5-D3, P5-A2)', () => {
         if (href.startsWith('https://')) continue;
         if (href.startsWith('#')) { assert.ok(ids.has(href.slice(1)), `${p}: ${href}`); continue; }
         assert.ok(href.startsWith('/'), `${p}: ${href}`);
+        // Served by the web app on the same origin (doc phase-5/03): the error report, linked with its version.
+        if (/^\/(ar|fr|en)\/services\/report\?/.test(href)) {
+          const u = new URL(href.replace(/&amp;/g, '&'), ORIGIN);
+          assert.match(u.searchParams.get('code') ?? '', /^TN-[A-Z]{3}-\d{3}$/, `${p}: ${href}`);
+          assert.ok(files.has(`${u.pathname.split('/')[1]}/services/${u.searchParams.get('slug')}/index.html`), `${p}: ${href} names a generated service`);
+          continue;
+        }
         const [path, frag] = href.split('#') as [string, string | undefined];
         const target = (path.endsWith('/') ? `${path}index.html` : path).slice(1);
         assert.ok(files.has(target), `${p}: ${href} → ${target}`);
         if (frag) assert.ok(new RegExp(`\\sid="${frag}"`).test(files.get(target)!), `${p}: ${href}`);
       }
     }
+  });
+
+  it('every page has the search form (to the web app); a current service page links its error report with code and version (P5-D4, F4)', () => {
+    for (const [p, html] of files) {
+      if (!p.endsWith('.html')) continue;
+      const lang = p.split('/')[0];
+      const form = html.match(/<form\b[^>]*>/)?.[0] ?? '';
+      for (const attr of ['role="search"', `action="/${lang}/services/search"`, 'method="get"']) assert.ok(form.includes(attr), `${p}: search form ${attr}`);
+      const input = html.match(/<label for="q" class="vh">[^<]+<\/label>(<input\b[^>]*>)/)?.[1] ?? '';
+      for (const attr of ['id="q"', 'type="search"', 'name="q"', 'required=""']) assert.ok(input.includes(attr), `${p}: labelled search box ${attr}`);
+    }
+    assert.ok(page(files, 'fr/services/birth-extract/index.html').includes('href="/fr/services/report?code=TN-CIV-001&amp;v=2&amp;slug=birth-extract"'));
+    assert.ok(!page(files, 'fr/services/birth-extract/v/1/index.html').includes('/services/report?'), 'not on an earlier version');
   });
 
   it('history: every version readable by number; an earlier version is marked, not indexed, and points to the current one (P5-F3)', () => {

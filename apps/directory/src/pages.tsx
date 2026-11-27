@@ -11,6 +11,9 @@ import type { T } from './messages';
  */
 export const paths = {
   index: (l: Lang) => `/${l}/services/`,
+  /** Served by the web app (a server is needed): search and the error report (doc phase-5/03). */
+  search: (l: Lang) => `/${l}/services/search`,
+  report: (l: Lang, code: string, v: number, slug: string) => `/${l}/services/report?${new URLSearchParams({ code, v: String(v), slug })}`,
   service: (l: Lang, slug: string) => `/${l}/services/${slug}/`,
   history: (l: Lang, slug: string) => `/${l}/services/${slug}/history/`,
   version: (l: Lang, slug: string, n: number) => `/${l}/services/${slug}/v/${n}/`,
@@ -99,6 +102,11 @@ function Layout({ meta, children }: { meta: PageMeta; children: ReactNode }) {
               <li><a href={paths.offices(lang)} aria-current={meta.path === paths.offices(lang) ? 'page' : undefined}>{t('nav.offices')}</a></li>
             </ul>
           </nav>
+          <form method="get" action={paths.search(lang)} role="search" className="search">
+            <label htmlFor="q" className="vh">{t('nav.search')}</label>
+            <input id="q" type="search" name="q" minLength={2} maxLength={200} required placeholder={t('nav.search')} />
+            <button type="submit">{t('nav.searchSubmit')}</button>
+          </form>
           <nav aria-label={t('nav.language')} className="langs">
             <ul>
               {LANGS.map((l) => {
@@ -239,6 +247,7 @@ export function servicePage(opts: { svc: Service; v: Version; lang: Lang; t: T; 
           {t('service.lastVerified', { date: day(c.last_verified_on, lang) })}{' — '}
           {t('service.version', { n: c.version, date: v.publishedAt ? day(v.publishedAt, lang) : '' })}{' — '}
           <a href={paths.history(lang, slug)}>{t('service.history')}</a>
+          {current ? <>{' — '}<a href={paths.report(lang, c.code, c.version, slug)}>{t('service.report')}</a></> : null}
         </p>
         {KINDS.map((k) => <Parts key={k} v={v} kind={k} lang={lang} t={t} nums={nums} />)}
         {offices.length ? (

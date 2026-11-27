@@ -6,7 +6,7 @@
 | Built | 27 Nov 2026 (week 3, first part) |
 | Code | `apps/directory/` (`@civora/directory`: loader and checks `content.ts`, pages `pages.tsx`, site `site.ts`, command `cli.ts`); in the core, `POST /v1/admin/offices` and the office's source on `GET /v1/offices` |
 | Tests | `apps/directory/src/site.test.ts` (11: fixtures signed with a software key); `services/core/src/modules/catalogue/catalogue.e2e.test.ts` (2 more: the office API, and the site built from the running core with its SoftHSM signatures) |
-| Not yet | serving the site in a cell (the gateway routes `/<lang>/services/` and `/<lang>/offices/` to it) and rebuilding it when an approver publishes; the search page and the "report an error" form (both need a server: the web app, next); external link checking and an automated accessibility audit in a browser (week 4) |
+| Not yet | serving the site in a cell (the gateway routes `/<lang>/services/` and `/<lang>/offices/` to it) and rebuilding it when an approver publishes; external link checking and an automated accessibility audit in a browser (week 4). The search page and the "report an error" form are in the web app ([03](03-search-and-error-reports.md)); every page has the search box and each current service page links its report form |
 
 ## 1. Why a generator, and not pages in the web app
 

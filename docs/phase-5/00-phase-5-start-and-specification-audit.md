@@ -77,10 +77,10 @@
 | 3 | Public pages with static generation (D3, A2) in ar/fr/en; search with Arabic normalisation (D4, A3); office locator (F2) | accessibility checks; search tests in Arabic and French |
 | 4–5 | Curation of ≥ 60 procedures with citations (D5); link checking (T2); content QA checklist (T1); integrity monitoring (SEC3) | AC1, AC2 |
 
-## 5. Completion estimate (27 Nov 2026, after weeks 1–2, the deployment wiring and the public pages)
+## 5. Completion estimate (27 Nov 2026, after weeks 1–2, the deployment wiring, the public pages, search and error reports)
 
 Each of the 31 work items of §1 (objective, dependency, time, budget and risk lines excluded) scored by what is built
-**and tested**: 0, 25, 50, 75 or 100 %. **Phase 5: about 73 %** (22.75 of 31), counted the same way as Phases 3 and 4.
+**and tested**: 0, 25, 50, 75 or 100 %. **Phase 5: about 75 %** (23.25 of 31), counted the same way as Phases 3 and 4.
 The count flatters the phase: **neither acceptance criterion is met**, and its main deliverable is not started — no
 procedure has been curated yet (AC1 needs 60 with 100 % citation coverage; AC2 a median last-verified age under
 90 days). An engineering estimate, not an acceptance decision.
@@ -90,15 +90,15 @@ procedure has been curated yet (AC1 needs 60 with 100 % citation coverage; AC2 a
 | D1 data model | 100% | — |
 | D2 editorial back office, four-eyes | 75% | API and rules done; the editors' screens (with the Workspace, Phase 6, or a minimal page) |
 | D3 public pages (SEO) | 75% | generated from the signed content, with sitemap, alternates, schema.org ([02](02-public-pages.md)); serving in a cell and the rebuild on publication next |
-| D4 search | 75% | API with Arabic normalisation done; the search page (needs a server: the web app, next) |
+| D4 search | 100% | API with Arabic normalisation; the search page in the web app, without scripts too ([03](03-search-and-error-reports.md)) |
 | D5 ≥ 60 procedures with citations | 0% | weeks 4–5; needs official sources read one by one (X-04) and the content team for approval (Q5-1) |
-| A1 pg-public | 75% | own schema, migrations, connection; dev cell, chart and k3s rehearsal wired ([01 §8](01-catalogue-and-editorial-workflow.md)); 100 % once the nightly dev-cell and k3s runs pass with it. Staging nodes wait for the provider |
+| A1 pg-public | 100% | own schema, migrations, connection; dev cell, chart and k3s rehearsal wired and passing on GitHub (nightly, PR #25) ([01 §8](01-catalogue-and-editorial-workflow.md)). Staging nodes come with the provider |
 | A2 static generation | 75% | the generator, failing closed ([02](02-public-pages.md)); the rebuild on publication and the gateway route next |
 | A3 FTS + Arabic normalisation | 100% | — |
 | F1 service pages | 100% | steps, documents, fees, offices, hours, sources, last verified ([02 §3](02-public-pages.md)) |
 | F2 office locator | 75% | the offices page by governorate with map links, the editors' office API; no office is curated yet (Q5-3) |
 | F3 change history | 100% | — |
-| F4 report an error | 75% | API; the handling screen for editors |
+| F4 report an error | 75% | API and the form, without scripts too ([03](03-search-and-error-reports.md)); the editors' list and handling of reports |
 | DB1–DB6 | 100% each | — |
 | API1–API4 | 100% each | — |
 | SEC1 editorial RBAC | 100% | — |
