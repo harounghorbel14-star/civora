@@ -118,7 +118,7 @@ jobs:
           python3 infra/scripts/check-realm-security.py infra/keycloak/realms/civora-staff.json --profile staff --self-test
       - name: Keycloak extension (SMS sign-in step, Phase 3 doc 17) — unit tests, JAR, and the cell's Keycloak image (kc.sh build)
         run: |
-          JAVA_HOME="$JAVA_HOME_21_X64" mvn -B -q -f infra/keycloak/extensions/civora-sms/pom.xml package
+          infra/keycloak/extensions/civora-sms/build.sh
           docker build -q -f infra/keycloak/image/Containerfile -t civora-keycloak:ci .
           docker run --rm --entrypoint sh civora-keycloak:ci -c 'test -s /opt/keycloak/providers/civora-keycloak-sms.jar && /opt/keycloak/bin/kc.sh show-config | grep -q "kc.optimized =  true"'
       - name: Ansible syntax + lint (production profile)

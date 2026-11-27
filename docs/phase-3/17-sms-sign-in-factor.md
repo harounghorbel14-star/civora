@@ -72,7 +72,7 @@ announced like a failed authenticator-app code.
 
 | Level | What | Result |
 |---|---|---|
-| Unit, extension (JUnit 5, `mvn package`) | codes: six digits, varied, only a digest kept, bound to the sign-in, constant-time check; numbers and what the page shows; the simulated channel refuses without permission, real numbers, long texts, an unconfigured realm; eligibility: verified number only, disabled accounts, officers excluded, a missing excluded role excludes everyone, no sender: never offered | 5 tests pass |
+| Unit, extension (JUnit 5, `build.sh`: `mvn package` with pinned plugins, retried when Maven Central rate-limits) | codes: six digits, varied, only a digest kept, bound to the sign-in, constant-time check; numbers and what the page shows; the simulated channel refuses without permission, real numbers, long texts, an unconfigured realm; eligibility: verified number only, disabled accounts, officers excluded, a missing excluded role excludes everyone, no sender: never offered | 5 tests pass |
 | Unit, core | a wrong SMS code is a failed second step (`signin-events.test.ts`) | pass |
 | Realm checker | citizens and staff files with the SMS step: every rule holds; 3 new negative controls rejected (citizens 41, staff 42 in all); a file with a duplicated key refused | pass |
 | Probe, Keycloak 26.8.1 with the extension | the option under "Try another way" in fr and ar, the page and the SMS in the person's language, wrong code refused, a new code replaces the old, an account with only a number goes straight to SMS, errors marked `civora_second_factor=sms`; ineligible accounts refused by Keycloak, nothing sent; realm texts override the refusal page | as described in §2 |

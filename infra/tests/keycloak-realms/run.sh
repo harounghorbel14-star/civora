@@ -51,11 +51,13 @@ chmod 644 "$work"/truststores/*
 kc_port=$(free_port)
 mkdir -p "$work/import" && cp "$repo"/infra/keycloak/realms/civora-*.json "$repo"/infra/keycloak/simulators/sim-*.json "$work/import/" \
   && chmod 755 "$work/import" && chmod 644 "$work"/import/*
-# The CIVORA Keycloak extension (SMS sign-in step, Phase 3 doc 17): the realms' flows use it. Built here when Maven is
-# available (MVN=/path/to/mvn otherwise), else the JAR built before (CI builds it in an earlier step).
-jar="$repo/infra/keycloak/extensions/civora-sms/target/civora-keycloak-sms-0.1.0.jar"
-if command -v "${MVN:-mvn}" >/dev/null; then "${MVN:-mvn}" -B -q -f "$repo/infra/keycloak/extensions/civora-sms/pom.xml" package >/dev/null; fi
-[ -s "$jar" ] || { echo "  FAIL the Keycloak extension is not built (Maven and Java 21: infra/keycloak/extensions/civora-sms)"; exit 1; }
+# The CIVORA Keycloak extension (SMS sign-in step, Phase 3 doc 17): the realms' flows use it. CI builds it in an earlier
+# step; here it is (re)built only when the JAR is missing or older than its sources, and a failed build shows why.
+ext="$repo/infra/keycloak/extensions/civora-sms"
+jar="$ext/target/civora-keycloak-sms-0.1.0.jar"
+if [ ! -s "$jar" ] || [ -n "$(find "$ext/src" "$ext/pom.xml" -newer "$jar" -type f | head -1)" ]; then
+  "$ext/build.sh" || { echo "  FAIL the Keycloak extension does not build (Maven 3.9 and Java 21: $ext/build.sh)"; exit 1; }
+fi
 mkdir -p "$work/providers" && cp "$jar" "$work/providers/" && chmod 755 "$work/providers" && chmod 644 "$work"/providers/*.jar
 docker run -d --name kr-keycloak --network "$net" -p "127.0.0.1:$kc_port:8080" -e KC_BOOTSTRAP_ADMIN_USERNAME=admin -e KC_BOOTSTRAP_ADMIN_PASSWORD="$kc_pw" \
   -e CIVORA_SIMULATED_SMS=allowed -v "$work/providers:/opt/keycloak/providers:ro" \

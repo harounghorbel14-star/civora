@@ -1,6 +1,6 @@
 # CIVORA Keycloak image for staging and production cells (doc phase-3/17): the upstream image pinned by digest, plus the
 # CIVORA extension (SMS sign-in step), built ("kc.sh build") so the Operator can run it with --optimized.
-# Build context: the repository root, after `mvn -f infra/keycloak/extensions/civora-sms/pom.xml package`.
+# Build context: the repository root, after infra/keycloak/extensions/civora-sms/build.sh.
 # The release pipeline signs the result (cosign, ADR-021) and pins its digest in infra/k8s/keycloak/keycloak.yaml.
 FROM docker.io/keycloak/keycloak:26.8.1@sha256:3f3c5f8e03c614774b4bd9173b88391fefa4153bfc010d8012d59ad825377332 AS build
 COPY --chown=1000:0 infra/keycloak/extensions/civora-sms/target/civora-keycloak-sms-0.1.0.jar /opt/keycloak/providers/civora-keycloak-sms.jar

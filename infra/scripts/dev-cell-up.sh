@@ -65,9 +65,7 @@ print(json.dumps({"keys": [{"kty": "EC", "crv": "P-256", "x": b(d[-64:-32]), "y"
 # Built with Maven and Java 21 (both on GitHub's Ubuntu runners); mounted read-only into /opt/keycloak/providers.
 mkdir -p .generated/keycloak-providers
 if [[ "${SKIP_BUILD:-0}" != "1" || ! -s .generated/keycloak-providers/civora-keycloak-sms.jar ]]; then
-  mvn="${MVN:-mvn}"   # MVN=/path/to/mvn when Maven is not on the PATH
-  command -v "$mvn" >/dev/null || { echo "Maven and Java 21 are needed to build infra/keycloak/extensions/civora-sms" >&2; exit 1; }
-  "$mvn" -B -q -f "$here/keycloak/extensions/civora-sms/pom.xml" package >/dev/null
+  "$here/keycloak/extensions/civora-sms/build.sh"   # MVN=/path/to/mvn when Maven is not on the PATH
   install -m 644 "$here/keycloak/extensions/civora-sms/target/civora-keycloak-sms-0.1.0.jar" .generated/keycloak-providers/civora-keycloak-sms.jar
 fi
 chmod 755 .generated/keycloak-providers
