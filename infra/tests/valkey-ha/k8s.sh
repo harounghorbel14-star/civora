@@ -3,7 +3,8 @@
 # Closes the open item of R38: the chart's own failover, with cluster DNS and the headless Service, not Docker DNS.
 # Namespace with restricted Pod Security; NetworkPolicy enforced (k3s network policy controller).
 # Scenarios:
-#   A. primary pod deleted (eviction, rolling update, node drain): a replica is promoted; the pod returns as replica;
+#   A. primary pod deleted during a node drain (node cordoned, pod deleted): a replica is promoted; once the node is
+#      uncordoned the pod returns as a replica;
 #   B. primary process killed with SIGKILL (crash; the container restarts in place, DNS record kept): no data loss
 #      for a confirmed write, exactly one primary afterwards;
 #   C. a client outside the allowed selector cannot reach the cache (NetworkPolicy).
@@ -67,10 +68,18 @@ check "NetworkPolicy: a pod outside the allowed selector cannot connect, even wi
 # A. Primary pod deleted.
 check "A: write confirmed by a replica before the deletion (WAIT 1)" \
   "[ \"\$(cli $(host 0) 'set synthetic:a before-delete')\" = OK ] && [ \"\$(cli $(host 0) 'wait 1 2000')\" -ge 1 ]"
+# As in a node drain, the node is cordoned first: the deleted pod cannot be rescheduled at once. Without this, k3s
+# recreated pod 0 within Sentinel's down-after time (5 s), the Sentinels saw a reboot rather than an outage, and no
+# promotion happened (SR-14: nightly runs 30, 49 and 51). The pod comes back once the node is uncordoned.
+node=$(kc get nodes -o jsonpath='{.items[0].metadata.name}')
+kc cordon "$node" >/dev/null
 t0=$(date +%s); kc -n "$ns" delete pod "$rel-0" --wait=false >/dev/null
 check "A: Sentinels promote a replica after the primary pod is deleted" \
   "for i in \$(seq 1 90); do p=\$(sentinel_primary); case \"\$p\" in *-1.*|*-2.*) [ \"\$(role_of \$(idx_of \$p))\" = master ] && exit 0;; esac; sleep 1; done; exit 1"
 a_s=$(( $(date +%s) - t0 ))
+check "A: while the node is cordoned, the deleted pod stays pending (the outage outlasts Sentinel's down-after time)" \
+  "[ \"\$(kc -n $ns get pod $rel-0 -o jsonpath='{.status.phase}' 2>/dev/null || echo absent)\" != Running ]"
+kc uncordon "$node" >/dev/null
 newA=$(idx_of "$(sentinel_primary)")
 check "A: the confirmed write is on the new primary (pod $newA)" "[ \"\$(cli \$(host $newA) 'get synthetic:a')\" = before-delete ]"
 check "A: writes accepted by the new primary" "for i in \$(seq 1 30); do [ \"\$(cli \$(host $newA) 'set synthetic:a2 after')\" = OK ] && exit 0; sleep 1; done; exit 1"
