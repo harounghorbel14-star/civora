@@ -44,6 +44,18 @@ identity:
   activationRedirectUri: ""   # citizens' app page after activation
   invitationRedirectUri: ""   # staff workspace page after an invitation
 
+# Services directory (Phase 5, doc phase-5/01) on its own PostgreSQL cluster, pg-public (ADR-003). Existing Secrets,
+# written by External Secrets from OpenBao: the NOBYPASSRLS application account, and the cluster's owner for the public
+# migrations Job. Empty databaseSecret.name: the directory is off and its routes answer 503.
+# editorTenant is the cell operator's institution: only its staff edit (required outside dev). No content-signing key
+# is configured by the chart: the HSM and its client in the image wait for decision Q4-2 (Phase 4 doc 02); until then
+# the cell serves published pages and takes drafts, and approvals answer 403.
+catalogue:
+  databaseSecret: { name: "", key: DATABASE_URL }
+  migrations:
+    databaseSecret: { name: "", key: DATABASE_URL }   # required with databaseSecret.name
+  editorTenant: ""
+
 # Hourly removal of accounts never activated (Phase 3 R-P3-8); needs identity.provisionerSecret.
 cleanup:
   enabled: false
@@ -72,6 +84,9 @@ networkPolicy:
   databaseCidrs: []                         # dedicated PostgreSQL nodes (Patroni + pgBackRest, ADR-003/ADR-029)
   databasePodSelector: {}                   # in-cluster PostgreSQL pods (dev and rehearsal only)
   databaseNamespace: ""                     # defaults to the release namespace
+  # pg-public (catalogue), when it is reached otherwise than through the selector and addresses above
+  catalogueDatabasePodSelector: {}
+  catalogueDatabaseCidrs: []
   otelNamespace: observability
   keycloakNamespace: keycloak               # token signing keys and the admin API (Phase 3)
   keycloakPorts: [8443]

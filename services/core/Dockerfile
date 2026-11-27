@@ -15,7 +15,7 @@ RUN --mount=type=secret,id=proxy_ca,required=false \
  && pnpm --filter @civora/core... run build \
  && pnpm --filter @civora/country-packs run verify \
  && pnpm deploy --filter @civora/core --prod --legacy /out \
- && test -f /out/dist/src/main.js && test -d /out/migrations \
+ && test -f /out/dist/src/main.js && test -d /out/migrations && test -d /out/migrations-public \
  && find /out/node_modules/.pnpm -type d \( -name test -o -name tests -o -name __tests__ \) -prune -exec rm -rf {} +
 
 FROM node:22-alpine AS runtime

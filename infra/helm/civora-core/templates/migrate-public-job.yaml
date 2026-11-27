@@ -1,0 +1,59 @@
+{{- if and .Values.migrations.enabled .Values.catalogue.databaseSecret.name }}
+{{- include "civora-core.catalogueCheck" . }}
+# The services directory's own migrations on pg-public (Phase 5, P5-A1): own directory and table, run as the cluster's
+# owner, after the core's migrations (hook weight 1). Expand-only, like the core's (ADR-024).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "civora-core.name" . }}-migrate-public-{{ .Release.Revision }}
+  namespace: {{ .Release.Namespace }}
+  labels: {{- include "civora-core.labels" . | nindent 4 }}
+    app.kubernetes.io/component: migrate-public
+  annotations:
+    {{- include "civora-core.checkovSkips" . | nindent 4 }}
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "1"
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  backoffLimit: {{ .Values.migrations.backoffLimit }}
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels: {{- include "civora-core.selector" . | nindent 8 }}
+        app.kubernetes.io/component: migrate-public
+      annotations: {{- include "civora-core.checkovSkips" . | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext: {{- include "civora-core.podSecurity" . | nindent 8 }}
+      containers:
+        - name: migrate-public
+          image: {{ include "civora-core.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext: {{- include "civora-core.containerSecurity" . | nindent 12 }}
+          # As the core's Job: the URL goes from the mounted file into the process environment only; wait for the database.
+          command: ["sh", "-c", "export DATABASE_URL=\"$(cat /var/run/secrets/civora-catalogue/database-url)\" && node dist/src/tools/wait-for-database.js && exec node node_modules/node-pg-migrate/bin/node-pg-migrate.js up --migrations-dir migrations-public --migration-file-language sql --migrations-table schema_migrations_public --check-order"]
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { memory: 256Mi }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+            - { name: catalogue-db, mountPath: /var/run/secrets/civora-catalogue, readOnly: true }
+            {{- include "civora-core.dbCaMount" . | nindent 12 }}
+      volumes:
+        - name: tmp
+          emptyDir: { sizeLimit: 16Mi }
+        - name: catalogue-db
+          secret:
+            secretName: {{ .Values.catalogue.migrations.databaseSecret.name }}
+            defaultMode: 0400
+            items:
+              - key: {{ .Values.catalogue.migrations.databaseSecret.key }}
+                path: database-url
+        {{- if .Values.databaseTls.caSecretName }}
+        - name: db-ca
+          secret:
+            secretName: {{ .Values.databaseTls.caSecretName }}
+            items: [{ key: ca.crt, path: ca.crt }]
+        {{- end }}
+{{- end }}

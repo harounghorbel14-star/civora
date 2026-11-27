@@ -1,0 +1,64 @@
+# Local rehearsal only: a single PostgreSQL 16 pod standing in for the pg-public cluster (services directory, Phase 5)
+# that runs on dedicated database nodes in staging/prod (Patroni + pgBackRest; ADR-003, ADR-029).
+# Synthetic data only. The password comes from the Secret created by deploy-from-scratch.sh.
+apiVersion: v1
+kind: Service
+metadata:
+  name: pg-public
+  labels: { app.kubernetes.io/name: pg-public }
+spec:
+  selector: { app.kubernetes.io/name: pg-public }
+  ports: [{ name: pg, port: 5432, targetPort: 5432 }]
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: pg-public
+  labels: { app.kubernetes.io/name: pg-public }
+spec:
+  serviceName: pg-public
+  replicas: 1
+  selector:
+    matchLabels: { app.kubernetes.io/name: pg-public }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: pg-public }
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 70          # postgres user in the alpine image
+        fsGroup: 70
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+          env:
+            - { name: POSTGRES_USER, value: civora_public }
+            - { name: POSTGRES_DB, value: civora_public }
+            - { name: PGDATA, value: /var/lib/postgresql/data/pgdata }
+            - { name: POSTGRES_INITDB_ARGS, value: "--auth-host=scram-sha-256 --data-checksums" }
+            - name: POSTGRES_PASSWORD
+              valueFrom: { secretKeyRef: { name: pg-public-superuser, key: password } }
+          ports: [{ containerPort: 5432 }]
+          readinessProbe:
+            exec: { command: ["pg_isready", "-U", "civora_public", "-d", "civora_public"] }
+            periodSeconds: 3
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { memory: 512Mi }
+          volumeMounts:
+            - { name: data, mountPath: /var/lib/postgresql/data }
+            - { name: run, mountPath: /var/run/postgresql }
+      volumes:
+        - name: run
+          emptyDir: {}
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources: { requests: { storage: 1Gi } }

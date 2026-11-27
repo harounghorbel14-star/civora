@@ -93,15 +93,23 @@ spec:
         {{- range .Values.networkPolicy.databaseCidrs }}
         - ipBlock: { cidr: {{ . }} }
         {{- end }}
+        {{- with .Values.networkPolicy.catalogueDatabasePodSelector }}
+        - podSelector:   # pg-public (services directory, Phase 5)
+            matchLabels: {{- toYaml . | nindent 14 }}
+          namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: {{ default $.Release.Namespace $.Values.networkPolicy.databaseNamespace }} } }
+        {{- end }}
+        {{- range .Values.networkPolicy.catalogueDatabaseCidrs }}
+        - ipBlock: { cidr: {{ . }} }
+        {{- end }}
       ports:
         - { port: 5432, protocol: TCP }
-    {{- if .Values.otel.endpoint }}
     - to:   # Keycloak: token signing keys (JWKS) and the admin API of the provisioner client (Phase 3)
         - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: {{ .Values.networkPolicy.keycloakNamespace }} } }
       ports:
         {{- range .Values.networkPolicy.keycloakPorts }}
         - { port: {{ . }}, protocol: TCP }
         {{- end }}
+    {{- if .Values.otel.endpoint }}
     - to:   # OpenTelemetry collector
         - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: {{ .Values.networkPolicy.otelNamespace }} } }
       ports:

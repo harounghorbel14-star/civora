@@ -77,10 +77,10 @@
 | 3 | Public pages with static generation (D3, A2) in ar/fr/en; search with Arabic normalisation (D4, A3); office locator (F2) | accessibility checks; search tests in Arabic and French |
 | 4–5 | Curation of ≥ 60 procedures with citations (D5); link checking (T2); content QA checklist (T1); integrity monitoring (SEC3) | AC1, AC2 |
 
-## 5. Completion estimate (27 Nov 2026, after weeks 1–2)
+## 5. Completion estimate (27 Nov 2026, after weeks 1–2 and the deployment wiring)
 
 Each of the 31 work items of §1 (objective, dependency, time, budget and risk lines excluded) scored by what is built
-**and tested**: 0, 25, 50, 75 or 100 %. **Phase 5: about 62 %** (19.25 of 31), counted the same way as Phases 3 and 4.
+**and tested**: 0, 25, 50, 75 or 100 %. **Phase 5: about 63 %** (19.5 of 31), counted the same way as Phases 3 and 4.
 The count flatters the phase: **neither acceptance criterion is met**, and its main deliverable is not started — no
 procedure has been curated yet (AC1 needs 60 with 100 % citation coverage; AC2 a median last-verified age under
 90 days). An engineering estimate, not an acceptance decision.
@@ -92,7 +92,7 @@ procedure has been curated yet (AC1 needs 60 with 100 % citation coverage; AC2 a
 | D3 public pages (SEO) | 0% | week 3 |
 | D4 search | 75% | API with Arabic normalisation done; the search page (week 3) |
 | D5 ≥ 60 procedures with citations | 0% | weeks 4–5; needs official sources read one by one (X-04) and the content team for approval (Q5-1) |
-| A1 pg-public | 50% | own schema, migrations and connection; dev-cell and Kubernetes wiring next |
+| A1 pg-public | 75% | own schema, migrations, connection; dev cell, chart and k3s rehearsal wired ([01 §8](01-catalogue-and-editorial-workflow.md)); 100 % once the nightly dev-cell and k3s runs pass with it. Staging nodes wait for the provider |
 | A2 static generation | 0% | week 3 |
 | A3 FTS + Arabic normalisation | 100% | — |
 | F1 service pages | 50% | the page's data and API; the page itself week 3 |

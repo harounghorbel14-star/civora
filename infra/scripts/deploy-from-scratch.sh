@@ -58,11 +58,29 @@ kc -n "$ns" create secret generic pg-core-superuser --from-literal=password="$pw
 kc -n "$ns" create secret generic civora-core-db --from-literal=DATABASE_URL="postgres://civora_core:$pw@pg-core:5432/civora_core" >/dev/null
 kc -n "$ns" apply -f - < "$root/infra/k8s/local/pg-core.yaml" >/dev/null
 kc -n "$ns" rollout status statefulset/pg-core --timeout=300s >/dev/null || { kc -n "$ns" describe pod pg-core-0 | tail -20; kc -n "$ns" logs pg-core-0 --tail=20; exit 1; }
-stamp "database ready"
+# pg-public, the services directory's own cluster (Phase 5): its owner runs the public migrations; the application uses
+# a NOBYPASSRLS account made here (as infra/compose/postgres/public-app-role.sh does in the dev cell). The password
+# goes to psql on standard input, not on a command line.
+pub_pw="$(head -c 24 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 24)"
+app_pw="$(head -c 24 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 24)"
+kc -n "$ns" create secret generic pg-public-superuser --from-literal=password="$pub_pw" >/dev/null
+kc -n "$ns" create secret generic civora-catalogue-db-migrate --from-literal=DATABASE_URL="postgres://civora_public:$pub_pw@pg-public:5432/civora_public" >/dev/null
+kc -n "$ns" create secret generic civora-catalogue-db --from-literal=DATABASE_URL="postgres://civora_core_app:$app_pw@pg-public:5432/civora_public" >/dev/null
+kc -n "$ns" apply -f - < "$root/infra/k8s/local/pg-public.yaml" >/dev/null
+kc -n "$ns" rollout status statefulset/pg-public --timeout=300s >/dev/null || { kc -n "$ns" describe pod pg-public-0 | tail -20; kc -n "$ns" logs pg-public-0 --tail=20; exit 1; }
+kc -n "$ns" exec -i pg-public-0 -- psql -v ON_ERROR_STOP=1 -q -U civora_public -d civora_public >/dev/null <<SQL
+CREATE ROLE civora_core_app LOGIN NOBYPASSRLS PASSWORD '$app_pw';
+REVOKE ALL ON DATABASE civora_public FROM PUBLIC;
+GRANT CONNECT ON DATABASE civora_public TO civora_core_app;
+SQL
+stamp "databases ready (pg-core, pg-public)"
 
-# 4. Application (migration Job runs as a pre-install hook)
+# 4. Application (the core's and the directory's migration Jobs run as pre-install hooks)
+# The services directory is turned on here only (the staging rehearsal shares values-local.yaml and has no pg-public).
+catalogue_args=(--set catalogue.databaseSecret.name=civora-catalogue-db --set catalogue.migrations.databaseSecret.name=civora-catalogue-db-migrate
+  --set networkPolicy.catalogueDatabasePodSelector.app\\.kubernetes\\.io/name=pg-public)
 helm upgrade --install civora-core "$root/infra/helm/civora-core" -n "$ns" \
-  -f "$root/infra/helm/civora-core/values-local.yaml" --wait --timeout 5m >/dev/null
+  -f "$root/infra/helm/civora-core/values-local.yaml" "${catalogue_args[@]}" --wait --timeout 5m >/dev/null
 stamp "civora-core deployed"
 
 # 5. Smoke tests from an allowed namespace and from a denied one (network policy enforcement)
@@ -78,11 +96,17 @@ check "health: database up (from allowed namespace)" "probe civora-smoke /health
 check "locales: ar-TN is rtl"                        "probe civora-smoke /v1/meta/locales | grep -q '\"dir\":\"rtl\"'"
 check "network policy blocks other namespaces"       "! probe default /health"
 check "base schemas migrated"                        "kc -n $ns exec pg-core-0 -- psql -U civora_core -d civora_core -Atc \"select count(*) from pg_namespace where nspname in ('iam','config','audit')\" | grep -qx 3"
+check "catalogue: published services answer 200 (from pg-public)" "probe civora-smoke /v1/services | grep -q '^\['"
+check "catalogue migrated on pg-public only, on its own table" \
+  "kc -n $ns exec pg-public-0 -- psql -U civora_public -d civora_public -Atc 'select count(*) > 0 from schema_migrations_public' | grep -qx t && kc -n $ns exec pg-core-0 -- psql -U civora_core -d civora_core -Atc \"select count(*) from pg_namespace where nspname = 'catalogue'\" | grep -qx 0"
+# (as the account over the pod's local socket: its grants are what is checked; the core's login is checked above)
+check "catalogue: the application account reads published content, not drafts" \
+  "kc -n $ns exec pg-public-0 -- psql -U civora_core_app -d civora_public -v ON_ERROR_STOP=1 -Atc 'select count(*) from catalogue.published_version' && ! kc -n $ns exec pg-public-0 -- psql -U civora_core_app -d civora_public -v ON_ERROR_STOP=1 -Atc 'select 1 from catalogue.service_version limit 1'"
 check "2 replicas ready, non-root, read-only rootfs" "kc -n $ns get deploy civora-core -o jsonpath='{.status.readyReplicas}' | grep -qx 2 && kc -n $ns get deploy civora-core -o jsonpath='{.spec.template.spec.containers[0].securityContext.readOnlyRootFilesystem}' | grep -qx true"
 check "restricted pod security admission"           "kc get ns $ns -o jsonpath='{.metadata.labels.pod-security\\.kubernetes\\.io/enforce}' | grep -qx restricted"
 
 # 6. Upgrade path: a second release runs the migration hook again (idempotent) and rolls without downtime
-helm upgrade civora-core "$root/infra/helm/civora-core" -n "$ns" -f "$root/infra/helm/civora-core/values-local.yaml" \
+helm upgrade civora-core "$root/infra/helm/civora-core" -n "$ns" -f "$root/infra/helm/civora-core/values-local.yaml" "${catalogue_args[@]}" \
   --set podAnnotations.rehearsal=upgrade --wait --timeout 5m >/dev/null && echo "  ok   upgrade with migration hook" || { echo "  FAIL upgrade"; fail=1; }
 
 stamp "done (fail=$fail)"
