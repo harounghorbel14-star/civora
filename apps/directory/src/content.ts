@@ -105,6 +105,12 @@ export async function verifySigned(canonical: string, signature: string, keys: J
   return kid;
 }
 
+/** The catalogue schema's patterns (migrations-public/1765238400000_catalogue.sql). */
+const CODE = /^TN-[A-Z]{3}-[0-9]{3}$/;
+const SLUG = /^[a-z0-9][a-z0-9-]{2,80}$/;
+const CATEGORY = /^[a-z][a-z-]{2,40}$/;
+const OFFICE = /^[a-z0-9][a-z0-9-]{2,62}$/;
+
 const isText = (v: unknown): v is Text =>
   !!v && typeof v === 'object' && typeof (v as Text).ar === 'string' && typeof (v as Text).fr === 'string'
   && ((v as Text).en === undefined || typeof (v as Text).en === 'string');
@@ -128,20 +134,33 @@ export function parseContent(canonical: string): SignedContent {
     if (amount !== null && !Number.isFinite(amount)) throw new ContentError('signed content: amount_tnd');
     return { kind: r.kind as Kind, position: r.position as number, text: r.text as Text, amount_tnd: amount, sources };
   });
+  // These become file paths and fragment ids: they must match the database's own patterns (catalogue migration),
+  // whatever the core answers.
+  if (!CODE.test(str('code')) || !SLUG.test(str('slug')) || !CATEGORY.test(str('category'))) throw new ContentError('signed content: code, slug or category malformed');
+  if ((c.version as number) < 1) throw new ContentError('signed content: version');
+  const offices = (c.offices as unknown[]).filter((x): x is string => typeof x === 'string');
+  if (offices.length !== (c.offices as unknown[]).length || !offices.every((o) => OFFICE.test(o))) throw new ContentError('signed content: an office code is malformed');
   return {
     code: str('code'), slug: str('slug'), category: str('category'), version: c.version as number,
     title: c.title as Text, summary: c.summary as Text, institution: c.institution as Text,
     online_url: online as string | null, processing_time: (c.processing_time ?? null) as Text | null,
     last_verified_on: str('last_verified_on'), change_note: str('change_note'), requirements,
-    offices: (c.offices as unknown[]).filter((x): x is string => typeof x === 'string'),
+    offices,
   };
 }
 
 export type Fetcher = (path: string) => Promise<unknown>;
 
+/** Removes trailing slashes in linear time (a `/\/+$/` replace backtracks on long runs of slashes). */
+export function trimTrailingSlashes(s: string): string {
+  let end = s.length;
+  while (end > 0 && s.charCodeAt(end - 1) === 47) end--;
+  return s.slice(0, end);
+}
+
 /** A fetcher over the core's public API: JSON, a 200 answer, nothing else. */
 export function coreFetcher(coreUrl: string, fetchFn: typeof fetch = fetch): Fetcher {
-  const base = coreUrl.replace(/\/+$/, '');
+  const base = trimTrailingSlashes(coreUrl);
   return async (path: string) => {
     const r = await fetchFn(base + path, { headers: { accept: 'application/json' } });
     if (r.status !== 200) throw new ContentError(`GET ${path}: ${r.status}`);
@@ -160,6 +179,7 @@ export async function loadSnapshot(get: Fetcher): Promise<Snapshot> {
   const list = await get('/v1/services') as { code: string }[];
   const keys = ((await get('/v1/catalogue/keys')) as { keys?: JWK[] }).keys ?? [];
   const offices = await get('/v1/offices') as Office[];
+  if (!Array.isArray(offices) || offices.some((o) => typeof o?.code !== 'string' || !OFFICE.test(o.code))) throw new ContentError('an office code is malformed');
   const officeCodes = new Set(offices.map((o) => o.code));
   if (list.length && !keys.length) throw new ContentError('services are published but the cell publishes no content key');
   const services: Service[] = [];

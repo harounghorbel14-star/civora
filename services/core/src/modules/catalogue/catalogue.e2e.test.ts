@@ -200,8 +200,9 @@ describe('services directory, end to end (Phase 5)', { skip }, () => {
     assert.equal(snap.services[0]!.current.kid, 'catalogue-content-1');
     const { files } = buildSite(snap, { origin: 'https://www.civora-cell.invalid' });
     const fr = files.get('fr/services/test-extract/index.html')!;
-    assert.ok(fr.includes('Extrait de naissance (test)') && fr.includes('https://example.invalid/catalogue-e2e'));
-    assert.ok(fr.includes(page.integrity.content_digest));
+    assert.match(fr, /<h1>Extrait de naissance \(test\)<\/h1>/);
+    assert.match(fr, /<a href="https:\/\/example\.invalid\/catalogue-e2e" rel="external noopener noreferrer"/, 'the cited source, as a link');
+    assert.ok(fr.includes(`<code dir="ltr">${page.integrity.content_digest}</code>`));
     assert.ok(files.has('ar/services/test-extract/v/1/index.html') && files.has('fr/offices/index.html'));
     assert.match(files.get('fr/offices/index.html')!, /Bureau de test/);
     assert.match(fr, new RegExp(`Dernière vérification le ${new Intl.DateTimeFormat('fr-TN', { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(`${page.last_verified_on}T12:00:00Z`))}`));

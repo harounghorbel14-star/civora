@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { ReactElement } from 'react';
-import { LANGS, LOCALES, type Snapshot } from './content';
+import { LANGS, LOCALES, type Snapshot, trimTrailingSlashes } from './content';
 import { translator } from './messages';
 import { hasLanguage, historyPage, indexPage, officesPage, paths, servicePage } from './pages';
 import { CSS } from './styles';
@@ -29,11 +29,12 @@ const file = (p: string) => (p.endsWith('/') ? `${p}index.html` : p).replace(/^\
 const xml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 export function buildSite(snap: Snapshot, opts: { origin: string }): Site {
-  const origin = opts.origin.replace(/\/+$/, '');
+  const origin = trimTrailingSlashes(opts.origin);
   if (!/^https:\/\/[a-z0-9.-]+(:\d+)?$/i.test(origin)) throw new Error('origin must be an https origin without a path');
   const files = new Map<string, string>();
   const indexable: { path: string; lastmod?: string; alternates: string[] }[] = [];
   const put = (p: string, content: string) => {
+    if (!/^\/[a-z0-9/._-]+$/.test(p) || p.split('/').some((seg) => seg === '..' || seg === '.')) throw new Error(`unsafe path ${p}`);
     if (files.has(file(p))) throw new Error(`two pages at ${p}`);
     files.set(file(p), content);
   };

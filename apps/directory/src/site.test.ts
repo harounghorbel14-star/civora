@@ -2,7 +2,7 @@ import { strict as assert } from 'node:assert';
 import { createHash } from 'node:crypto';
 import { describe, it } from 'node:test';
 import { b64u, softwareKey } from '@civora/credentials';
-import { ContentError, type Fetcher, LANGS, loadSnapshot, type Snapshot } from './content';
+import { ContentError, type Fetcher, LANGS, loadSnapshot, type Snapshot, trimTrailingSlashes } from './content';
 import { MESSAGE_KEYS, messagesOf } from './messages';
 import { buildSite, HEADERS } from './site';
 
@@ -133,7 +133,7 @@ describe('public directory pages (Phase 5, P5-D3, P5-A2)', () => {
   it('the page carries no script and no inline style; markup in the content stays text, in the page and the schema.org block', () => {
     for (const [p, html] of files) {
       if (!p.endsWith('.html')) continue;
-      const scripts = html.match(/<script\b[^>]*>/g) ?? [];
+      const scripts = html.match(/<script\b[^>]*>/gi) ?? [];
       assert.ok(scripts.every((s) => s === '<script type="application/ld+json">'), `${p}: only data blocks`);
       assert.ok(!/\sstyle=|\son[a-z]+=/i.test(html), `${p}: no inline style or handler`);
       assert.ok(!/(href|src)="http:/.test(html), `${p}: https only`);
@@ -227,6 +227,25 @@ describe('public directory pages (Phase 5, P5-D3, P5-A2)', () => {
       const two = (r.get('/v1/services/TN-CIV-001/versions/2/content') as { content: string; signature: string }); c.content = two.content; c.signature = two.signature; },
     /another service or version/);
     await refused((r) => { r.set('/v1/services/TN-IDN-001/versions/1', { sources: [srcPage, { ...srcLaw, url: 'http://example.invalid/decret' }] }); }, /not https/);
+  });
+
+  it('identifiers that become paths must match the catalogue\'s patterns; slashes are trimmed in linear time', async () => {
+    const refused = async (mutate: (r: Map<string, unknown>) => void | Promise<void>, re: RegExp) =>
+      assert.rejects(loadSnapshot((await fakeCore(mutate)).get), (e: unknown) => e instanceof ContentError && re.test(e.message), String(re));
+    const resign = async (r: Map<string, unknown>, edit: (c: string) => string) => {
+      const c = r.get('/v1/services/TN-IDN-001/versions/1/content') as { content: string; signature: string };
+      c.content = edit(c.content);
+      c.signature = await sign(c.content);
+    };
+    await refused((r) => resign(r, (c) => c.replace('"slug":"identity-card"', '"slug":"../../etc"')), /code, slug or category malformed/);
+    await refused((r) => resign(r, (c) => c.replace('"category":"identity"', '"category":"a/b"')), /code, slug or category malformed/);
+    await refused((r) => resign(r, (c) => c.replace('"offices":["tunis-test-office"]', '"offices":["../x"]')), /office code is malformed/);
+    await refused((r) => { r.set('/v1/offices', [{ ...office, code: '../x' }]); }, /office code is malformed/);
+    assert.equal(trimTrailingSlashes('https://x.invalid///'), 'https://x.invalid');
+    const long = `https://x.invalid${'/'.repeat(100_000)}a`;
+    const t0 = process.hrtime.bigint();
+    assert.equal(trimTrailingSlashes(long), long);
+    assert.ok(process.hrtime.bigint() - t0 < 50_000_000n, 'linear');
   });
 
   it('interface text exists in Arabic, French and English for every key', () => {

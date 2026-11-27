@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, resolve, sep } from 'node:path';
 import { ContentError, coreFetcher, loadSnapshot } from './content';
 import { buildSite, HEADERS } from './site';
 
@@ -44,7 +44,9 @@ export async function main(): Promise<number> {
   const site = buildSite(snap, { origin });
   const manifest: Record<string, string> = {};
   for (const [p, content] of [...site.files.entries()].sort(([a], [b]) => a.localeCompare(b))) {
-    const target = join(dir, p);
+    // The paths are checked when the site is built; check again that nothing lands outside the output directory.
+    const target = resolve(dir, p);
+    if (!target.startsWith(dir + sep)) throw new Error(`refusing to write outside the output directory: ${p}`);
     mkdirSync(dirname(target), { recursive: true });
     writeFileSync(target, content, { encoding: 'utf8', mode: 0o644 });
     manifest[p] = createHash('sha256').update(content, 'utf8').digest('hex');
