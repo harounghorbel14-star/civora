@@ -6,7 +6,8 @@ import { MessageNotSent, type MessagingChannel, type OutboundMessage } from '../
  * SMS to a person, SIMULATED (register entry M-01, class 3; ADR-028): no SMS provider is chosen (Q3-1, pilot gate PG-6).
  * Only synthetic numbers (+2160 followed by 7 digits: no Tunisian number starts with 0 after the country code) are
  * accepted; each message goes to the dev/test mail catcher as `sms.<digits>@sms.civora-cell.invalid`, so tests can read
- * it. One integration-log line per message, without the number or the text. Never a sign-in factor (doc phase-3/12).
+ * it. One integration-log line per message, without the number or the text. Used for codes to verify a number and for
+ * recovery R4 (deviation D5, decision Q3-7; doc phase-3/16).
  */
 export const SIMULATED_SMS: AdapterRegistration = { port: 'MessagingChannel', provider: 'simulated-sms', registerEntry: 'M-01', integrationClass: 3 };
 

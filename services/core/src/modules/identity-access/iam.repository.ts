@@ -310,6 +310,40 @@ export class IamRepository {
     return (await this.pool.query<{ ok: boolean }>('select iam.verify_status_challenge($1, $2, $3) as ok', [id, referenceDigest, codeDigest])).rows[0]!.ok;
   }
 
+  /** Contact changes (doc phase-3/16): no person needed; the account is a keyed digest; functions only. */
+  async startContactChange(id: string, account: Buffer, channel: 'email' | 'phone', target: string, codeDigest: Buffer, minutes: number): Promise<boolean> {
+    return (await this.pool.query<{ ok: boolean }>('select iam.start_contact_change($1, $2, $3, $4, $5, $6) as ok', [id, account, channel, target, codeDigest, minutes])).rows[0]!.ok;
+  }
+
+  async confirmContactChange(id: string, account: Buffer, codeDigest: Buffer): Promise<{ outcome: 'confirmed' | 'wrong-code' | 'not-found'; channel: 'email' | 'phone' | null; target: string | null; attemptsLeft: number }> {
+    const r = (await this.pool.query<{ outcome: 'confirmed' | 'wrong-code' | 'not-found'; channel: 'email' | 'phone' | null; target: string | null; attempts_left: number }>(
+      'select outcome, channel, target, attempts_left from iam.confirm_contact_change($1, $2, $3)', [id, account, codeDigest])).rows[0]!;
+    return { outcome: r.outcome, channel: r.channel, target: r.target, attemptsLeft: r.attempts_left };
+  }
+
+  /** Recovery R4 (doc phase-3/16): the e-mailed link, then an SMS code; functions only. */
+  async startContactRecovery(id: string, emailDigest: Buffer, account: Buffer, subject: string, phone: string | null, lang: string, linkDigest: Buffer, minutes: number): Promise<boolean> {
+    return (await this.pool.query<{ ok: boolean }>('select iam.start_contact_recovery($1, $2, $3, $4, $5, $6, $7, $8) as ok',
+      [id, emailDigest, account, subject, phone, lang, linkDigest, minutes])).rows[0]!.ok;
+  }
+
+  async contactRecoveryCode(id: string, linkDigest: Buffer, codeDigest: Buffer): Promise<{ phone: string; lang: 'ar' | 'fr' | 'en'; codeExpiresAt: Date } | null> {
+    try {
+      const r = (await this.pool.query<{ phone: string; lang: 'ar' | 'fr' | 'en'; code_expires_at: Date }>(
+        'select phone, lang, code_expires_at from iam.contact_recovery_code($1, $2, $3)', [id, linkDigest, codeDigest])).rows[0]!;
+      return { phone: r.phone, lang: r.lang, codeExpiresAt: r.code_expires_at };
+    } catch (e) {
+      if ((e as { code?: string }).code === 'P0002') return null;
+      throw e;
+    }
+  }
+
+  async completeContactRecovery(id: string, linkDigest: Buffer, codeDigest: Buffer): Promise<{ outcome: 'recovered' | 'wrong-code' | 'not-found'; subject: string | null; attemptsLeft: number }> {
+    const r = (await this.pool.query<{ outcome: 'recovered' | 'wrong-code' | 'not-found'; subject: string | null; attempts_left: number }>(
+      'select outcome, subject, attempts_left from iam.complete_contact_recovery($1, $2, $3)', [id, linkDigest, codeDigest])).rows[0]!;
+    return { outcome: r.outcome, subject: r.subject, attemptsLeft: r.attempts_left };
+  }
+
   close(): Promise<void> {
     return this.pool.end();
   }

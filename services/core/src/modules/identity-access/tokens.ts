@@ -11,3 +11,5 @@ export const POLICY_ENGINE = Symbol('POLICY_ENGINE');
 export const ACCOUNT_RECOVERY = Symbol('ACCOUNT_RECOVERY');
 export const ADAPTIVE_CONTROLS = Symbol('ADAPTIVE_CONTROLS');
 export const SIGNIN_EVENTS = Symbol('SIGNIN_EVENTS');
+export const CONTACT_DETAILS = Symbol('CONTACT_DETAILS');
+export const CONTACT_RECOVERY = Symbol('CONTACT_RECOVERY');

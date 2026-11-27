@@ -8,7 +8,7 @@ import { IdentityGuard } from './identity.guard';
 import { IamRepository } from './iam.repository';
 import { MandatesController } from './mandates.controller';
 import { MeController } from './me.controller';
-import { KeycloakAccountDirectory, KeycloakAdmin, KeycloakCitizenDirectory, KeycloakRecoveryDirectory, KeycloakStaffDirectory, loadAdminConfig, loadInvitationConfig, loadProvisionerConfig } from './keycloak-admin';
+import { KeycloakAccountDirectory, KeycloakAdmin, KeycloakCitizenDirectory, KeycloakContactDirectory, KeycloakRecoveryDirectory, KeycloakStaffDirectory, loadAdminConfig, loadInvitationConfig, loadProvisionerConfig } from './keycloak-admin';
 import { InvitationsController, type InvitationsDeps, MyMembershipsController, OrgUnitsController } from './org.controller';
 import { AccountSecurity, loadStepUpMaxAge } from './account-security';
 import { AuthenticatorsController, SessionsController } from './account-security.controller';
@@ -22,9 +22,11 @@ import { contextNotices, securityNotices, signInNotices } from './security-notic
 import { loadPollSeconds, SignInEventsService, SignInEventWatcher } from './signin-events';
 import { AdaptiveControls, loadAdaptiveConfig } from './adaptive-context';
 import { RecoveryController } from './recovery.controller';
+import { ContactDetails, ContactRecovery, loadRecoveryLinkOrigin } from './contact-details';
+import { ContactDetailsController, ContactRecoveryController } from './contact-details.controller';
 import { StatusAccessController } from './status-access.controller';
 import { loadOidcConfig, TokenVerifier } from './token-verifier';
-import { ACCOUNT_RECOVERY, ACCOUNT_SECURITY, ADAPTIVE_CONTROLS, SIGNIN_EVENTS, IAM_REPOSITORY, IDENTITY_LINKS, INVITATIONS, POLICY_ENGINE, STATUS_ACCESS, REGISTRATION_SERVICE, STEP_UP_MAX_AGE, TOKEN_VERIFIER } from './tokens';
+import { ACCOUNT_RECOVERY, ACCOUNT_SECURITY, CONTACT_DETAILS, CONTACT_RECOVERY, ADAPTIVE_CONTROLS, SIGNIN_EVENTS, IAM_REPOSITORY, IDENTITY_LINKS, INVITATIONS, POLICY_ENGINE, STATUS_ACCESS, REGISTRATION_SERVICE, STEP_UP_MAX_AGE, TOKEN_VERIFIER } from './tokens';
 
 /**
  * Bounded context: identity-access (Phase 3: citizen and staff accounts, profile, mandates, organisation, identity links).
@@ -33,7 +35,8 @@ import { ACCOUNT_RECOVERY, ACCOUNT_SECURITY, ADAPTIVE_CONTROLS, SIGNIN_EVENTS, I
 @Module({
   imports: [IntegrationsModule, CasesModule],
   controllers: [MeController, MandatesController, RegistrationsController, SessionsController, AuthenticatorsController, OrgUnitsController,
-    MyMembershipsController, InvitationsController, IdentityLinksController, StatusAccessController, RecoveryController],
+    MyMembershipsController, InvitationsController, IdentityLinksController, StatusAccessController, RecoveryController, ContactDetailsController,
+    ContactRecoveryController],
   providers: [
     { provide: TOKEN_VERIFIER, useFactory: (): TokenVerifier => new TokenVerifier(loadOidcConfig()) },
     {
@@ -162,6 +165,41 @@ import { ACCOUNT_RECOVERY, ACCOUNT_SECURITY, ADAPTIVE_CONTROLS, SIGNIN_EVENTS, I
           eid, digestKey, messaging, directory: new KeycloakRecoveryDirectory(cfg),
           attempts: { start: (...a) => repo.startRecovery(...a), claim: (...a) => repo.claimRecovery(...a), finish: (...a) => repo.finishRecovery(...a) },
           log: (entry) => process.stdout.write(JSON.stringify({ ts: new Date().toISOString(), service: 'civora-core', context: 'account-recovery', ...entry }) + '\n'),
+        });
+      },
+    },
+    {
+      // Contact details (doc phase-3/16): the database, the cell's digest key, the messaging port and each realm's provisioner.
+      provide: CONTACT_DETAILS,
+      inject: [IAM_REPOSITORY, MESSAGING],
+      useFactory: (repo: IamRepository | null, messaging: MessagingChannel | null): ContactDetails | null => {
+        const digestKey = loadIdentityDigestKey();
+        if (!repo || !digestKey) return null;
+        const directories: ConstructorParameters<typeof ContactDetails>[0]['directories'] = {};
+        for (const realm of ['citizens', 'staff'] as const) {
+          const cfg = loadAdminConfig(realm);
+          if (cfg) directories[realm] = new KeycloakContactDirectory(new KeycloakAdmin(cfg));
+        }
+        return new ContactDetails({
+          directories, messaging, digestKey,
+          changes: { start: (...a) => repo.startContactChange(...a), confirm: (...a) => repo.confirmContactChange(...a) },
+          log: (entry) => process.stdout.write(JSON.stringify({ ts: new Date().toISOString(), service: 'civora-core', context: 'contact-details', ...entry }) + '\n'),
+        });
+      },
+    },
+    {
+      // Recovery R4 (doc phase-3/16): the citizens provisioner, the digest key, the messaging port (e-mail and SMS).
+      provide: CONTACT_RECOVERY,
+      inject: [IAM_REPOSITORY, MESSAGING],
+      useFactory: (repo: IamRepository | null, messaging: MessagingChannel | null): ContactRecovery | null => {
+        const digestKey = loadIdentityDigestKey();
+        const cfg = loadProvisionerConfig();
+        if (!repo || !digestKey || !cfg || !messaging) return null;
+        return new ContactRecovery({
+          directory: new KeycloakContactDirectory(new KeycloakAdmin(cfg)), reset: new KeycloakRecoveryDirectory(cfg), messaging, digestKey,
+          appOrigin: loadRecoveryLinkOrigin(),
+          attempts: { start: (...a) => repo.startContactRecovery(...a), code: (...a) => repo.contactRecoveryCode(...a), complete: (...a) => repo.completeContactRecovery(...a) },
+          log: (entry) => process.stdout.write(JSON.stringify({ ts: new Date().toISOString(), service: 'civora-core', context: 'contact-recovery', ...entry }) + '\n'),
         });
       },
     },

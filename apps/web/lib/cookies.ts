@@ -26,6 +26,14 @@ export function recoveryCookie(cfg: WebConfig): CookieSpec {
 }
 
 /**
+ * Recovery R4 (doc phase-3/16): the e-mailed link's attempt in this browser. SameSite=Lax because the link is opened
+ * from a mail client (a navigation from another site); limited to the page of that language, 30 minutes.
+ */
+export function recoveryLinkCookie(cfg: WebConfig, lang: string): CookieSpec {
+  return { name: `${cfg.hostPrefix ? '__Secure-' : ''}civora_recovery_link`, options: { httpOnly: true, secure: cfg.secureCookies, sameSite: 'lax', path: `/${lang}/recover/phone`, maxAge: 1800 } };
+}
+
+/**
  * The device cookie (adaptive controls, doc phase-3/15): a random id that lets the core recognise this browser across
  * sign-ins (a sign-in from a new device sends a notice) and notice a session used from another browser (it is ended).
  * HttpOnly, Secure; SameSite=Lax so it also comes back with the top-level return from Keycloak; 400 days (the browser

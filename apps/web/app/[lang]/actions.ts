@@ -170,3 +170,49 @@ export async function stopActing(form: FormData): Promise<void> {
   store().update(s.id, { acting: undefined });
   redirect(to(lang, 'mandates', 'actingStopped'));
 }
+
+/** Contact details (doc phase-3/16): a code goes to the new address or number; the change waits for it in the session. */
+export async function startContactChange(form: FormData): Promise<void> {
+  const lang = langOf(form);
+  const s = await signedIn(lang, 'security');
+  const channel = str(form, 'channel');
+  const value = str(form, 'value').trim();
+  if (!['email', 'phone'].includes(channel) || !value || value.length > 254) redirect(to(lang, 'security', 'invalid'));
+  const r = await call(s, lang, 'security', '/v1/me/contact-changes', { method: 'POST', body: { channel, value } });
+  if (r === 'stepUp') redirect(to(lang, 'security', 'stepUp'));
+  if (r.status === 201 && typeof r.body.id === 'string' && typeof r.body.expiresAt === 'string') {
+    store().update(s.id, { contactChange: { id: r.body.id, channel: channel as 'email' | 'phone', target: value, expiresAt: r.body.expiresAt } });
+    redirect(to(lang, 'security', 'codeSent'));
+  }
+  redirect(to(lang, 'security', ({ 400: 'invalid', 409: 'sameContact', 422: 'notDeliverable', 429: 'tooManyChanges' } as Record<number, string>)[r.status] ?? 'error'));
+}
+
+export async function confirmContactChange(form: FormData): Promise<void> {
+  const lang = langOf(form);
+  const s = await signedIn(lang, 'security');
+  const pending = s.contactChange;
+  const code = str(form, 'code').trim();
+  if (!pending) redirect(to(lang, 'security', 'codeExpired'));
+  if (!/^\d{6}$/.test(code)) redirect(to(lang, 'security', 'wrongCode'));
+  const r = await call(s, lang, 'security', `/v1/me/contact-changes/${pending.id}:confirm`, { method: 'POST', body: { code } });
+  if (r === 'stepUp') redirect(to(lang, 'security', 'stepUp'));
+  if (r.status === 422) redirect(to(lang, 'security', 'wrongCode'));
+  store().update(s.id, { contactChange: undefined });
+  if (r.status === 200) redirect(to(lang, 'security', pending.channel === 'email' ? 'emailChanged' : 'phoneVerified'));
+  redirect(to(lang, 'security', r.status === 404 ? 'codeExpired' : r.status === 409 ? 'contactInUse' : 'error'));
+}
+
+export async function cancelContactChange(form: FormData): Promise<void> {
+  const lang = langOf(form);
+  const s = await signedIn(lang, 'security');
+  store().update(s.id, { contactChange: undefined });
+  redirect(to(lang, 'security'));
+}
+
+export async function removePhone(form: FormData): Promise<void> {
+  const lang = langOf(form);
+  const s = await signedIn(lang, 'security');
+  const r = await call(s, lang, 'security', '/v1/me/phone', { method: 'DELETE' });
+  if (r === 'stepUp') redirect(to(lang, 'security', 'stepUp'));
+  redirect(to(lang, 'security', r.status === 204 ? 'phoneRemoved' : 'error'));
+}

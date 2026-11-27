@@ -308,3 +308,88 @@ export class KeycloakStaffDirectory implements StaffDirectory {
     await this.admin.call('DELETE', `/users/${encodeURIComponent(userId)}`);
   }
 }
+
+// ---------------------------------------------------------------- contact details (both realms; doc phase-3/16)
+
+/** The account's contact details in Keycloak: e-mail (also the username) and the phone number with its verification. */
+export interface ContactRecord {
+  id: string;
+  email: string | null;
+  locale: string | null;
+  phone: string | null;
+  phoneVerified: boolean;
+  enabled: boolean;
+}
+
+/** Keycloak user-profile attributes for the phone (administrators only: people change them through the core). */
+export const PHONE_ATTRIBUTE = 'phone_number';
+export const PHONE_VERIFIED_ATTRIBUTE = 'phone_number_verified';
+
+/** What contact changes and recovery R4 need from the identity provider (a fake replaces it in unit tests). */
+export interface ContactDirectory {
+  get(userId: string): Promise<ContactRecord | null>;
+  findByEmail(email: string): Promise<ContactRecord | null>;
+  /** Sets a confirmed address (verified; the username follows in a realm that uses the address as username). */
+  setEmail(userId: string, email: string): Promise<'updated' | 'in-use'>;
+  /** Sets a confirmed number (verified), or removes it (null). */
+  setPhone(userId: string, phone: string | null): Promise<void>;
+}
+
+type UserRepresentation = { id: string; username?: string; email?: string; emailVerified?: boolean; enabled?: boolean; attributes?: Record<string, string[]> };
+
+const record = (u: UserRepresentation): ContactRecord => ({
+  id: u.id, email: u.email ?? null, locale: u.attributes?.locale?.[0] ?? null, enabled: u.enabled !== false,
+  phone: u.attributes?.[PHONE_ATTRIBUTE]?.[0] ?? null, phoneVerified: u.attributes?.[PHONE_VERIFIED_ATTRIBUTE]?.[0] === 'true',
+});
+
+/**
+ * Keycloak's admin API needs the whole user representation on update (a partial one is refused when the profile requires
+ * the e-mail; observed on 26.8.1): read, change, write back.
+ */
+export class KeycloakContactDirectory implements ContactDirectory {
+  constructor(private readonly admin: KeycloakAdmin) {}
+
+  private async user(userId: string): Promise<UserRepresentation | null> {
+    try {
+      return await this.admin.json<UserRepresentation>('GET', `/users/${encodeURIComponent(userId)}`);
+    } catch (e) {
+      if (/HTTP 404/.test(String(e))) return null;
+      throw e;
+    }
+  }
+
+  async get(userId: string): Promise<ContactRecord | null> {
+    const u = await this.user(userId);
+    return u ? record(u) : null;
+  }
+
+  async findByEmail(email: string): Promise<ContactRecord | null> {
+    const users = await this.admin.json<UserRepresentation[]>('GET', `/users?exact=true&briefRepresentation=false&email=${encodeURIComponent(email)}`);
+    const u = users.find((x) => (x.email ?? '').toLowerCase() === email.toLowerCase());
+    return u ? record(u) : null;
+  }
+
+  async setEmail(userId: string, email: string): Promise<'updated' | 'in-use'> {
+    const u = await this.user(userId);
+    if (!u) throw new Error('Keycloak admin GET /users/{id}: HTTP 404');
+    // The username is the address in both realms (citizens: e-mail as username; staff: set so at invitation).
+    const username = !u.username || u.username === (u.email ?? '').toLowerCase() ? email : u.username;
+    try {
+      await this.admin.call('PUT', `/users/${encodeURIComponent(userId)}`, { ...u, email, emailVerified: true, username });
+    } catch (e) {
+      if (/HTTP 409/.test(String(e))) return 'in-use';
+      throw e;
+    }
+    return 'updated';
+  }
+
+  async setPhone(userId: string, phone: string | null): Promise<void> {
+    const u = await this.user(userId);
+    if (!u) throw new Error('Keycloak admin GET /users/{id}: HTTP 404');
+    const attributes = { ...(u.attributes ?? {}) };
+    delete attributes[PHONE_ATTRIBUTE];
+    delete attributes[PHONE_VERIFIED_ATTRIBUTE];
+    if (phone) Object.assign(attributes, { [PHONE_ATTRIBUTE]: [phone], [PHONE_VERIFIED_ATTRIBUTE]: ['true'] });
+    await this.admin.call('PUT', `/users/${encodeURIComponent(userId)}`, { ...u, attributes });
+  }
+}

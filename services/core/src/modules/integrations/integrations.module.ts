@@ -36,7 +36,7 @@ import { MESSAGING, NATIONAL_EID } from './tokens';
         const cfg = loadSimulatedSmtpConfig();
         if (!cfg) return null;
         const email = new SimulatedSmtpChannel(cfg, stdoutIntegrationLog);
-        // SMS (register M-01, Q3-1): simulated too, through the same mail catcher; a delivery channel, never a sign-in factor.
+        // SMS (register M-01, Q3-1): simulated too, through the same mail catcher; delivery, number checks and recovery R4 (doc phase-3/16).
         return new RoutingMessagingChannel(email, process.env.MESSAGING_SMS === 'simulated' ? new SimulatedSmsChannel(email, stdoutIntegrationLog) : null);
       },
     },

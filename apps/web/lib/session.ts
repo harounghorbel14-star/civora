@@ -42,6 +42,16 @@ export interface Session {
   eidAttempt?: { id: string; lang: string };
   /** Shown once on the next page, then removed (e.g. a mandate's one-time code: never in a URL). */
   flash?: { mandateId: string; mandateCode: string };
+  /** A change of e-mail address or phone number waiting for the code sent to the new one (doc phase-3/16). */
+  contactChange?: { id: string; channel: 'email' | 'phone'; target: string; expiresAt: string };
+}
+
+/** Recovery R4 in this browser (doc phase-3/16): the e-mailed link's attempt and token, kept server-side (never in a page). */
+export interface RecoveryLink {
+  attemptId: string;
+  token: string;
+  lang: string;
+  phoneEnding?: string;
 }
 
 export interface PendingLogin {
@@ -54,6 +64,7 @@ export interface PendingLogin {
 
 export const newId = (): string => randomBytes(32).toString('base64url');
 const PENDING_MS = 10 * 60_000;
+const LINK_MS = 30 * 60_000;
 /** Pending sign-ins kept at most (a flood of /auth/login cannot exhaust memory; the oldest go first). */
 const MAX_PENDING = 10_000;
 
@@ -61,6 +72,7 @@ export class MemorySessionStore {
   private readonly sessions = new Map<string, Session>();
   private readonly pending = new Map<string, PendingLogin>();
   private readonly recoveries = new Map<string, { attemptId: string; lang: string; createdAt: number }>();
+  private readonly recoveryLinks = new Map<string, RecoveryLink & { createdAt: number }>();
 
   constructor(private readonly opts: { idleMs: number; maxMs: number; now?: () => number; maxPending?: number }) {}
 
@@ -146,6 +158,39 @@ export class MemorySessionStore {
     const r = this.recoveries.get(id) ?? null;
     this.recoveries.delete(id);
     return r && this.now() - r.createdAt <= PENDING_MS ? { attemptId: r.attemptId, lang: r.lang } : null;
+  }
+
+  /** Recovery R4: the link's attempt, used for the SMS code and the completion; 30 minutes (the link's life), bounded. */
+  putRecoveryLink(r: RecoveryLink): string {
+    const t = this.now();
+    const cap = this.opts.maxPending ?? MAX_PENDING;
+    for (const [k, v] of this.recoveryLinks) {
+      if (t - v.createdAt > LINK_MS || this.recoveryLinks.size >= cap) this.recoveryLinks.delete(k);
+      else break;
+    }
+    const id = newId();
+    this.recoveryLinks.set(id, { ...r, createdAt: t });
+    return id;
+  }
+
+  getRecoveryLink(id: string | undefined): RecoveryLink | null {
+    if (!id) return null;
+    const r = this.recoveryLinks.get(id);
+    if (!r) return null;
+    if (this.now() - r.createdAt > LINK_MS) {
+      this.recoveryLinks.delete(id);
+      return null;
+    }
+    return { attemptId: r.attemptId, token: r.token, lang: r.lang, ...(r.phoneEnding ? { phoneEnding: r.phoneEnding } : {}) };
+  }
+
+  updateRecoveryLink(id: string, patch: Pick<RecoveryLink, 'phoneEnding'>): void {
+    const r = this.recoveryLinks.get(id);
+    if (r) Object.assign(r, patch);
+  }
+
+  dropRecoveryLink(id: string | undefined): void {
+    if (id) this.recoveryLinks.delete(id);
   }
 
   get size(): number {
