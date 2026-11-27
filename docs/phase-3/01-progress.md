@@ -41,13 +41,15 @@
 | 6+ | Rest of G1 (ASVS V6.3.5, V6.3.7): notices from Keycloak's sign-in events: right password with a failed second step, repeated failures, a sign-in after failures, a way to sign in added or changed; event shapes observed on Keycloak 26.8.1 first | **Done** (local); V6.3.7 keeps one open item (e-mail changes on Keycloak's account pages: decision) | [15 §7](15-adaptive-controls.md): realms run **296 checks** (295 in the full run, E1 fixed and the login part re-run 80/80; new: 9 notice checks in three languages and the lockout notice); 195 tests (core 138 with PostgreSQL, web 26) |
 | 6+ | GitHub on the G1 commits | CI and nightly green | Merged into `main`: PR #21 (`58422b0`) |
 | 6+ | Founder decisions of 27 Nov (V6.3.7, Q3-7, Q3-4, G5) applied, part 1: the e-mail address and phone number change only through the core after a code to the new one, the old address told (V6.3.7 met); recovery R4 by the e-mailed link **and** an SMS code to the verified number; deviation D5 recorded | **Done** (local) | [16](16-contact-details-and-phone-recovery.md): realms web part **99 checks, all passed** (new: e-mail change, phone, R4 and removal in three languages); 177 tests (core 149 with PostgreSQL, web 28); realm checker with 6 new negative controls per realm; ASVS 127 of 143 met |
+| 6+ | GitHub on the part-1 commits (head `1864bd7`) | CI runs 119 and 120 **green**; nightly run 46 **green, 13 of 13 jobs** (the realms run now in two parallel halves: 11.5 and 15 min) | Merged into `main`: PR #22 (`194ab4b`) |
+| 6+ | Part 2: a code by SMS as a fallback second step (P3-F1, decision Q3-7, deviation D5): a Keycloak extension (Java 21, built against 26.8.1), for citizens and staff who are not officers; officers never (P3-SEC5); simulated channel only (Q3-1); the cell's Keycloak image with the extension built (`kc.sh build`) | **Done** (local) | [17](17-sms-sign-in-factor.md): realms parts login and SMS **96 checks, all passed** (16 new SMS checks in three languages and for staff and officers); 5 JUnit tests; realm checker with 3 new negative controls and duplicate-key refusal |
 
-## Completion estimate (27 Nov 2026, updated after the contact details and recovery R4)
+## Completion estimate (27 Nov 2026, updated after the contact details, recovery R4 and the SMS sign-in step)
 
 Each of the 43 work items of the specification ([00](00-phase-3-start-and-specification-audit.md); objectives,
 dependency, time and budget lines excluded) scored by what is built **and tested**: 0, 25, 50, 75 or 100 %.
-**Phase 3: about 96 %** (41.25 of 43). Acceptance criteria: **3 of 3 met** (AC1, AC2 self-review, AC3).
-Time: 6 of 6 planned weeks used. Not reached 100 %: the mobile app and its Detox job (A2, T2, T1), G5, the rest of G4 (SEC1), the web app's edge route (SEC2), SMS sign-in (F1, Q3-7, next), counter-assisted flows (RISK, Phase 6). The scoring is an engineering estimate, not an acceptance decision.
+**Phase 3: about 97 %** (41.5 of 43). Acceptance criteria: **3 of 3 met** (AC1, AC2 self-review, AC3).
+Time: 6 of 6 planned weeks used. Not reached 100 %: the mobile app and its Detox job (A2, T2, T1), G5, the rest of G4 (SEC1), the web app's edge route (SEC2), counter-assisted flows (RISK, Phase 6). The scoring is an engineering estimate, not an acceptance decision.
 
 | Item | Done | What is missing |
 |---|---|---|
@@ -60,7 +62,7 @@ Time: 6 of 6 planned weeks used. Not reached 100 %: the mobile app and its Detox
 | P3-A2 OIDC to apps | 75% | citizen web app as a backend-for-frontend (doc 09); the mobile client comes with the mobile app (doc 10) |
 | P3-A3 pairwise subject IDs | 100% |  |
 | P3-A4 step-up flows | 100% | RFC 9470 step-up on sensitive actions (doc 04) |
-| P3-F1 passkeys, TOTP, SMS fallback | 75% | a simulated SMS channel is built (status-page codes, doc 12 §3); SMS as a sign-in fallback conflicts with ASVS L3: founder decision Q3-7 (provider: Q3-1) |
+| P3-F1 passkeys, TOTP, SMS fallback | 100% | passkeys and TOTP (doc 03); SMS as a delivery channel (doc 12 §3), for number checks and recovery R4 (doc 16), and as a fallback sign-in step for citizens and staff who are not officers (doc 17; decision Q3-7, deviation D5); the SMS provider is Q3-1 (simulated until then) |
 | P3-F2 device management | 100% | list, add (Keycloak action), remove with last-way protection (doc 04) |
 | P3-F3 language preference | 100% | stored, validated and applied in the web app (ar/fr/en, right to left) |
 | P3-F4 accessibility preferences | 100% | stored, validated and applied in the web app (text size, contrast, motion) |
@@ -90,7 +92,7 @@ Time: 6 of 6 planned weeks used. Not reached 100 %: the mobile app and its Detox
 | P3-AC1 all auth flows E2E in AR/FR/EN | 100% | every flow in each of the three languages (doc 11 §8) |
 | P3-AC2 no high findings in internal security review | 100% | self-review done, no open high finding; one high found and fixed before merge (doc 13); external test: PG-8 |
 | P3-AC3 mandate actions logged and visible | 100% |  |
-| P3-RISK SMS reliance, passkey usability for elderly users | 75% | mitigations designed and mostly built (doc 12 §5): no SMS sign-in, password + TOTP, mandates for helpers, eID recovery; counter-assisted flows need the Phase 6 Workspace |
+| P3-RISK SMS reliance, passkey usability for elderly users | 75% | mitigations designed and mostly built (doc 12 §5): SMS only as a fallback with verified numbers and two-channel recovery (docs 16, 17), password + TOTP, mandates for helpers, eID recovery; counter-assisted flows need the Phase 6 Workspace |
 | P3-R1 institution staff SSO | 100% | OIDC and SAML institutions, tenant from configuration, key after SSO, no account linking (doc 07) |
 | P3-R2 customer OTP status page | 100% | reference + code to the contact on file, no enumeration, simulated e-mail (SMS: Q3-1) (doc 09) |
 | P3-R3 branch/team roles | 100% | units, scoped roles, invitations, admin API (doc 05) |

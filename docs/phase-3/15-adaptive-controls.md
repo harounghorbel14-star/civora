@@ -106,7 +106,7 @@ signing in. Keycloak keeps a short record of sign-in events; the core reads it a
 
 | Notice | When | At most |
 |---|---|---|
-| "Right password, second step failed" | a failure on a credential of a second-factor type (authenticator app, security key) | once a day |
+| "Right password, second step failed" | a failure on a credential of a second-factor type (authenticator app, security key), or a wrong code in the SMS step, which marks its errors `civora_second_factor=sms` ([doc 17](17-sms-sign-in-factor.md)) | once a day |
 | "Failed attempts to sign in" | 5 failures within an hour (the account locks at 5, doc 03) | once a day |
 | "Signed in after failed attempts" | a success after 3 or more failures within the hour, with the number | each time |
 | "A way to sign in was added or changed" | `UPDATE_CREDENTIAL` inside a sign-in; never for activation or recovery links | each time |

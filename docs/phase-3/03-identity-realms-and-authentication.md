@@ -32,7 +32,7 @@
 | Who | Citizens using CIVORA services in one country cell | Staff of the institutions (tenants) of the cell; officers |
 | Account creation | `POST /v1/registrations` (the core): account with **no credential**, activation link by e-mail | Tenant administrator's invitation (week 3 API): account with no credential, invitation link by e-mail |
 | First credentials | Only from the link: e-mail verified, **TOTP, then password** | Only from the link: e-mail verified, **security key (approved model), then password** |
-| Login | Passkey (discoverable, user verification), or e-mail + password + TOTP on one page | Password and FIDO2 security key (user verification) |
+| Login | Passkey (discoverable, user verification), or e-mail + password + TOTP on one page; since 27 Nov a code by SMS to a verified number as the alternative to TOTP ([doc 17](17-sms-sign-in-factor.md)) | Password and FIDO2 security key (user verification); staff who are not officers: a code by SMS as the alternative to the key ([doc 17](17-sms-sign-in-factor.md)); officers never |
 | Account without its second factor | Refused ("not activated yet") | Refused ("no enrolled security key") |
 | What a password alone gets | Nothing | Nothing |
 | Tenant | None: a citizen token with `tenant_id` is refused by the core | `tenant_id` from an admin-only attribute; required and validated by the core |

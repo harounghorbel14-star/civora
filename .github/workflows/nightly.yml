@@ -40,7 +40,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { persist-credentials: false }
       - name: Compose dev cell up from scratch + smoke tests
-        run: infra/scripts/dev-cell-up.sh --fresh | tee -a "$GITHUB_STEP_SUMMARY"
+        # The Keycloak extension is built with the runner's Java 21 (doc phase-3/17).
+        run: JAVA_HOME="$JAVA_HOME_21_X64" infra/scripts/dev-cell-up.sh --fresh | tee -a "$GITHUB_STEP_SUMMARY"
 
   k3s-deploy-from-scratch:
     runs-on: ubuntu-24.04
@@ -168,6 +169,8 @@ jobs:
         with: { node-version: "22", cache: pnpm }
       - name: Build the core
         run: pnpm install --frozen-lockfile && pnpm build
+      - name: Keycloak extension (SMS sign-in step, doc phase-3/17), Java 21 and Maven of the runner image
+        run: JAVA_HOME="$JAVA_HOME_21_X64" mvn -B -q -f infra/keycloak/extensions/civora-sms/pom.xml package
       - name: Playwright 1.63.0 (published 2026-09-04) with Chromium
         run: |
           npm install --prefix "$RUNNER_TEMP/pw" --no-save --no-fund --no-audit playwright@1.63.0

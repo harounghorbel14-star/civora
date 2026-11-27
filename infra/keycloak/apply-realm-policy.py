@@ -10,7 +10,7 @@ not only the file.
 
 Usage: apply-realm-policy.py --server URL --realm NAME --profile citizens|staff|dev --export OUT.json
                              [--smtp-host HOST [--smtp-port N] [--smtp-from ADDR]] [--approved-keys FILE]
-                             [--provisioner-secret-out FILE]
+                             [--provisioner-secret-out FILE] [--sms-sender simulated]
 The admin access token is read from the KC_ADMIN_TOKEN environment variable (never from the command line).
 Standard library only. Idempotent.
 """
@@ -57,6 +57,9 @@ def main():
                     "(private_key_jwt); set on the civora-web client (deployment setting, not in Git)")
     ap.add_argument("--pairwise-out", help="write the relying parties' pairwise sectors and salts (JSON, mode 0600) for the core's "
                     "mirror of pairwise ids (P3-DB6); a deployment secret, never in Git")
+    ap.add_argument("--sms-sender", choices=["simulated"], help="SMS sender for the SMS sign-in step (extension civora-keycloak-sms, doc "
+                    "phase-3/17); only the simulated one exists (Q3-1), and Keycloak must also run with CIVORA_SIMULATED_SMS=allowed "
+                    "(dev and test). Without this option the SMS step is never offered")
     ap.add_argument("--provisioner-secret-out", help="regenerate the civora-core-provisioner secret and write it to this file "
                     "(mode 0600) for the core's secret store; the secret never goes to Git")
     a = ap.parse_args()
@@ -128,6 +131,11 @@ def main():
                              "fromDisplayName": "CIVORA"}
         call(a.server, token, "PUT", f"/admin/realms/{realm}", rep)
         print(f"  policy: e-mail relay set ({a.smtp_host}:{a.smtp_port})")
+    if a.sms_sender:
+        rep = call(a.server, token, "GET", f"/admin/realms/{realm}")
+        rep.setdefault("attributes", {})["civora.sms.sender"] = a.sms_sender
+        call(a.server, token, "PUT", f"/admin/realms/{realm}", rep)
+        print(f"  policy: SMS sender {a.sms_sender} (the SMS sign-in step is offered to accounts with a verified number)")
     if a.approved_keys:
         keys = json.load(open(a.approved_keys))
         aaguids = sorted({k["aaguid"].lower() for k in keys})
