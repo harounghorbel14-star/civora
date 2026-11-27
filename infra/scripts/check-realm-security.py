@@ -331,6 +331,22 @@ def _violations(r, profile, require_approved_keys=False):
             v.append("declarative user profile missing")
         elif up.get("unmanagedAttributePolicy") in ("ENABLED", "ADMIN_EDIT"):
             v.append("unmanaged user attributes must be off (a user could set claims such as tenant_id)")
+        if up is not None:
+            # Contact details change only through the core, after the new address or number is verified (doc phase-3/16).
+            attrs = {a.get("name"): a for a in up.get("attributes", [])}
+            for name in ("username", "email"):
+                if "user" in ((attrs.get(name) or {}).get("permissions") or {}).get("edit", []):
+                    v.append(f"{name} must not be editable by the user on Keycloak's pages (the core changes it once the new address is verified; ASVS V6.3.7)")
+            for name in ("phone_number", "phone_number_verified"):
+                a = attrs.get(name)
+                if a is None:
+                    v.append(f"user profile must declare {name}")
+                elif (a.get("permissions") or {}).get("edit") != ["admin"] or "user" in (a.get("permissions") or {}).get("view", []):
+                    v.append(f"{name} must be visible and editable by administrators only (the core verifies the number)")
+        if r.get("editUsernameAllowed"):
+            v.append("editUsernameAllowed must be off (the username is the verified address)")
+        if any(a.get("providerId") == "UPDATE_EMAIL" and a.get("enabled") for a in r.get("requiredActions", [])):
+            v.append("required action UPDATE_EMAIL must be off (e-mail changes go through the core's verified flow)")
         browser = r.get("browserFlow")
         for state in STATES[profile]:
             if can_complete(r, browser, {"password"}, state):
@@ -524,6 +540,13 @@ def mutations(profile, live=False, approved=False):
         m["no deny list of common passwords"] = lambda r: r.update(passwordPolicy=r["passwordPolicy"].replace(" and passwordBlacklist(civora-deny.txt)", ""))
         m["a context word allowed"] = lambda r: r.update(passwordPolicy=r["passwordPolicy"].replace("(?:civora|", "(?:"))
         m["unmanaged attributes enabled"] = lambda r: _set_up(r, unmanagedAttributePolicy="ENABLED")
+        m["e-mail editable by the user"] = _attr_editable_by_user("email")
+        m["username editable by the user"] = _attr_editable_by_user("username")
+        m["phone number editable by the user"] = _attr_editable_by_user("phone_number")
+        m["phone verification flag missing"] = _drop_attr("phone_number_verified")
+        m["username edit allowed"] = lambda r: r.update(editUsernameAllowed=True)
+        m["UPDATE_EMAIL action enabled"] = lambda r: r.setdefault("requiredActions", []).append(
+            {"alias": "UPDATE_EMAIL", "name": "Update Email", "providerId": "UPDATE_EMAIL", "enabled": True, "defaultAction": False, "priority": 70, "config": {}})
         m["client without kind"] = lambda r: public_app(r)["attributes"].pop("civora.client-kind")
     if profile == "citizens":
         m["password without TOTP"] = lambda r: [e.update(requirement="DISABLED") for e in flow(r, "citizens-otp")["authenticationExecutions"]
@@ -624,6 +647,18 @@ def _edit_up(r, fn):
 
 def _set_up(r, **kw):
     _edit_up(r, lambda up: up.update(kw))
+
+
+def _attr_editable_by_user(name):
+    def f(r):
+        _edit_up(r, lambda up: next(a for a in up["attributes"] if a["name"] == name)["permissions"].update(edit=["admin", "user"]))
+    return f
+
+
+def _drop_attr(name):
+    def f(r):
+        _edit_up(r, lambda up: up.update(attributes=[a for a in up["attributes"] if a["name"] != name]))
+    return f
 
 
 def _tenant_editable_by_user(r):

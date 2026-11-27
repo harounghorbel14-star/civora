@@ -211,7 +211,7 @@ async function signOutChecks(x, lang, who) {
     const signedIn = {};
     for (const [i, lang] of LOCALES.entries()) signedIn[lang] = await journey(browser, lang, i);
 
-    stamp('status page code by SMS to the number on file (simulated SMS, register entry M-01; never a sign-in factor)');
+    stamp('status page code by SMS to the number on file (simulated SMS, register entry M-01; synthetic numbers only)');
     {
       const kase = dataset.cases[LOCALES.length];
       const phone = dataset.customers.find((c) => c.id === kase.customerId).phone;
@@ -458,6 +458,155 @@ async function signOutChecks(x, lang, who) {
         act2.seen.join('>') === 'TOTP>PASSWORD' && act2.langs.every((l) => l === il) && !!back.ok, JSON.stringify({ seen: act2.seen, langs: act2.langs, ok: back.ok }));
     }
     for (const ctx of opened) await ctx.context.close();
+
+    // Contact details and recovery R4 (decisions of 27 Nov 2026; doc phase-3/16), in every language.
+    const CONTACT = {
+      ar: { code: /رمز تأكيد عنوانك/, old: /تغيّر عنوان البريد الإلكتروني/, now: /صار عنوان حسابك/, phone: /أُضيف أو غُيّر رقم الهاتف/, removed: /أُزيل رقم الهاتف/, link: /^استعادة حسابك في CIVORA$/, recovered: /تمت استعادة حسابك/ },
+      fr: { code: /Code de confirmation/, old: /a changé/, now: /désormais celle/, phone: /numéro de téléphone a été ajouté/, removed: /numéro de téléphone a été retiré/, link: /^Récupération de votre compte/, recovered: /a été récupéré/ },
+      en: { code: /Code to confirm/, old: /e-mail address of your CIVORA account changed/, now: /now the address/, phone: /phone number was added/, removed: /phone number was removed/, link: /^Recovering your CIVORA account/, recovered: /was recovered/ },
+    };
+    const smsBox = (phone) => `sms.${phone.replace(/\D/g, '')}@sms.civora-cell.invalid`;
+    const sixDigits = (text) => ((text ?? '').match(/(\d{6})/) ?? [])[1];
+    /** Runs a security-page action; if the core asks for a recent sign-in, confirms it is the person and runs it again. */
+    async function withStepUp(x, cl, who, act, expect) {
+      await act();
+      let n = await waitFor(async () => { const v = await notice(x.page); return v && (v === 'stepUp' || expect.includes(v)) ? v : null; }, 15000);
+      if (n === 'stepUp') {
+        await x.page.locator('[data-testid=step-up]').click();
+        await x.page.waitForURL((u) => u.href.startsWith(KC), { timeout: 10000 }).catch(() => undefined);
+        await keycloakSignIn(x.page, who);
+        await waitFor(async () => (await notice(x.page)) === 'stepUpDone', 15000);
+        await act();
+        n = await waitFor(async () => { const v = await notice(x.page); return v && expect.includes(v) ? v : null; }, 15000);
+      }
+      return n;
+    }
+    const opened2 = [];
+    for (const cl of LOCALES) {
+      stamp(`[${cl}] contact details (doc 16): the e-mail address changes with a code sent to the new one; the old one is told`);
+      let who = await citizen(browser, cl);
+      const x = await newContext(browser, cl);
+      opened2.push(x);
+      await webSignIn(x, cl, who);
+      await x.page.goto(`${WEB}/${cl}/security`);
+      const shown = (await x.page.locator('[data-testid=contact-email]').textContent())?.trim();
+      const moved = `moved.${cl}.${tag()}@example.invalid`;
+      const sentNotice = await withStepUp(x, cl, who, async () => {
+        await x.page.goto(`${WEB}/${cl}/security`);
+        await x.page.locator('[data-testid=contact-new-email]').fill(moved);
+        await x.page.locator('[data-testid=contact-change-email]').click();
+      }, ['codeSent', 'error', 'invalid']);
+      const codeMail = await mailMatching(moved, 0, CONTACT[cl].code);
+      const code = sixDigits(codeMail?.text);
+      const oldBefore = (await mails(who.email)).length;
+      await x.page.locator('[data-testid=contact-code]').fill(code === '000000' ? '111111' : '000000');
+      await x.page.locator('[data-testid=contact-code-confirm]').click();
+      const wrong = await waitFor(async () => ((await notice(x.page)) === 'wrongCode' ? 'wrongCode' : null), 10000);
+      const unchanged = (await lib.userByEmail('civora-citizens', who.email))?.email === who.email;
+      await x.page.locator('[data-testid=contact-code]').fill(code ?? '');
+      await x.page.locator('[data-testid=contact-code-confirm]').click();
+      const changed = await waitFor(async () => ((await notice(x.page)) === 'emailChanged' ? 'emailChanged' : null), 15000);
+      const toOld = await mailMatching(who.email, oldBefore, CONTACT[cl].old);
+      const toNew = await mailMatching(moved, 0, CONTACT[cl].now);
+      const kcUser = await lib.userByEmail('civora-citizens', moved);
+      check(`[${cl}] e-mail change: shown on the security page; a code in ${cl} to the NEW address; a wrong code changes nothing; with the code the address (and the username) change; the OLD address is told in ${cl}, with the new one masked; the new one is welcomed`,
+        shown === who.email && sentNotice === 'codeSent' && !!code && wrong === 'wrongCode' && unchanged && changed === 'emailChanged' && LANG[cl].script.test(codeMail?.subject ?? '')
+          && !!toOld && toOld.text.includes(`${moved[0]}•••@example.invalid`) && !toOld.text.includes(moved) && !!toNew
+          && kcUser?.username === moved && kcUser?.emailVerified === true && (x.page.url().endsWith('notice=emailChanged')),
+        JSON.stringify({ shown, sentNotice, code: !!code, wrong, unchanged, changed, old: toOld?.subject, now: toNew?.subject, username: kcUser?.username }));
+      who = { ...who, email: moved };
+
+      stamp(`[${cl}] contact details: a phone number confirmed with an SMS code`);
+      const phone = `+2160${String(crypto.randomInt(0, 10_000_000)).padStart(7, '0')}`;
+      const mailBefore = (await mails(moved)).length;
+      const phoneSent = await withStepUp(x, cl, who, async () => {
+        await x.page.goto(`${WEB}/${cl}/security`);
+        await x.page.locator('[data-testid=contact-new-phone]').fill(phone);
+        await x.page.locator('[data-testid=contact-change-phone]').click();
+      }, ['codeSent', 'error', 'invalid', 'notDeliverable']);
+      const sms = await mailMatching(smsBox(phone), 0, /SMS/);
+      await x.page.locator('[data-testid=contact-code]').fill(sixDigits(sms?.text) ?? '');
+      await x.page.locator('[data-testid=contact-code-confirm]').click();
+      const verified = await waitFor(async () => ((await notice(x.page)) === 'phoneVerified' ? 'phoneVerified' : null), 15000);
+      const listed = (await x.page.locator('[data-testid=contact-phone]').textContent())?.trim();
+      const phoneMail = await mailMatching(moved, mailBefore, CONTACT[cl].phone);
+      const attrs = (await admin('GET', `civora-citizens/users/${kcUser.id}`)).attributes ?? {};
+      check(`[${cl}] phone: an SMS code (simulated, in ${cl}) to the new number; with it the number is verified, shown, and the account address told (last two digits only)`,
+        phoneSent === 'codeSent' && !!sms && LANG[cl].script.test(sms.text) && verified === 'phoneVerified' && listed === phone && !!phoneMail
+          && phoneMail.text.includes(phone.slice(-2)) && !phoneMail.text.includes(phone.slice(1))
+          && attrs.phone_number?.[0] === phone && attrs.phone_number_verified?.[0] === 'true',
+        JSON.stringify({ phoneSent, sms: !!sms, verified, listed, mail: phoneMail?.subject, attrs: Object.keys(attrs) }));
+
+      stamp(`[${cl}] recovery R4 (doc 16): the e-mailed link AND an SMS code; then every way to sign in is reset`);
+      const r = await newContext(browser, cl);
+      opened2.push(r);
+      const nobody = `nobody.${cl}.${tag()}@example.invalid`;
+      await r.page.goto(`${WEB}/${cl}/recover`);
+      await r.page.locator('[data-testid=recover-contact-email]').fill(nobody);
+      await r.page.locator('[data-testid=recover-contact-start]').click();
+      const answerUnknown = await waitFor(async () => notice(r.page), 10000);
+      const beforeLink = (await mails(moved)).length;
+      const smsBefore = (await mails(smsBox(phone))).length;
+      await r.page.goto(`${WEB}/${cl}/recover`);
+      await r.page.locator('[data-testid=recover-contact-email]').fill(moved);
+      await r.page.locator('[data-testid=recover-contact-start]').click();
+      const answerKnown = await waitFor(async () => notice(r.page), 10000);
+      const linkMail = await mailMatching(moved, beforeLink, CONTACT[cl].link);
+      const link = ((linkMail?.text ?? '').match(/https?:\/\/\S+recover-link\S+/) ?? [])[0];
+      await sleep(1500);
+      const noSmsYet = (await mails(smsBox(phone))).length === smsBefore && (await mails(nobody)).length === 0;
+      const attempt = link ? new URL(link).searchParams.get('a') : null;
+      if (link) await r.page.goto(link);
+      await waitFor(() => visible(r.page, '[data-testid=recover-phone-send]'), 10000);
+      const clean = r.page.url() === `${WEB}/${cl}/recover/phone`;
+      await r.page.locator('[data-testid=recover-phone-send]').click();
+      await waitFor(async () => ((await notice(r.page)) === 'recoveryCodeSent' ? 1 : null), 10000);
+      const ending = (await r.page.locator('[data-testid=recover-phone-sent]').textContent().catch(() => '')) ?? '';
+      const recSms = await mailMatching(smsBox(phone), smsBefore, /SMS/);
+      const recCode = sixDigits(recSms?.text);
+      const wrongLink = await core(undefined, `/v1/recovery/contact/${attempt}:complete`, post({ token: 'x'.repeat(43), code: recCode }));
+      const credsBefore = (await admin('GET', `civora-citizens/users/${kcUser.id}/credentials`)).length;
+      const beforeDone = (await mails(moved)).length;
+      await r.page.locator('[data-testid=recover-phone-code]').fill(recCode ?? '');
+      await r.page.locator('[data-testid=recover-phone-complete]').click();
+      const done = await waitFor(async () => ((await notice(r.page)) === 'recoveryRequested' ? 1 : null), 15000);
+      const got = await recoveryMails(moved, beforeDone);
+      const recoveredSms = await waitFor(async () => {
+        const list = await mails(smsBox(phone));
+        if (list.length < smsBefore + 2) return null;
+        const text = (await (await fetch(`${process.env.MAIL_URL}/api/v1/message/${list[0].ID}`)).json()).Text;
+        return CONTACT[cl].recovered.test(text) ? text : null;
+      }, 10000);
+      const credsAfter = await admin('GET', `civora-citizens/users/${kcUser.id}/credentials`);
+      const kcSessions = await admin('GET', `civora-citizens/users/${kcUser.id}/sessions`);
+      check(`[${cl}] recovery R4: the same answer for an unknown address (nothing sent); a link in ${cl} to the account's address and no SMS before it is followed; the link leaves no token in the address bar`,
+        answerUnknown === 'recoveryLinkSent' && answerKnown === 'recoveryLinkSent' && !!link && noSmsYet && clean && LANG[cl].script.test(linkMail?.subject ?? ''),
+        JSON.stringify({ answerUnknown, answerKnown, link: !!link, noSmsYet, url: r.page.url() }));
+      check(`[${cl}] recovery R4: an SMS code in ${cl} to the verified number (its last two digits on the page); the code without the link token: refused (404); with both: every way to sign in removed, every session ended, a set-up link and a notice by e-mail and SMS`,
+        !!recCode && ending.includes(phone.slice(-2)) && wrongLink.status === 404 && credsBefore > 0 && !!done && credsAfter.length === 0 && kcSessions.length === 0
+          && !!got.activation?.link && CONTACT[cl].recovered.test(got.notice?.subject ?? '') && !!recoveredSms,
+        JSON.stringify({ code: !!recCode, ending, wrongLink: wrongLink.status, credsBefore, done, after: credsAfter.length, sessions: kcSessions.length, activation: !!got.activation, notice: got.notice?.subject, sms: !!recoveredSms }));
+      const again = await newContext(browser, cl);
+      opened2.push(again);
+      const act = got.activation?.link ? await activate(again.page, got.activation.link) : {};
+      const back = act.password ? await webSignIn(again, cl, { email: moved, password: act.password, secret: act.secret }) : { ok: false };
+      who = { email: moved, password: act.password, secret: act.secret };
+      let removed = null;
+      let removedMail = null;
+      if (back.ok) {
+        const beforeRemove = (await mails(moved)).length;
+        removed = await withStepUp(again, cl, who, async () => {
+          await again.page.goto(`${WEB}/${cl}/security`);
+          await again.page.locator('[data-testid=contact-remove-phone]').click();
+        }, ['phoneRemoved', 'error']);
+        removedMail = await mailMatching(moved, beforeRemove, CONTACT[cl].removed);
+      }
+      const attrsAfter = (await admin('GET', `civora-citizens/users/${kcUser.id}`)).attributes ?? {};
+      check(`[${cl}] after R4: new ways to sign in set from the link, signed in again; the phone number removed with a notice in ${cl}`,
+        !!back.ok && removed === 'phoneRemoved' && !!removedMail && !attrsAfter.phone_number,
+        JSON.stringify({ ok: back.ok, removed, mail: removedMail?.subject, attrs: Object.keys(attrsAfter) }));
+    }
+    for (const ctx of opened2) await ctx.context.close();
   } finally {
     await browser.close();
     if (process.env.EID_IDS_OUT && createdEid.length) fs.appendFileSync(process.env.EID_IDS_OUT, createdEid.join('\n') + '\n');

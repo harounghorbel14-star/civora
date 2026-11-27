@@ -123,8 +123,8 @@ event digests and two days of counters, and the application role can only call t
 
 **Limits.** A failed security-key step (staff) counts as a failed attempt; only the authenticator app's failure was
 observed as "second step failed". Removals on Keycloak's account pages are handled like the rest but are covered by
-unit tests only. **Open (V6.3.7):** citizens may change their e-mail address on Keycloak's account pages, and no notice
-goes to the old address. Decision needed: allow the change only through a verified flow, or notify the old address.
+unit tests only. **Closed on 27 Nov (V6.3.7):** the e-mail address can no longer be changed on Keycloak's
+pages; it changes only through the core's verified flow, which tells the old address ([doc 16](16-contact-details-and-phone-recovery.md)).
 
 | Level | What | Result |
 |---|---|---|

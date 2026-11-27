@@ -18,17 +18,17 @@ whole application before the pilot (PG-8), not here.
 
 | Chapter | Requirements (L1–L3) | Met | Met, deviation documented | Partial | Gap | Not applicable |
 |---|---|---|---|---|---|---|
-| V6 Authentication | 47 | 38 | 2 | 4 | 0 | 3 |
+| V6 Authentication | 47 | 38 | 3 | 3 | 0 | 3 |
 | V7 Session Management | 19 | 16 | 1 | 2 | 0 | 0 |
 | V8 Authorization | 13 | 9 | 1 | 3 | 0 | 0 |
 | V9 Self-contained Tokens | 7 | 7 | 0 | 0 | 0 | 0 |
 | V10 OAuth and OIDC | 36 | 26 | 0 | 6 | 0 | 4 |
 | V3 Web Frontend Security | 31 | 26 | 0 | 1 | 1 | 3 |
-| **Total** | **153** | **122** | **4** | **16** | **1** | **10** |
+| **Total** | **153** | **122** | **5** | **15** | **1** | **10** |
 
-**Met (including documented deviations): 126 of 143 applicable requirements (88.1 %)** after G3 and G1 on 26 Nov (124
-after week 6, 121 at the end of week 5). The assessment itself is complete; the identity system does **not yet** meet
-ASVS L3 in full. The open items are 1 gap (G5 in §4) and 16 partial items, each with an owner and a plan. Week 6 closed G2
+**Met (including documented deviations): 127 of 143 applicable requirements (88.8 %)** after the contact details of 27 Nov
+([doc 16](16-contact-details-and-phone-recovery.md); 126 after G3 and G1 on 26 Nov, 124 after week 6, 121 at the end of week 5). The assessment itself is complete; the identity system does **not yet** meet
+ASVS L3 in full. The open items are 1 gap (G5 in §4) and 15 partial items, each with an owner and a plan. Week 6 closed G2
 (account recovery: V6.4.3, V6.4.4), half of G1 (notices: V6.3.7 now partial) and verified V6.8.3 (SAML replay refused).
 On 26 Nov G4 moved from gap to partial ([doc 14](14-sender-constrained-tokens.md)): the web app is a confidential
 client with `private_key_jwt`, pushed authorization requests and DPoP-bound tokens checked by the core; the five V10
@@ -36,7 +36,10 @@ rows stay partial until the other clients follow (ASVS asks for PAR "always" and
 Also on 26 Nov G3 was closed ([doc 15](15-adaptive-controls.md)): the device and browser of every session drive a notice
 for a new device and the end of a session used from another device or browser (V8.2.4, deviation D4); V6.3.5 moved from
 gap to partial. Then G1 ([doc 15 §7](15-adaptive-controls.md)): notices from Keycloak's sign-in events (a right password with a
-failed second step, repeated failures, a sign-in after failures, a way to sign in added or changed); V6.3.5 met. Found and fixed during the assessment (all tested, §9):
+failed second step, repeated failures, a sign-in after failures, a way to sign in added or changed); V6.3.5 met. On 27 Nov the
+last part of G1 ([doc 16](16-contact-details-and-phone-recovery.md)): the e-mail address and the phone number change only through the core,
+after a code sent to the new one, and the old address is told (V6.3.7 met); an SMS code became one of the two proofs of
+recovery R4 and a fallback factor (deviation D5, founder decision Q3-7). Found and fixed during the assessment (all tested, §9):
 
 | Fixed | ASVS |
 |---|---|
@@ -101,19 +104,20 @@ password + authenticator app path remains. Pages work without JavaScript (forms 
 | D1 | V6.3.3 (L3: one factor phishing-resistant hardware) | Citizens may sign in with password + TOTP instead of a passkey | Inclusion (P3-RISK): not every citizen has a device with a platform authenticator, and assisted use (relatives, public counters) must remain possible. Controls: passkey offered first; TOTP codes single use; lockout and per-address limits; deny list; sensitive actions need a fresh sign-in; the core sees `acr` and can demand stronger methods per action later; notifications (G1) |
 | D2 | V6.5.5 (TOTP lifetime 30 s) | One 30-second step of clock tolerance | Phone clocks drift; RFC 6238 §5.2 recommends allowing one step. Codes are single use, lockout after 5 failures |
 | D3 | V7.4.1 (terminated sessions unusable) | Self-contained access tokens stay valid until they expire (5 min) after sign-out or role changes (also V8.3.2) | The web app keeps tokens on the server and deletes them at sign-out, so nobody holding the browser can use them; refresh tokens are revoked at once (N10); 5-minute lifetime; mandates and memberships are read from the database at every request |
+| D5 | V6.6.1 (L3: no phone or SMS for authentication) | An SMS code to a verified number is one of the two proofs of recovery R4 (with the e-mailed link) and a fallback sign-in factor for citizens and non-officer staff (doc 17) | Founder decision Q3-7 (27 Nov 2026): inclusion. Controls: the number is verified first; recovery needs the mailbox and the phone, the link before any SMS; codes single use, 10 min, 5 tries; limits per link, account, address and client; notices by e-mail and SMS; officers never use SMS (P3-SEC5); provider not chosen (Q3-1), simulated with synthetic numbers until then ([doc 16 §4](16-contact-details-and-phone-recovery.md)) |
 | D4 | V8.2.4 (adaptive controls at the start of a session) | A sign-in from a new device or browser is allowed and notified, not challenged again | Every sign-in already needs two factors (passkey, or password and authenticator app; officers: password and security key); an extra challenge would ask for the same factors. The notice goes at once, in the person's language, and the security page ends every other session. During a session, a device or browser change ends it ([doc 15](15-adaptive-controls.md)) |
 
 Design notes (not deviations): the minimum password length is 12 (ASVS: at least 8, 15 recommended) because every
 password account also has a second factor and the deny list; the breached-password set is local, refreshed with each
 release, so no hash prefix of a citizen's password ever leaves the country. **SMS and L3:** P3-F1 asks for an SMS
-fallback, ASVS L3 (V6.6.1) forbids phone or SMS as an authentication option. Proposal for week 6: SMS is never a
-sign-in factor; it is a delivery channel only (status page codes, notifications), simulated until Q3-1.
+fallback, ASVS L3 (V6.6.1) forbids phone or SMS as an authentication option. Founder decision Q3-7 (27 Nov 2026): SMS for
+citizens and staff as a delivery channel and a fallback factor, recorded as deviation D5; officers keep FIDO2 only.
 
 ## 4. Gaps and plan
 
 | | ASVS | Gap | Plan |
 |---|---|---|---|
-| G1 | V6.3.5, V6.3.7 | No notification of suspicious sign-ins; changes on Keycloak's own pages send no notice | **Mostly closed on 26 Nov** ([doc 12 §2](12-recovery-notices-sms-pairwise.md), [doc 15](15-adaptive-controls.md)): notices after recovery, removals, a new device or long absence, a session ended, a failed second step, repeated failures, a sign-in after failures, a way to sign in added or changed. Open (V6.3.7): an e-mail address changed on Keycloak's account pages — decision: allow it only through a verified flow, or notify the old address |
+| G1 | V6.3.5, V6.3.7 | No notification of suspicious sign-ins; changes on Keycloak's own pages send no notice | **Closed on 27 Nov** ([doc 12 §2](12-recovery-notices-sms-pairwise.md), [doc 15](15-adaptive-controls.md), [doc 16](16-contact-details-and-phone-recovery.md)): notices after recovery, removals, a new device or long absence, a session ended, a failed second step, repeated failures, a sign-in after failures, a way to sign in added or changed; the e-mail address changes only through the core's verified flow, which tells the old address (decision of 27 Nov) |
 | G2 | V6.4.3, V6.4.4 | No account recovery | **Closed in week 6** ([doc 12 §1](12-recovery-notices-sms-pairwise.md)): re-proofing at the (simulated) eID at the level of the identity link, tested in three languages |
 | G3 | V8.2.4 (and part of V8.4.2) | No adaptive controls (new device, location, time) | **Closed on 26 Nov** ([doc 15](15-adaptive-controls.md)): device and browser of every session; new device notified (D4), a session used from another device or browser ended; location and time of day deliberately not used |
 | G4 | V10.3.5, V10.4.12–V10.4.14, V10.4.16 | No pushed authorization requests (PAR), no sender-constrained tokens (DPoP), no `private_key_jwt` | **Partly closed on 26 Nov** ([doc 14](14-sender-constrained-tokens.md)): the web app is confidential (`private_key_jwt`), PAR required, DPoP-bound tokens checked by the core with single-use proofs; the mobile client requires PAR and DPoP in the realm. Open (doc 14 §5): the Workspace client (Phase 6), the mobile app itself (A2), relying parties and the provisioner (`private_key_jwt`), Keycloak's account console, a DPoP-aware edge route |
@@ -253,7 +257,7 @@ Status key: Met; Met, deviation documented (§3); Partial; Gap (§4); Not applic
 | V6.3.4 | L2 | No undocumented pathways | Met | realm checker: browser, direct grant (disabled), first broker login, post broker login flows evaluated; the `admin-cli` password grant defect closed (doc 03 §5) |
 | V6.3.5 | L3 | Notify of suspicious attempts | Met | new device or browser, sign-in after 180 days (doc 15); right password with a failed second step, 5 failed attempts, a sign-in after failures (doc 15 §7, from Keycloak sign-in events); tested in three languages |
 | V6.3.6 | L3 | E-mail not an authentication factor | Met | no magic links, no e-mail reset (`resetPasswordAllowed=false`); e-mail only carries the one-time activation link |
-| V6.3.7 | L3 | Notify after authentication details change | Partial | notices after recovery and removals through the app (doc 12 §2), a way to sign in added or changed inside a sign-in, removals on Keycloak's pages (doc 15 §7); open: an e-mail address changed on Keycloak's account pages (decision: verified flow, or notify the old address) |
+| V6.3.7 | L3 | Notify after authentication details change | Met | notices after recovery and removals through the app (doc 12 §2), a way to sign in added or changed inside a sign-in, removals on Keycloak's pages (doc 15 §7); the e-mail address and phone number change only through the core after a code to the new one; the old address (or the account's) is told; Keycloak's pages cannot change them (realm checker; doc 16) |
 | V6.3.8 | L3 | No user enumeration (incl. registration, recovery) | Met | R-P3-1 tests: same answers and timing for registration and login (doc 03 §9); status page same answer (doc 09) |
 | V6.4.1 | L1 | Initial secrets random, short-lived, single use | Met | activation links: Keycloak action tokens, single use (tested), lifetime set by the core |
 | V6.4.2 | L1 | No hints or secret questions | Met | none |
@@ -269,9 +273,9 @@ Status key: Met; Met, deviation documented (§3); Partial; Gap (§4); Not applic
 | V6.5.6 | L3 | Any factor can be revoked | Met | `DELETE /v1/me/authenticators/{id}` with step-up; staff keys by the institution administrator (doc 04) |
 | V6.5.7 | L3 | Biometrics only as a secondary factor | Met | biometrics only unlock a device-bound passkey (user verification), never alone |
 | V6.5.8 | L3 | TOTP checked against a trusted clock | Met | Keycloak server time (nodes synchronised, Phase 2 platform baseline) |
-| V6.6.1 | L2 | PSTN OTP rules; L3: no SMS | Met | no SMS or phone factor exists; the SMS fallback of P3-F1 conflicts with L3 and is decided in W6 (§3, SMS and L3) |
-| V6.6.2 | L2 | Out-of-band codes bound to their request | Met | status codes bound to the challenge and the reference (doc 09) |
-| V6.6.3 | L2 | Out-of-band codes rate limited | Met | 5 tries per code, 3 codes per reference per 15 min, gateway 20 per 10 min per client |
+| V6.6.1 | L2 | PSTN OTP rules; L3: no SMS | Met, deviation documented | numbers verified before use; SMS codes in recovery R4 (with the e-mailed link) and as a fallback factor (deviation D5, decision Q3-7; doc 16 §4) |
+| V6.6.2 | L2 | Out-of-band codes bound to their request | Met | status codes bound to the challenge and the reference (doc 09); contact-change codes to the change and the account; recovery codes to the attempt and its link (doc 16) |
+| V6.6.3 | L2 | Out-of-band codes rate limited | Met | 5 tries per code, 3 codes per reference per 15 min, gateway 20 per 10 min per client; contact changes 5 a day; recovery R4 3 SMS per link, a link per address every 15 min (doc 16) |
 | V6.6.4 | L3 | Push bombing | Not applicable | no push factor |
 | V6.7.1 | L3 | Attestation certificates protected | Met | attestation roots in a read-only truststore from a secret (doc 03 §9.3) |
 | V6.7.2 | L3 | Challenge nonce at least 64 bits | Met | WebAuthn challenges generated by Keycloak per ceremony (128-bit random) |

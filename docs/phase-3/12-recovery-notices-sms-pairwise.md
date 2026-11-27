@@ -57,6 +57,9 @@ offered as authentication options (V6.6.1). The two cannot both hold. What is bu
 - **Founder decision Q3-7 (new):** (a) keep ASVS L3: SMS only as a delivery channel (status codes, notices), never a
   sign-in factor — recommended; or (b) allow SMS as a citizens' second factor under ASVS L2 conditions (validated number,
   stronger methods offered, risk explained), recorded as an L3 deviation. The provider itself is still Q3-1 (PG-6).
+- **Decided on 27 Nov 2026:** option (b) for citizens and staff, as a delivery channel and a fallback factor, recorded
+  as ASVS deviation D5; officers keep FIDO2 only (P3-SEC5). The number is verified first, and recovery by phone needs
+  the e-mailed link too ([doc 16](16-contact-details-and-phone-recovery.md)); the sign-in factor follows in doc 17.
 
 ## 4. Pairwise subjects mirrored (P3-DB6)
 

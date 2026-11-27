@@ -492,6 +492,92 @@ describe('identity and mandates, end to end (Phase 3 week 1)', { skip: !adminUrl
     assert.equal((await call('/v1/status-access', undefined, { method: 'POST', body: { reference: 'SYN-RC-1-00001' } })).status, 503, 'no case directory in this cell: 503');
   });
 
+  it('database: contact changes (doc 16) as the application role: code to the new value, 5 tries, one open per channel, 5 a day', async () => {
+    const c = new Client({ connectionString: appDbUrl });
+    await c.connect();
+    const { randomUUID } = await import('node:crypto');
+    const d = (n: number) => Buffer.alloc(32, n);
+    const start = async (id: string, account: number, channel: string, target: string) =>
+      (await c.query('select iam.start_contact_change($1, $2, $3, $4, $5, 10) as ok', [id, d(account), channel, target, d(9)])).rows[0].ok as boolean;
+    const confirm = async (id: string, account: number, code: number) =>
+      (await c.query('select outcome, channel, target, attempts_left from iam.confirm_contact_change($1, $2, $3)', [id, d(account), d(code)])).rows[0];
+    const [e1, e2, p1, p2, p3] = [randomUUID(), randomUUID(), randomUUID(), randomUUID(), randomUUID()];
+    assert.equal(await start(e1, 1, 'email', 'new@example.invalid'), true);
+    assert.deepEqual(await confirm(e1, 2, 9), { outcome: 'not-found', channel: null, target: null, attempts_left: 0 }, 'bound to its account');
+    assert.deepEqual(await confirm(e1, 1, 8), { outcome: 'wrong-code', channel: null, target: null, attempts_left: 4 });
+    assert.deepEqual(await confirm(e1, 1, 9), { outcome: 'confirmed', channel: 'email', target: 'new@example.invalid', attempts_left: 0 });
+    assert.equal((await confirm(e1, 1, 9)).outcome, 'not-found', 'single use');
+    assert.equal(await start(e2, 1, 'email', 'newer@example.invalid'), true);
+    assert.equal(await start(p1, 1, 'phone', '+21600000001'), true);
+    assert.equal(await start(p2, 1, 'phone', '+21600000002'), true);
+    assert.equal((await confirm(p1, 1, 9)).outcome, 'not-found', 'a newer change of the same channel replaces the older one');
+    assert.equal((await confirm(e2, 1, 9)).outcome, 'confirmed', 'another channel is not affected');
+    const seq = [];
+    for (let i = 0; i < 5; i++) seq.push((await confirm(p2, 1, 7)).outcome);
+    assert.deepEqual(seq, ['wrong-code', 'wrong-code', 'wrong-code', 'wrong-code', 'not-found']);
+    assert.equal((await confirm(p2, 1, 9)).outcome, 'not-found', 'after 5 wrong tries even the right code fails');
+    assert.equal(await start(p3, 1, 'phone', '+21600000003'), true, 'fifth change of the day');
+    assert.equal(await start(randomUUID(), 1, 'phone', '+21600000004'), false, 'sixth change within 24 hours: refused');
+    assert.equal(await start(randomUUID(), 3, 'phone', '+21600000004'), true, 'another account is not affected');
+    await assert.rejects(start(randomUUID(), 1, 'fax', 'x'), /invalid contact change/);
+    await assert.rejects(c.query('select * from iam.contact_change'), /permission denied/);
+    await c.end();
+  });
+
+  it('database: recovery R4 (doc 16) as the application role: link then SMS code, both needed, limits, nothing to complete without a phone', async () => {
+    const c = new Client({ connectionString: appDbUrl });
+    await c.connect();
+    const { randomUUID } = await import('node:crypto');
+    const d = (n: number) => Buffer.alloc(32, n);
+    const start = async (id: string, email: number, account: number, phone: string | null) =>
+      (await c.query("select iam.start_contact_recovery($1, $2, $3, 'kc-user', $4, 'fr', $5, 30) as ok", [id, d(email), d(account), phone, d(50)])).rows[0].ok as boolean;
+    const code = async (id: string, link: number, k: number) => (await c.query('select phone, lang from iam.contact_recovery_code($1, $2, $3)', [id, d(link), d(k)])).rows[0];
+    const complete = async (id: string, link: number, k: number) =>
+      (await c.query('select outcome, subject, attempts_left from iam.complete_contact_recovery($1, $2, $3)', [id, d(link), d(k)])).rows[0];
+    const a = randomUUID();
+    assert.equal(await start(a, 1, 1, '+21600000009'), true);
+    assert.equal(await start(randomUUID(), 1, 1, '+21600000009'), false, 'one link per address every 15 minutes');
+    assert.deepEqual(await complete(a, 50, 9), { outcome: 'not-found', subject: null, attempts_left: 0 }, 'no code sent yet: the link alone recovers nothing');
+    await assert.rejects(code(a, 51, 9), /no such open recovery attempt/, 'the link token is needed for a code');
+    assert.deepEqual(await code(a, 50, 9), { phone: '+21600000009', lang: 'fr' });
+    assert.equal((await complete(a, 51, 9)).outcome, 'not-found', 'the code alone recovers nothing (wrong link)');
+    assert.deepEqual(await complete(a, 50, 8), { outcome: 'wrong-code', subject: null, attempts_left: 4 });
+    assert.deepEqual(await code(a, 50, 10), { phone: '+21600000009', lang: 'fr' }, 'a new code replaces the previous one');
+    assert.equal((await complete(a, 50, 9)).outcome, 'wrong-code', 'the previous code stops working');
+    assert.deepEqual(await complete(a, 50, 10), { outcome: 'recovered', subject: 'kc-user', attempts_left: 0 });
+    assert.equal((await complete(a, 50, 10)).outcome, 'not-found', 'single use');
+    await assert.rejects(code(a, 50, 11), /no such open recovery attempt/, 'no code after completion');
+
+    const b = randomUUID();
+    assert.equal(await start(b, 2, 2, '+21600000008'), true);
+    for (const k of [11, 12, 13]) await code(b, 50, k);
+    await assert.rejects(code(b, 50, 14), /no such open recovery attempt/, 'at most 3 codes per link');
+    const seq = [];
+    for (let i = 0; i < 5; i++) seq.push((await complete(b, 50, 1)).outcome);
+    assert.deepEqual(seq, ['wrong-code', 'wrong-code', 'wrong-code', 'wrong-code', 'not-found']);
+    assert.equal((await complete(b, 50, 13)).outcome, 'not-found', 'after 5 wrong tries even the right code fails');
+
+    const n = randomUUID();
+    assert.equal(await start(n, 3, 3, null), true, 'advice to an account without a verified phone is recorded (and limited)');
+    assert.equal(await start(randomUUID(), 3, 3, null), false, 'advice at most every 15 minutes too');
+    await assert.rejects(code(n, 50, 1), /no such open recovery attempt/, 'an advice row can never send a code');
+
+    const o1 = randomUUID();
+    const o2 = randomUUID();
+    assert.equal(await start(o1, 4, 4, '+21600000007'), true);
+    assert.equal(await start(o2, 5, 4, '+21600000007'), true, 'another address of the same account (after an e-mail change)');
+    await assert.rejects(code(o1, 50, 1), /no such open recovery attempt/, 'a newer link replaces the older one of the same account');
+    for (const [i, id] of [o2, randomUUID(), randomUUID()].entries()) {
+      if (i > 0) assert.equal(await start(id, 10 + i, 4, '+21600000007'), true);
+      await code(id, 50, 20);
+      assert.equal((await complete(id, 50, 20)).outcome, 'recovered');
+    }
+    assert.equal(await start(randomUUID(), 20, 4, '+21600000007'), false, 'at most 3 recoveries of one account in 24 hours');
+    await assert.rejects(c.query("select iam.start_contact_recovery($1, $2, $2, 'u', null, 'de', $2, 30)", [randomUUID(), d(1)]), /invalid contact recovery/);
+    await assert.rejects(c.query('select * from iam.contact_recovery'), /permission denied/);
+    await c.end();
+  });
+
   it('database: activation e-mails per address are bounded (registration_permit, as the application role)', async () => {
     const c = new Client({ connectionString: appDbUrl });
     await c.connect();

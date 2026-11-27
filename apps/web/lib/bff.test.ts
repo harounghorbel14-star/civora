@@ -3,7 +3,7 @@ import { createHash, generateKeyPairSync } from 'node:crypto';
 import { before, describe, it } from 'node:test';
 import { calculateJwkThumbprint, createLocalJWKSet, decodeProtectedHeader, exportJWK, generateKeyPair, jwtVerify, SignJWT, type JWK } from 'jose';
 import { loadConfig, type WebConfig } from './config';
-import { deviceCookie, pendingCookie, sessionCookie, validDeviceId } from './cookies';
+import { deviceCookie, pendingCookie, recoveryLinkCookie, sessionCookie, validDeviceId } from './cookies';
 import { contextHeaders, coreCall, SignedOut, StepUpRequired } from './core';
 import { negotiateLang, langOf } from './locales';
 import { CATALOGUES, describeScopes, translator } from './messages';
@@ -60,6 +60,10 @@ describe('cookies', () => {
     assert.equal(deviceCookie({ ...cfg, hostPrefix: true }).name, '__Host-civora_device');
     assert.equal(validDeviceId('A'.repeat(43)), 'A'.repeat(43));
     for (const bad of [undefined, '', 'short', 'A'.repeat(44), `${'A'.repeat(42)}=`]) assert.equal(validDeviceId(bad), null, String(bad));
+  });
+  it('recovery link (R4): HttpOnly, Secure, SameSite=Lax (opened from a mail client), only the phone page of that language, 30 minutes', () => {
+    assert.deepEqual(recoveryLinkCookie(cfg, 'fr'), { name: 'civora_recovery_link', options: { httpOnly: true, secure: true, sameSite: 'lax', path: '/fr/recover/phone', maxAge: 1800 } });
+    assert.equal(recoveryLinkCookie({ ...cfg, hostPrefix: true }, 'ar').name, '__Secure-civora_recovery_link');
   });
 });
 
@@ -130,6 +134,21 @@ describe('server-side sessions', () => {
     const id2 = store.putPending({ state: 's', nonce: 'n', verifier: 'v', returnTo: '/ar' });
     now += 601_000;
     assert.equal(store.takePending(id2), null, 'expired');
+  });
+  it('recovery links (R4) stay for 30 minutes and several steps (code, new code, completion), are bounded, and can be dropped', () => {
+    let now = 0;
+    const store = new MemorySessionStore({ idleMs: 60_000, maxMs: 300_000, now: () => now, maxPending: 2 });
+    const id = store.putRecoveryLink({ attemptId: 'a1', token: 't1', lang: 'fr' });
+    assert.deepEqual(store.getRecoveryLink(id), { attemptId: 'a1', token: 't1', lang: 'fr' });
+    store.updateRecoveryLink(id, { phoneEnding: '04' });
+    assert.equal(store.getRecoveryLink(id)?.phoneEnding, '04', 'not single use: the code step and the completion both read it');
+    now += 1_801_000;
+    assert.equal(store.getRecoveryLink(id), null, 'expired with the link');
+    const ids = Array.from({ length: 3 }, (_, i) => store.putRecoveryLink({ attemptId: `a${i}`, token: 't', lang: 'ar' }));
+    assert.equal(store.getRecoveryLink(ids[0]), null, 'bounded: the oldest goes first');
+    store.dropRecoveryLink(ids[2]);
+    assert.equal(store.getRecoveryLink(ids[2]), null);
+    assert.equal(store.getRecoveryLink(ids[1])?.attemptId, 'a1');
   });
   it('pending sign-ins are bounded: under a flood the oldest go first (memory cannot be exhausted)', () => {
     const store = new MemorySessionStore({ idleMs: 60_000, maxMs: 300_000, maxPending: 3 });

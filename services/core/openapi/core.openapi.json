@@ -13,6 +13,20 @@
         ],
         "type": "object"
       },
+      "AcceptedDto": {
+        "properties": {
+          "status": {
+            "enum": [
+              "accepted"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      },
       "AccountDto": {
         "properties": {
           "assuranceLevel": {
@@ -124,6 +138,68 @@
         ],
         "type": "object"
       },
+      "ChangeDto": {
+        "properties": {
+          "channel": {
+            "enum": [
+              "email",
+              "phone"
+            ],
+            "type": "string"
+          },
+          "expiresAt": {
+            "description": "The code sent to the new address or number works until then",
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "channel",
+          "expiresAt"
+        ],
+        "type": "object"
+      },
+      "CodeSentDto": {
+        "properties": {
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "phoneEnding": {
+            "description": "Last two digits of the number the code went to",
+            "example": "01",
+            "type": "string"
+          }
+        },
+        "required": [
+          "phoneEnding",
+          "expiresAt"
+        ],
+        "type": "object"
+      },
+      "CompleteContactRecovery": {
+        "properties": {
+          "code": {
+            "description": "The code sent by SMS",
+            "example": "123456",
+            "type": "string"
+          },
+          "token": {
+            "description": "The token from the e-mailed link",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "code"
+        ],
+        "type": "object"
+      },
       "CompleteLink": {
         "properties": {
           "code": {
@@ -155,6 +231,64 @@
         "required": [
           "code",
           "state"
+        ],
+        "type": "object"
+      },
+      "ConfirmChange": {
+        "properties": {
+          "code": {
+            "description": "The six-digit code sent to the new address or number",
+            "example": "123456",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "type": "object"
+      },
+      "ConfirmedDto": {
+        "properties": {
+          "channel": {
+            "enum": [
+              "email",
+              "phone"
+            ],
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel",
+          "value"
+        ],
+        "type": "object"
+      },
+      "ContactDto": {
+        "properties": {
+          "email": {
+            "example": "amina@example.invalid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "phone": {
+            "description": "Only a verified number is shown",
+            "example": "+21600000001",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "phoneVerified": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "phoneVerified"
         ],
         "type": "object"
       },
@@ -497,6 +631,18 @@
           "status",
           "authorizationUrl",
           "expiresAt"
+        ],
+        "type": "object"
+      },
+      "LinkBody": {
+        "properties": {
+          "token": {
+            "description": "The token from the e-mailed link",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
         ],
         "type": "object"
       },
@@ -1065,6 +1211,44 @@
         ],
         "type": "object"
       },
+      "StartChange": {
+        "properties": {
+          "channel": {
+            "enum": [
+              "email",
+              "phone"
+            ],
+            "type": "string"
+          },
+          "value": {
+            "description": "The new address, or the number in international form (+216…)",
+            "example": "amina.new@example.invalid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel",
+          "value"
+        ],
+        "type": "object"
+      },
+      "StartContactRecovery": {
+        "properties": {
+          "email": {
+            "example": "amina@example.invalid",
+            "type": "string"
+          },
+          "locale": {
+            "description": "Language of the e-mail when the account has none",
+            "example": "fr-TN",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "type": "object"
+      },
       "StartLink": {
         "properties": {
           "locale": {
@@ -1157,6 +1341,23 @@
         "required": [
           "reference",
           "code"
+        ],
+        "type": "object"
+      },
+      "WrongCodeDto": {
+        "properties": {
+          "attemptsLeft": {
+            "example": 4,
+            "type": "number"
+          },
+          "error": {
+            "example": "wrong-code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "attemptsLeft"
         ],
         "type": "object"
       }
@@ -1831,6 +2032,150 @@
         ]
       }
     },
+    "/v1/me/contact": {
+      "get": {
+        "operationId": "getMyContact",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "description": "No valid access token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Your e-mail address and verified phone number",
+        "tags": [
+          "identity"
+        ]
+      }
+    },
+    "/v1/me/contact-changes": {
+      "post": {
+        "operationId": "startContactChange",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangeDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "description": "No valid access token, or no recent sign-in (WWW-Authenticate: error=\"insufficient_user_authentication\", max_age)"
+          },
+          "409": {
+            "description": "That is already your address or number"
+          },
+          "422": {
+            "description": "No message could be sent to that address or number"
+          },
+          "429": {
+            "description": "Five changes were started in the last 24 hours"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change your e-mail address or phone number: a code goes to the new one",
+        "tags": [
+          "identity"
+        ]
+      }
+    },
+    "/v1/me/contact-changes/{id}:confirm": {
+      "post": {
+        "operationId": "confirmContactChange",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfirmedDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "404": {
+            "description": "No such open change of yours (expired, replaced, used, or out of tries)"
+          },
+          "409": {
+            "description": "The address is used by another account"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WrongCodeDto"
+                }
+              }
+            },
+            "description": "Wrong code; attemptsLeft tries remain"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Confirm with the code sent to the new address or number; the change is made and you are told",
+        "tags": [
+          "identity"
+        ]
+      }
+    },
     "/v1/me/memberships": {
       "get": {
         "operationId": "listMyMemberships",
@@ -1895,6 +2240,32 @@
           }
         ],
         "summary": "Which services know you under which identifier (your pairwise subjects; citizens)",
+        "tags": [
+          "identity"
+        ]
+      }
+    },
+    "/v1/me/phone": {
+      "delete": {
+        "operationId": "removeMyPhone",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": "Removed"
+          },
+          "401": {
+            "description": "No valid access token, or no recent sign-in (WWW-Authenticate: error=\"insufficient_user_authentication\", max_age)"
+          },
+          "404": {
+            "description": "No phone number on your account"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove your phone number (you are told by e-mail)",
         "tags": [
           "identity"
         ]
@@ -2292,6 +2663,139 @@
           }
         },
         "summary": "Start recovering an account by proving your identity again at the national eID (no sign-in)",
+        "tags": [
+          "identity"
+        ]
+      }
+    },
+    "/v1/recovery/contact": {
+      "post": {
+        "operationId": "startContactRecovery",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartContactRecovery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcceptedDto"
+                }
+              }
+            },
+            "description": "The same answer whether or not the address has an account"
+          },
+          "503": {
+            "description": "Not configured in this cell"
+          }
+        },
+        "summary": "Recover with your e-mail and phone: if the address has an account with a verified phone, a link is e-mailed",
+        "tags": [
+          "identity"
+        ]
+      }
+    },
+    "/v1/recovery/contact/{id}:complete": {
+      "post": {
+        "operationId": "completeContactRecovery",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteContactRecovery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcceptedDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "404": {
+            "description": "No such open attempt with that link and a current code, or out of tries"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WrongCodeDto"
+                }
+              }
+            },
+            "description": "Wrong code; attemptsLeft tries remain"
+          }
+        },
+        "summary": "With the link token and the SMS code: every way to sign in is reset and a set-up link is e-mailed",
+        "tags": [
+          "identity"
+        ]
+      }
+    },
+    "/v1/recovery/contact/{id}:send-code": {
+      "post": {
+        "operationId": "sendContactRecoveryCode",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CodeSentDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "404": {
+            "description": "No such open attempt with that link (expired, used, replaced, or out of codes)"
+          }
+        },
+        "summary": "With the token from the e-mailed link: an SMS code goes to the verified number (3 at most)",
         "tags": [
           "identity"
         ]

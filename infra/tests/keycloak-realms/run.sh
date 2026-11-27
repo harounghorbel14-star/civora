@@ -128,9 +128,9 @@ eid_env=(EID_SIM_ISSUER="$kc/realms/sim-national-eid" EID_SIM_CLIENT_SECRET_FILE
   IDENTITY_CLAIM_DIGEST_KEY_FILE="$work/digest.key" SIGNIN_EVENTS_POLL_SECONDS=2
   # Customer status page (P3-R2): synthetic cases; one-time codes by the simulated e-mail channel to the mail catcher.
   SYNTHETIC_CASES=on MESSAGING_SMTP_HOST=127.0.0.1 MESSAGING_SMTP_PORT="$mail_smtp"
-  # Week 6: SMS through the simulated channel (register M-01; delivery only, never a sign-in factor); the relying
-  # parties' pairwise sectors and salts written by the policy, for the core's mirror (P3-DB6).
-  MESSAGING_SMS=simulated PAIRWISE_SECTORS_FILE="$work/pairwise.json")
+  # Week 6: SMS through the simulated channel (register M-01; synthetic numbers only); the relying parties' pairwise
+  # sectors and salts written by the policy, for the core's mirror (P3-DB6). Recovery R4 links open the web app (doc 16).
+  MESSAGING_SMS=simulated PAIRWISE_SECTORS_FILE="$work/pairwise.json" RECOVERY_LINK_ORIGIN="$web")
 core_port=$(free_port)
 (cd "$repo/services/core" && CIVORA_ENV=test PORT="$core_port" DATABASE_URL="postgres://civora_core_app:$app_pw@127.0.0.1:$db_port/civora_core" \
   OIDC_ISSUER_CITIZENS="$kc/realms/civora-citizens" OIDC_ISSUER_STAFF="$kc/realms/civora-staff" \
