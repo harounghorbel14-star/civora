@@ -77,6 +77,7 @@ export class Oid4vpController {
     try {
       const jwt = await this.v!.requestObject(id);
       res.setHeader('Content-Type', 'application/oauth-authz-req+jwt');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
       res.status(200).end(jwt);
     } catch (e) {
       if (!(e instanceof OAuthError)) throw e;

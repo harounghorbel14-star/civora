@@ -49,6 +49,8 @@ export class CatalogueController {
   @Get('v1/services')
   @ApiOperation({ summary: 'Published services, by category, or searched (Arabic and French normalised)' })
   async list(@Query('category') category?: string, @Query('q') q?: string): Promise<unknown> {
+    // A repeated query key arrives as an array: only a single string is accepted.
+    if ((q !== undefined && typeof q !== 'string') || (category !== undefined && typeof category !== 'string')) throw new BadRequestException('q and category are single values');
     try {
       if (q !== undefined) {
         if (q.length < 2 || q.length > 200) throw new BadRequestException('q: 2 to 200 characters');
@@ -100,6 +102,7 @@ export class CatalogueController {
   @Get('v1/offices')
   @ApiOperation({ summary: 'Offices (office locator), optionally by governorate' })
   async offices(@Query('governorate') governorate?: string): Promise<unknown> {
+    if (governorate !== undefined && (typeof governorate !== 'string' || governorate.length > 60)) throw new BadRequestException('governorate is a single value');
     try { return await this.c().offices(governorate); } catch (e) { rethrow(e); }
   }
 

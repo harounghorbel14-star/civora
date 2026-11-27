@@ -124,13 +124,20 @@ export class StatusListsController {
   @ApiOperation({ summary: 'A status list token (application/statuslist+jwt)' })
   async get(@Param('id') id: string, @Res() res: Response): Promise<void> {
     if (!this.issuance) return unavailable(res);
-    const token = await this.issuance.statusList(id);
+    // Only a list number is accepted, and the number itself (not the request's text) is used from here on.
+    const n = /^[0-9]{1,15}$/.test(String(id)) ? Number.parseInt(String(id), 10) : NaN;
+    if (!Number.isSafeInteger(n)) {
+      res.status(404).json({ error: 'not_found', error_description: 'no such status list' });
+      return;
+    }
+    const token = await this.issuance.statusList(String(n));
     if (!token) {
       res.status(404).json({ error: 'not_found', error_description: 'no such status list' });
       return;
     }
     res.setHeader('Cache-Control', 'public, max-age=300');
     res.setHeader('Content-Type', 'application/statuslist+jwt');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
     res.status(200).end(token);   // end, not send: the media type is exactly application/statuslist+jwt (no charset)
   }
 }

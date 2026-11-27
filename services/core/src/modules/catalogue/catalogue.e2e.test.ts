@@ -164,6 +164,8 @@ describe('services directory, end to end (Phase 5)', { skip }, () => {
     assert.equal((await http('GET', '/v1/services/TN-TST-002/versions/1')).body.state, 'superseded');
     assert.deepEqual((await http('GET', `/v1/services?q=${encodeURIComponent('الهوية')}`)).body.map((s: { code: string }) => s.code), ['TN-TST-002']);
     assert.deepEqual((await http('GET', '/v1/services?q=resume')).body.map((s: { code: string }) => s.code), ['TN-TST-002']);
+    assert.equal((await http('GET', '/v1/services?q=resume&q=fiche')).status, 400, 'a repeated query key (an array) is refused');
+    assert.equal((await http('GET', '/v1/offices?governorate=a&governorate=b')).status, 400);
     assert.equal((await http('POST', '/v1/feedback/content-errors', undefined, { service_code: 'TN-TST-002', version: 2, message: 'Le montant indiqué semble ancien.' })).status, 201);
     assert.equal((await http('POST', '/v1/feedback/content-errors', undefined, { service_code: 'TN-NOPE-1', version: 1, message: 'no such service here' })).status, 404);
   });

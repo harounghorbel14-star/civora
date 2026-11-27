@@ -2,7 +2,7 @@ import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 import { b64u, CredentialError, sha256b64u, signJws } from './jws';
 import { softwareKey } from './keys';
-import { disclosuresOf, issueSdJwt, parse, present, selectDisclosures, verifySdJwt } from './sd-jwt';
+import { disclosuresOf, issueSdJwt, parse, present, selectDisclosures, trimSlashes, verifySdJwt } from './sd-jwt';
 
 const rejects = (p: Promise<unknown>, code: string) => assert.rejects(p, (e: unknown) => e instanceof CredentialError && e.code === code, `expected ${code}`);
 
@@ -47,6 +47,15 @@ describe('SD-JWT (RFC 9901)', () => {
     assert.deepEqual(v.claims.address, { locality: 'Tunis' }, 'street_address not disclosed');
     assert.deepEqual(v.claims.nationalities, ['TN'], 'an undisclosed array element is left out');
     assert.deepEqual(v.disclosedPaths.sort(), ['address', 'given_name']);
+  });
+
+  it('claim paths are trimmed of "/" in linear time, whatever the input (no backtracking regex)', () => {
+    assert.equal(trimSlashes('/address/locality/'), 'address/locality');
+    assert.equal(trimSlashes('///'), '');
+    const hostile = `a${'/'.repeat(200_000)}b`;
+    const t0 = process.hrtime.bigint();
+    assert.equal(trimSlashes(hostile), hostile);
+    assert.ok(Number(process.hrtime.bigint() - t0) / 1e6 < 50, 'well under 50 ms');
   });
 
   it('the holder finds the path of every disclosure of its credential from the credential alone', async () => {

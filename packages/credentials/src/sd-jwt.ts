@@ -29,6 +29,15 @@ export interface Issued {
 }
 
 const RESERVED = new Set(['_sd', '...', '_sd_alg']);
+
+/** Trims leading and trailing "/" from a claim path: a loop, linear on any input (no backtracking regex). */
+export function trimSlashes(p: string): string {
+  let a = 0;
+  let b = p.length;
+  while (a < b && p.charCodeAt(a) === 47) a++;
+  while (b > a && p.charCodeAt(b - 1) === 47) b--;
+  return p.slice(a, b);
+}
 const salt = (): string => randomBytes(16).toString('base64url');
 const isObject = (v: unknown): v is Record<string, Json> => !!v && typeof v === 'object' && !Array.isArray(v);
 
@@ -44,7 +53,7 @@ function makeDisclosure(path: string, value: Json, name?: string): Disclosure {
  * so the number of claims is not revealed.
  */
 export function pack(claims: Record<string, Json>, sdPaths: string[], decoys = 0): { payload: Record<string, Json>; disclosures: Disclosure[] } {
-  const wanted = new Set(sdPaths.map((p) => p.replace(/^\/+|\/+$/g, '')));
+  const wanted = new Set(sdPaths.map((p) => trimSlashes(p)));
   const disclosures: Disclosure[] = [];
   const seen = new Set<string>();
   const walk = (value: Json, path: string): Json => {
@@ -159,7 +168,7 @@ export function disclosuresOf(sdJwt: string): Disclosure[] {
 
 /** Which disclosures to present for the wanted paths: each wanted claim and every disclosure it is nested in. */
 export function selectDisclosures(issued: Pick<Issued, 'disclosures'>, paths: string[]): Disclosure[] {
-  const want = paths.map((p) => p.replace(/^\/+|\/+$/g, ''));
+  const want = paths.map((p) => trimSlashes(p));
   return issued.disclosures.filter((d) => want.some((w) => w === d.path || w.startsWith(`${d.path}/`) || d.path.startsWith(`${w}/`)));
 }
 

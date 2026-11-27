@@ -180,6 +180,10 @@ describe('OpenID4VCI issuance, end to end (Phase 4 week 2)', { skip }, () => {
     assert.equal((await statusFromToken(s1.body as unknown as string, issuerJwk as never, ref.uri, ref.idx)).status, STATUS.VALID);
     const issued = (await admin.query('select id from wallet.issued_credential where status_list_id = $1 and status_idx = $2', [path.split('/').pop(), ref.idx])).rows[0].id;
     await admin.query("select wallet.set_credential_status($1, 'revoked', 'holder-request', 'holder:self')", [issued]);
+    for (const bad of ['/v1/status-lists/1abc', '/v1/status-lists/%3Cscript%3E', '/v1/status-lists/99999999999999999999']) {
+      assert.equal((await http('GET', bad)).status, 404, `${bad}: only a list number is accepted`);
+    }
+    assert.equal(s1.headers.get('x-content-type-options'), 'nosniff');
     const s2 = await http('GET', path);
     assert.equal((await statusFromToken(s2.body as unknown as string, issuerJwk as never, ref.uri, ref.idx)).status, STATUS.INVALID);
   });
@@ -224,7 +228,7 @@ describe('OpenID4VCI issuance, end to end (Phase 4 week 2)', { skip }, () => {
   it('the holder library (P4-D2): accepts the offer, checks and keeps the credential, presents only the chosen claims, backs it up to the cell (P4-API3) and restores it', async () => {
     // The wallet reaches the cell at its public URL; here that URL is mapped to the test server.
     const mapped: Fetch = async (url, init) => {
-      const r = await fetch(url.startsWith(PUBLIC) ? base + url.slice(PUBLIC.length) : url, init as RequestInit);
+      const r = await fetch(new URL(url).origin === PUBLIC ? base + url.slice(PUBLIC.length) : url, init as RequestInit);
       return { status: r.status, text: () => r.text() };
     };
     const holder = new Holder({ fetch: mapped, keys: new MemoryKeyStore(), store: new MemoryCredentialStore() });

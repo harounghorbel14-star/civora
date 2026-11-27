@@ -95,6 +95,6 @@ export async function startWalletCell(adminUrl: string, register: (admin: Client
 
 /** fetch for the holder library: the cell's public URL mapped to the test server. */
 export const mappedFetch = (base: string) => async (url: string, init?: { method?: string; headers?: Record<string, string>; body?: string }) => {
-  const r = await fetch(url.startsWith(PUBLIC) ? base + url.slice(PUBLIC.length) : url, init as RequestInit);
+  const r = await fetch(new URL(url).origin === PUBLIC ? base + url.slice(PUBLIC.length) : url, init as RequestInit);
   return { status: r.status, text: () => r.text() };
 };
