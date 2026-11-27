@@ -492,6 +492,18 @@ describe('identity and mandates, end to end (Phase 3 week 1)', { skip: !adminUrl
     assert.equal((await call('/v1/status-access', undefined, { method: 'POST', body: { reference: 'SYN-RC-1-00001' } })).status, 503, 'no case directory in this cell: 503');
   });
 
+  it('contact details (doc 16) over HTTP: a change needs a recent sign-in; 503 without a provisioner; recovery R4 answers 503 when not configured', async () => {
+    const old = await sign('contact-http', { auth_time: Math.floor(Date.now() / 1000) - 3600, acr: '1' });
+    const r = await call('/v1/me/contact-changes', old, { method: 'POST', body: { channel: 'email', value: 'x@example.invalid' } });
+    assert.equal(r.status, 401);
+    assert.match(r.headers.get('www-authenticate') ?? '', /insufficient_user_authentication/);
+    const fresh = await sign('contact-http', { auth_time: Math.floor(Date.now() / 1000), acr: '1' });
+    assert.equal((await call('/v1/me/contact', fresh)).status, 503, 'no provisioner in this cell: 503, never a partial answer');
+    assert.equal((await call('/v1/me/contact-changes', fresh, { method: 'POST', body: { channel: 'email', value: 'x@example.invalid' } })).status, 503);
+    assert.equal((await call('/v1/recovery/contact', undefined, { method: 'POST', body: { email: 'x@example.invalid' } })).status, 503);
+    assert.equal((await call('/v1/me/contact')).status, 401, 'a token is needed');
+  });
+
   it('database: contact changes (doc 16) as the application role: code to the new value, 5 tries, one open per channel, 5 a day', async () => {
     const c = new Client({ connectionString: appDbUrl });
     await c.connect();

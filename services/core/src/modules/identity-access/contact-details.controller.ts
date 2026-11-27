@@ -94,6 +94,7 @@ export class ContactDetailsController {
   }
 
   @Post('contact-changes/:id\\:confirm')
+  @HttpCode(200)
   @UseGuards(IdentityGuard)
   @ApiUnauthorizedResponse({ description: 'No valid access token' })
   @ApiOperation({ operationId: 'confirmContactChange', summary: 'Confirm with the code sent to the new address or number; the change is made and you are told' })
