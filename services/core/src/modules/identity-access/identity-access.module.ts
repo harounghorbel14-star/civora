@@ -26,6 +26,8 @@ import { ContactDetails, ContactRecovery, loadRecoveryLinkOrigin } from './conta
 import { ContactDetailsController, ContactRecoveryController } from './contact-details.controller';
 import { StatusAccessController } from './status-access.controller';
 import { loadOidcConfig, TokenVerifier } from './token-verifier';
+import { PERSON_CONTACTS } from './tokens';
+import { DirectoryPersonContacts, type PersonContacts } from './person-contacts';
 import { ACCOUNT_RECOVERY, ACCOUNT_SECURITY, CONTACT_DETAILS, CONTACT_RECOVERY, ADAPTIVE_CONTROLS, SIGNIN_EVENTS, IAM_REPOSITORY, IDENTITY_LINKS, INVITATIONS, POLICY_ENGINE, STATUS_ACCESS, REGISTRATION_SERVICE, STEP_UP_MAX_AGE, TOKEN_VERIFIER } from './tokens';
 
 /**
@@ -206,9 +208,21 @@ import { ACCOUNT_RECOVERY, ACCOUNT_SECURITY, CONTACT_DETAILS, CONTACT_RECOVERY, 
     // Cedar policies (ADR-006), validated in strict mode at start-up: invalid policies stop the core (fail closed).
     { provide: POLICY_ENGINE, useFactory: (): PolicyEngine => PolicyEngine.load() },
     { provide: STEP_UP_MAX_AGE, useFactory: (): number => loadStepUpMaxAge() },
+    {
+      // How other modules reach a person (public API): the citizen account's e-mail and language, from Keycloak.
+      provide: PERSON_CONTACTS,
+      inject: [IAM_REPOSITORY],
+      useFactory: (repo: IamRepository | null): PersonContacts | null => {
+        const cfg = loadAdminConfig('citizens');
+        return repo && cfg ? new DirectoryPersonContacts(repo, new KeycloakAccountDirectory(new KeycloakAdmin(cfg))) : null;
+      },
+    },
     IdentityGuard,
     StepUpGuard,
   ],
+  // Other modules (the wallet) put the guard on their routes (public-api.ts). Nest builds a guard in the module of the
+  // controller that uses it, so the guard's own dependencies are exported with it; nothing else may use them there.
+  exports: [IdentityGuard, TOKEN_VERIFIER, IAM_REPOSITORY, ADAPTIVE_CONTROLS, PERSON_CONTACTS],
 })
 export class IdentityAccessModule implements OnApplicationShutdown {
   constructor(@Inject(IAM_REPOSITORY) private readonly repo: IamRepository | null) {}

@@ -22,7 +22,8 @@ const ids = new Set();
 const methods = ['get', 'put', 'post', 'delete', 'patch', 'head', 'options'];
 for (const [path, item] of Object.entries(doc.paths ?? {})) {
   if (path === '/metrics' || path.startsWith('/metrics/')) problems.push(`${path}: internal endpoint in the public contract`);
-  if (!path.startsWith('/v1/') && !path.startsWith('/health')) problems.push(`${path}: business paths must be versioned under /v1`);
+  // Discovery documents live where their standards put them (RFC 8615 /.well-known/; OpenID4VCI 1.0 §12.2.2, RFC 8414 §3).
+  if (!path.startsWith('/v1/') && !path.startsWith('/health') && !path.startsWith('/.well-known/')) problems.push(`${path}: business paths must be versioned under /v1`);
   for (const m of methods) {
     const op = item[m];
     if (!op) continue;

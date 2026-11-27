@@ -107,6 +107,14 @@ export class IamRepository {
     });
   }
 
+  /** The person's active citizen account (its Keycloak user id) and preferred language, for notices from other modules. */
+  citizenAccount(personId: string): Promise<{ subject: string; preferredLocale: string } | null> {
+    return this.asPerson(personId, async (c) => {
+      const r = await c.query("select a.subject, p.preferred_locale from iam.account a join iam.person p on p.id = a.person_id where a.realm = 'citizens' and a.status = 'active' order by a.created_at limit 1");
+      return r.rows[0] ? { subject: r.rows[0].subject, preferredLocale: r.rows[0].preferred_locale } : null;
+    });
+  }
+
   updateMe(personId: string, patch: { preferredLocale?: string; accessibility?: Record<string, unknown> }): Promise<void> {
     return this.asPerson(personId, async (c) => {
       await c.query(

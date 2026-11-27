@@ -110,3 +110,4 @@ export function generate(opts: SyntheticOptions, loaded: LoadedPack = loadCountr
   }
   return { generatedWith: { seed: opts.seed, packId: pack.packId, packDigest: digest, today }, tenants, customers, cases };
 }
+export { BRANCH_CITIES, FAMILY_NAMES, GIVEN_NAMES } from './names';
