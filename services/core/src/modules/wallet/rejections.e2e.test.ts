@@ -1,7 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { randomUUID } from 'node:crypto';
 import { after, before, describe, it } from 'node:test';
-import { b64u, issueCredential, type Issued, peekJws, present, softwareKey } from '@civora/credentials';
+import { b64u, CIVORA_CLAIMS_CONTEXT, issueCredential, type Issued, peekJws, present, softwareKey, toVcdm2, verifyCredential } from '@civora/credentials';
 import { Holder, MemoryCredentialStore, MemoryKeyStore, PresentationRequests } from '@civora/holder';
 import { display, hsmInstalled, mappedFetch, PUBLIC, startWalletCell, type WalletCell } from './testkit.test.helper';
 
@@ -189,6 +189,22 @@ describe('the verifier refuses revoked, suspended, expired and tampered credenti
     }
     if (process.env.E2E_LOG) console.log(rows.join('\n'));
     assert.equal(rows.length, cases.length * 2);
+  });
+
+  it('the W3C VC 2.0 view (P4-A3): the cell serves the JSON-LD context; a credential the cell issued maps to VCDM 2.0', async () => {
+    const res = await fetch(`${cell.base}/v1/contexts/civora-claims-v1.jsonld`);
+    assert.equal(res.status, 200);
+    assert.equal(res.headers.get('content-type'), 'application/ld+json');
+    assert.equal(res.headers.get('access-control-allow-origin'), '*');
+    assert.deepEqual(await res.json(), JSON.parse(JSON.stringify(CIVORA_CLAIMS_CONTEXT)));
+    const h = await heldCredential();
+    const { q, vp } = await h.vp();
+    const v = await verifyCredential(vp, { issuerKey: async () => (await cell.admin.query("select public_jwk from wallet.issuer where slug = 'demo-civil-registry'")).rows[0].public_jwk,
+      keyBinding: { aud: VERIFIER, nonce: q.nonce }, acceptedVct: [VCT] });
+    const doc = toVcdm2(v, `${PUBLIC}/v1/contexts/civora-claims-v1.jsonld`);
+    assert.deepEqual(doc.type, ['VerifiableCredential', 'ResidenceCertificate']);
+    assert.equal(doc.issuer, ISSUER);
+    assert.deepEqual(Object.keys(doc.credentialSubject as object).sort(), ['address', 'given_name'], 'the disclosed claims only (address/country is always disclosed)');
   });
 
   it('status: revoked, suspended, and an issuer that is suspended by the cell; a status list of another issuer', async () => {

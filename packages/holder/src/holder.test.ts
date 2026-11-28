@@ -2,7 +2,7 @@ import { strict as assert } from 'node:assert';
 import { randomBytes } from 'node:crypto';
 import { describe, it } from 'node:test';
 import { CredentialError } from '@civora/credentials';
-import { backupKeyId, decryptBackup, encryptBackup, parseOffer, PRE_AUTH_GRANT, wellKnown } from './holder';
+import { backupKeyId, decryptBackup, encryptBackup, Holder, MemoryCredentialStore, MemoryKeyStore, parseOffer, PRE_AUTH_GRANT, wellKnown } from './holder';
 
 const offerUri = (o: unknown) => `openid-credential-offer://?credential_offer=${encodeURIComponent(JSON.stringify(o))}`;
 const good = {
@@ -24,6 +24,21 @@ describe('holder library (P4-D2): offers, well-known URIs, encrypted backups', (
     refused(() => parseOffer('https://wallet.civora-cell.invalid/offer'));
     refused(() => parseOffer('openid-credential-offer://?credential_offer=%7Bnot-json'));
     refused(() => parseOffer(`openid-credential-offer://?credential_offer=${'a'.repeat(9000)}`));
+  });
+
+  it('an issuer that offers a planned format (mso_mdoc, ISO/IEC 18013-5) is refused before anything is requested (P4-A4)', async () => {
+    const calls: string[] = [];
+    const mdl = { ...good, credential_configuration_ids: ['mdl-1'] };
+    const holder = new Holder({
+      keys: new MemoryKeyStore(), store: new MemoryCredentialStore(),
+      fetch: async (url) => {
+        calls.push(url);
+        return { status: 200, text: async () => JSON.stringify({ credential_issuer: good.credential_issuer,
+          credential_configurations_supported: { 'mdl-1': { format: 'mso_mdoc', doctype: 'org.iso.18013.5.1.mDL' } } }) };
+      },
+    });
+    await assert.rejects(holder.accept(offerUri(mdl), '123456'), (e: unknown) => e instanceof CredentialError && e.code === 'format' && /planned/.test(e.message));
+    assert.deepEqual(calls, ['https://wallet.civora-cell.invalid/.well-known/openid-credential-issuer/issuers/demo-civil-registry'], 'only the metadata was read');
   });
 
   it('builds path-based well-known URIs (RFC 8615, OpenID4VCI §12.2.2)', () => {

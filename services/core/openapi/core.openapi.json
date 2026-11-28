@@ -2196,6 +2196,21 @@
         ]
       }
     },
+    "/v1/contexts/civora-claims-v1.jsonld": {
+      "get": {
+        "operationId": "ContextsController_context",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "JSON-LD context of the CIVORA credential claims (schema.org terms), for the W3C VC Data Model 2.0 view",
+        "tags": [
+          "wallet"
+        ]
+      }
+    },
     "/v1/feedback/content-errors": {
       "post": {
         "operationId": "CatalogueController_report",

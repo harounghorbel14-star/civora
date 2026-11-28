@@ -1,5 +1,5 @@
 import { createHash, randomBytes, randomInt } from 'node:crypto';
-import { issueCredential, signStatusList, StatusList } from '@civora/credentials';
+import { issueCredential, signStatusList, StatusList, supportedFormat, type SupportedFormat } from '@civora/credentials';
 import type { ClaimSource } from './demo-source';
 import { ProofError, verifyDpop, verifyKeyProof } from './proofs';
 import type { IssuerSigners, WalletConfig } from './wallet.config';
@@ -18,7 +18,7 @@ import type { CredentialTypeRow, IssuerRow, WalletRepository } from './wallet.re
  * Errors follow OAuth 2.0 / OpenID4VCI (error codes, 400 or 401). Only digests of codes, tokens and nonces are stored.
  */
 export const PRE_AUTH_GRANT = 'urn:ietf:params:oauth:grant-type:pre-authorized_code';
-export const FORMAT = 'dc+sd-jwt';
+export const FORMAT: SupportedFormat = supportedFormat('dc+sd-jwt'); // the format registry (P4-A4, doc phase-4/08)
 
 export class OAuthError extends Error {
   constructor(readonly status: 400 | 401 | 403 | 404 | 429, readonly error: string, readonly description: string, readonly dpop = false) {

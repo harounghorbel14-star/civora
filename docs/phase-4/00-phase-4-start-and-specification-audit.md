@@ -6,7 +6,7 @@
 | Dependencies | "Dependencies: P3; P5 (renewal deep-links)" (Phase 0 §19). **P3:** about 97 % on 27 Nov ([Phase 3 progress](../phase-3/01-progress.md)); what remains (the mobile app and its Detox job, G5, the rest of G4, counter-assisted recovery in Phase 6) does not block the wallet's server side; the holder wallet needs the mobile app (see §4). **P5:** the renewal deep-links point at catalogue service codes; Phase 5 follows Phase 4 in the canonical order, so the deep-link mechanism is built here against the code format and completed when the catalogue exists |
 | Roadmap | The 15 phases are unchanged (canonical order 0 → 15). Phase 4 keeps its full original scope, deliverables and acceptance criteria (P1-D4) |
 | Data | Synthetic credentials only (ADR-025). Demo issuers are simulated; no real registry, ministry or document is used |
-| Status | **In progress** — weeks 1–3 built on 27 Nov 2026: credential library and wallet schema ([01](01-wallet-data-model.md)), issuer keys in the HSM and the key ceremony ([02](02-issuer-keys-and-ceremony.md)), OpenID4VCI issuance and status lists ([03](03-oid4vci-issuance.md)), holder library and wallet entries ([04](04-holder-library-and-wallet-entries.md)); week 4: the OpenID4VP verifier API ([05](05-oid4vp-verification.md)); week 5: expiry reminders with renewal links ([06](06-expiry-reminders.md)); week 6: revocation on request, the rejection suite and fuzzing ([07](07-revocation-rejections-and-fuzzing.md)). Next: conformance (T1), the W3C VC 2.0 mapping (A3), the mDL design record (A4), the verifier web app |
+| Status | **In progress** — weeks 1–3 built on 27 Nov 2026: credential library and wallet schema ([01](01-wallet-data-model.md)), issuer keys in the HSM and the key ceremony ([02](02-issuer-keys-and-ceremony.md)), OpenID4VCI issuance and status lists ([03](03-oid4vci-issuance.md)), holder library and wallet entries ([04](04-holder-library-and-wallet-entries.md)); week 4: the OpenID4VP verifier API ([05](05-oid4vp-verification.md)); week 5: expiry reminders with renewal links ([06](06-expiry-reminders.md)); week 6: revocation on request, the rejection suite and fuzzing ([07](07-revocation-rejections-and-fuzzing.md)), the W3C VC 2.0 view, the format registry and the mDL design record ([08](08-data-models-formats-and-conformance.md)). Next: the verifier web app with QR images and offline mode; conformance (T1) |
 
 ## 1. Original Phase 4 specification (Phase 0 §19, word for word)
 
@@ -104,7 +104,7 @@ Sources: openid.net/specs (OpenID4VCI 1.0, OpenID4VP 1.0, HAIP 1.0), rfc-editor.
 ## 6. Completion estimate (28 Nov 2026, after weeks 1–5 and the first part of week 6)
 
 Each of the 36 work items of §1 (objective, dependency, time, budget and risk lines excluded) scored by what is built
-**and tested**: 0, 25, 50, 75 or 100 %. **Phase 4: about 87 %** (31.25 of 36). Acceptance: **AC1 met** (issue → hold →
+**and tested**: 0, 25, 50, 75 or 100 %. **Phase 4: about 90 %** (32.5 of 36). Acceptance: **AC1 met** (issue → hold →
 present → verify → revoke end to end through the verifier API, doc 05); **AC2 met in the test suite** (doc 07: every
 revoked, suspended, expired, not-yet-valid and tampered case refused through both deciding routes, and API fuzzing
 with no acceptance and no server error). An engineering estimate, not an acceptance decision.
@@ -118,8 +118,8 @@ with no acceptance and no server error). An engineering estimate, not an accepta
 | D5 expiry reminders | 100% | e-mail reminders at each threshold, in the person's language (doc 06); a push notice comes with the mobile app |
 | A1 OpenID4VCI / OpenID4VP | 100% | — (pre-authorised code; direct_post; pre-registered verifiers, Q4-3) |
 | A2 SD-JWT VC | 100% | — |
-| A3 W3C VC 2.0 data model | 25% | the mapping per type is to be written (week 7) |
-| A4 ISO mDL planned | 50% | planned in §2; the format abstraction to be shown in the design record |
+| A3 W3C VC 2.0 data model | 100% | — (the VCDM 2.0 view with a JSON-LD context to schema.org, every claim mapped or refused, doc 08 §1) |
+| A4 ISO mDL planned | 100% | — (format registry with `mso_mdoc` refused as planned, and the design record, doc 08 §2; building it needs the ISO texts, a founder purchase) |
 | A5 keys in HSM (SoftHSM) | 100% | — (production HSM: Q4-2) |
 | F1 offer QR | 75% | offer URI built and parsed; the QR image on the web page with the mobile app |
 | F2 selective disclosure | 100% | — |
@@ -133,7 +133,7 @@ with no acceptance and no server error). An engineering estimate, not an accepta
 | SEC2 replay protection | 100% | codes, tokens, c_nonces, DPoP proofs, presentation nonces and states: each single use |
 | SEC3 key ceremonies | 75% | procedure written and rehearsed with SoftHSM; production ceremony needs Q4-2 |
 | SEC4 no personal data in QR | 100% | offer and presentation QR codes checked by tests |
-| T1 conformance tests | 0% | week 6 |
+| T1 conformance tests | 0% | the OpenID Foundation suite's issuer plan was assessed (doc 08 §3): it needs wallet attestations and a reachable https cell; not run yet |
 | T2 interoperability | 50% | an independent SD-JWT VC implementation as issuer, holder and verifier; an external wallet app week 6 |
 | T3 fuzzing of verifier inputs | 100% | — (library and verifier API, seeded, doc 07 §3) |
 | AC1 end to end | 100% | — |

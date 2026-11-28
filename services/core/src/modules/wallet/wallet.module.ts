@@ -8,6 +8,7 @@ import { ExpiryReminders } from './reminders';
 import { DemoClaimSource } from './demo-source';
 import { Issuance } from './issuance';
 import { CredentialOffersController, Oid4vciController, StatusListsController, WalletWellKnownController } from './oid4vci.controller';
+import { ContextsController } from './contexts.controller';
 import { WalletEntriesController } from './wallet-entries.controller';
 import { HolderRevocationController, OfficerRevocationController } from './revocation.controller';
 import { Oid4vpController } from './oid4vp.controller';
@@ -24,7 +25,7 @@ import { ISSUANCE, OFFICER_TENANT, REMINDERS, VERIFICATION, WALLET_REPOSITORY } 
 @Module({
   imports: [IdentityAccessModule, IntegrationsModule, CatalogueModule],
   controllers: [WalletWellKnownController, CredentialOffersController, Oid4vciController, StatusListsController, WalletEntriesController, Oid4vpController,
-    HolderRevocationController, OfficerRevocationController],
+    HolderRevocationController, OfficerRevocationController, ContextsController],
   providers: [
     { provide: OFFICER_TENANT, useFactory: (): string | null => loadOfficerTenant() },
     {
