@@ -167,6 +167,51 @@ class OfficeDto {
   @ApiProperty({ format: 'date' }) last_verified_on!: string;
 }
 
+class DecisionDto {
+  @ApiProperty({ required: false, description: 'The editor\'s note, 3 to 1000 characters (for instance the version that corrects the page)' }) note?: string;
+}
+
+/** The readers' error reports, for the operator's editors (P5-F4). */
+@ApiTags('catalogue')
+@ApiBearerAuth()
+@UseGuards(IdentityGuard)
+@Controller('v1/admin/content-errors')
+export class CatalogueReportsController {
+  constructor(@Inject(CATALOGUE) private readonly catalogue: Catalogue | null) {}
+
+  private c(): Catalogue {
+    if (!this.catalogue) throw new ServiceUnavailableException('The services directory is not available in this cell');
+    return this.catalogue;
+  }
+
+  @Get()
+  @ApiOperation({ summary: 'Readers\' error reports, newest first (editor): ?status=open|accepted|rejected' })
+  async list(@Req() req: IdentifiedRequest, @Query('status') status?: string): Promise<unknown> {
+    const st: string = typeof status === 'string' ? status : 'open';
+    if ((status !== undefined && typeof status !== 'string') || !['open', 'accepted', 'rejected'].includes(st)) throw new BadRequestException('status is open, accepted or rejected');
+    try { return await this.c().errorReports(editor(req), st as 'open' | 'accepted' | 'rejected'); } catch (e) { rethrow(e); }
+  }
+
+  @Post(':decision')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Decide a report (editor): {id}:accept (the page will be corrected in a new version) or {id}:reject' })
+  @ApiBody({ type: DecisionDto, required: false })
+  async decision(@Req() req: IdentifiedRequest, @Param('decision') target: string, @Body() b?: DecisionDto): Promise<unknown> {
+    const m = /^([0-9a-f-]{36}):(accept|reject)$/.exec(target);
+    if (!m) throw new NotFoundException('no such report action');
+    return this.decide(req, m[1]!, m[2] === 'accept' ? 'accepted' : 'rejected', b);
+  }
+
+  private async decide(req: IdentifiedRequest, id: string, decision: 'accepted' | 'rejected', b?: DecisionDto): Promise<unknown> {
+    const note: string | null = typeof b?.note === 'string' ? b.note.trim() : null;
+    if (b?.note !== undefined && (note === null || note.length < 3 || note.length > 1000)) throw new BadRequestException('note: 3 to 1000 characters');
+    try {
+      await this.c().decideErrorReport(editor(req), id, decision, note);
+      return { id, status: decision };
+    } catch (e) { rethrow(e); }
+  }
+}
+
 /** Editors register offices, each from an official source (P5-F2). */
 @ApiTags('catalogue')
 @ApiBearerAuth()

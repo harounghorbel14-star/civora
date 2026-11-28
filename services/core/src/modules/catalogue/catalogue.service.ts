@@ -130,6 +130,18 @@ export class Catalogue {
     return this.repo.addOffice(o);
   }
 
+  /** The readers' error reports, for the operator's editors (P5-F4). Nothing in them identifies the reader. */
+  async errorReports(e: Editor, status: 'open' | 'accepted' | 'rejected', limit = 50): Promise<Record<string, unknown>[]> {
+    this.require(e, ROLES.editor);
+    return this.repo.errorReports(status, limit);
+  }
+
+  /** An editor's decision on an open report: accepted (a new version will correct the page) or rejected; once only. */
+  async decideErrorReport(e: Editor, id: string, decision: 'accepted' | 'rejected', note: string | null): Promise<void> {
+    this.require(e, ROLES.editor);
+    await this.repo.decideErrorReport(id, e.personId, decision, note);
+  }
+
   offices(governorate?: string): Promise<Record<string, unknown>[]> {
     return this.repo.offices(governorate);
   }

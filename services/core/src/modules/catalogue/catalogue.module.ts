@@ -2,7 +2,7 @@ import { Inject, Module, type OnApplicationShutdown } from '@nestjs/common';
 import { Pool, types } from 'pg';
 import { readSecret } from '../../config/app-config';
 import { IdentityAccessModule } from '../identity-access/public-api';
-import { CatalogueAdminController, CatalogueController, CatalogueOfficesController, CatalogueSourcesController } from './catalogue.controller';
+import { CatalogueAdminController, CatalogueController, CatalogueOfficesController, CatalogueReportsController, CatalogueSourcesController } from './catalogue.controller';
 import { CatalogueRepository } from './catalogue.repository';
 import { Catalogue, loadCatalogueConfig } from './catalogue.service';
 import { CATALOGUE } from './tokens';
@@ -23,7 +23,7 @@ export const catalogueTypes = {
  */
 @Module({
   imports: [IdentityAccessModule],
-  controllers: [CatalogueController, CatalogueAdminController, CatalogueSourcesController, CatalogueOfficesController],
+  controllers: [CatalogueController, CatalogueAdminController, CatalogueSourcesController, CatalogueOfficesController, CatalogueReportsController],
   providers: [
     {
       provide: CATALOGUE,

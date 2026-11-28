@@ -157,6 +157,15 @@ export class CatalogueRepository {
       [o.code, o.name, o.institution, o.governorate, o.address, o.latitude, o.longitude, o.hours ?? null, o.sourceId, o.lastVerifiedOn]))[0]!.id;
   }
 
+  /** Readers' error reports, newest first (P5-F4): the code and version they are about, the message, the decision. */
+  async errorReports(status: 'open' | 'accepted' | 'rejected', limit: number): Promise<Record<string, unknown>[]> {
+    return this.q('select id, code, slug, version, message, status, created_at, handled_at, note from catalogue.list_error_reports($1, $2)', [status, limit]);
+  }
+
+  async decideErrorReport(id: string, actor: string, decision: 'accepted' | 'rejected', note: string | null): Promise<void> {
+    await this.q('select catalogue.decide_error_report($1, $2, $3, $4)', [id, actor, decision, note]);
+  }
+
   async close(): Promise<void> {
     await this.pool.end();
   }

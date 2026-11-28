@@ -175,6 +175,27 @@ describe('services directory, end to end (Phase 5)', { skip }, () => {
     assert.equal((await http('POST', '/v1/feedback/content-errors', undefined, { service_code: 'TN-NOPE-1', version: 1, message: 'no such service here' })).status, 404);
   });
 
+  it('error reports (P5-F4): only the operator\'s editors list and decide them; a version never published is refused', async () => {
+    assert.equal((await http('POST', '/v1/feedback/content-errors', undefined, { service_code: 'TN-TST-002', version: 9, message: 'A version that was never published.' })).status, 404);
+    assert.equal((await http('GET', '/v1/admin/content-errors', await sign(`citizen-${randomUUID()}`))).status, 403);
+    assert.equal((await http('GET', '/v1/admin/content-errors', await sign(`staff-${randomUUID()}`, { tenant: randomUUID(), roles: ['catalogue-editor'] }))).status, 403);
+    assert.equal((await http('GET', '/v1/admin/content-errors')).status, 401);
+    assert.equal((await http('GET', '/v1/admin/content-errors?status=closed', await editor())).status, 400);
+    const open = await http('GET', '/v1/admin/content-errors', await editor());
+    assert.equal(open.status, 200, JSON.stringify(open.body));
+    const report = (open.body as { id: string; code: string; version: number; message: string }[]).find((r) => r.code === 'TN-TST-002' && r.version === 2);
+    assert.ok(report && report.message.includes('montant'), 'the report sent earlier in this run');
+    assert.deepEqual(Object.keys(report!).sort(), ['code', 'created_at', 'handled_at', 'id', 'message', 'note', 'slug', 'status', 'version'], 'nothing about the reader');
+    assert.equal((await http('POST', `/v1/admin/content-errors/${report!.id}:accept`, await editor(), { note: 'x' })).status, 400, 'a note of 3 characters at least');
+    const ok = await http('POST', `/v1/admin/content-errors/${report!.id}:accept`, await editor(), { note: 'Corrected in the next version.' });
+    assert.equal(ok.status, 200, JSON.stringify(ok.body));
+    assert.equal((await http('POST', `/v1/admin/content-errors/${report!.id}:reject`, await editor())).status, 409, 'decided once');
+    assert.equal((await http('POST', `/v1/admin/content-errors/${randomUUID()}:reject`, await editor())).status, 404);
+    assert.equal((await http('POST', `/v1/admin/content-errors/${report!.id}:maybe`, await editor())).status, 404);
+    const accepted = (await http('GET', '/v1/admin/content-errors?status=accepted', await editor())).body as { id: string; note: string }[];
+    assert.deepEqual(accepted.map((r) => [r.id, r.note]), [[report!.id, 'Corrected in the next version.']]);
+  });
+
   it('offices (P5-F2): editors register them from a source; the list carries the source and the exact date, in the cell\'s time zone', async () => {
     const office = { code: 'tunis-e2e-office', name: ar('مكتب اختبار', 'Bureau de test'), institution: ar('بلدية', 'Municipalité'), governorate: 'Tunis',
       address: ar('عنوان تجريبي', 'Adresse de test'), latitude: 36.8, longitude: 10.18, hours: ar('8:00–17:00', '8 h – 17 h'), source_id: sourceId, last_verified_on: '2026-11-22' };

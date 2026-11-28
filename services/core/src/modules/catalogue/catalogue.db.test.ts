@@ -124,4 +124,19 @@ describe('catalogue schema (Phase 5, P5-DB1..DB6)', { skip: !adminUrl && 'TEST_D
     await fails("select catalogue.report_error('TN-TST-001', 2, 'no')", [], /violates check/);
     await fails('select * from catalogue.content_error_report', [], /permission denied/);
   });
+
+  it('reports name a published version; editors list them and decide each once (P5-F4, migration 1765324800000)', async () => {
+    await fails("select catalogue.report_error('TN-TST-001', 9, 'a version that was never published')", [], /no such published version/);
+    const id = (await app.query("select catalogue.report_error('TN-TST-001', 1, 'La version 1 indiquait un ancien montant') as id")).rows[0].id;
+    const open = (await app.query("select id, code, version, status from catalogue.list_error_reports('open', 50)")).rows;
+    assert.ok(open.some((r) => r.id === id && r.code === 'TN-TST-001' && r.version === 1 && r.status === 'open'), 'a superseded version can be reported');
+    assert.equal(open.length, 2, 'both open reports');
+    await app.query("select catalogue.decide_error_report($1, $2, 'accepted', 'corrected in version 2')", [id, approver]);
+    await fails("select catalogue.decide_error_report($1, $2, 'rejected', null)", [id, approver], /already been decided/);
+    await fails("select catalogue.decide_error_report($1, $2, 'maybe', null)", [id, approver], /accepted or rejected/);
+    await fails("select catalogue.decide_error_report(gen_random_uuid(), $1, 'accepted', null)", [approver], /no such report/);
+    const done = (await app.query("select id, status, note, handled_at is not null as handled from catalogue.list_error_reports('accepted', 50)")).rows;
+    assert.deepEqual(done, [{ id, status: 'accepted', note: 'corrected in version 2', handled: true }]);
+    assert.equal((await app.query("select count(*)::int as n from catalogue.list_error_reports('open', 50)")).rows[0].n, 1);
+  });
 });
