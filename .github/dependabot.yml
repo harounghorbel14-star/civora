@@ -1,16 +1,24 @@
 # Dependency updates (ADR-027). Weekly, grouped, reviewed like any change (two approvals once the team allows).
+# Cooldown: only releases at least 14 days old are proposed (the project's pinning rule). Packages that must move
+# together are grouped (CodeQL's init and analyze must be the same release; OpenTelemetry packages share versions).
 version: 2
 updates:
   - package-ecosystem: npm
     directory: /
     schedule: { interval: weekly, day: monday, time: "06:00", timezone: Africa/Tunis }
     open-pull-requests-limit: 5
+    cooldown: { default-days: 14 }
     groups:
       nestjs: { patterns: ["@nestjs/*"] }
+      opentelemetry: { patterns: ["@opentelemetry/*"] }
       types: { patterns: ["@types/*"] }
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: weekly }
+    cooldown: { default-days: 14 }
+    groups:
+      codeql: { patterns: ["github/codeql-action*"] }
   - package-ecosystem: docker
     directory: /services/core
     schedule: { interval: weekly }
+    cooldown: { default-days: 14 }

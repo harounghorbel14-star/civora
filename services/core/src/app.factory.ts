@@ -4,6 +4,7 @@ import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule, type OpenAPIObject } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { ProblemDetailsFilter } from './common/problem-details.filter';
+import { RouteTemplateGuard } from './tracing/route-template';
 
 /** Structured JSON logs (ADR-011). Never logs request bodies, headers or personal data. */
 export class JsonLogger implements LoggerService {
@@ -22,6 +23,7 @@ export async function createApp(opts: { logger?: LoggerService | false } = {}): 
   const http = app.getHttpAdapter().getInstance() as { disable?: (name: string) => void };
   http.disable?.('x-powered-by');
   app.useGlobalFilters(new ProblemDetailsFilter());
+  app.useGlobalGuards(new RouteTemplateGuard()); // never refuses: the route template for tracing (src/tracing/route-template.ts)
   app.enableShutdownHooks();
   return app;
 }
