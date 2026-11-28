@@ -4,3 +4,5 @@ export { type CredentialInput, issueCredential, NEVER_DISCLOSABLE, type StatusRe
 export { type Bits, signStatusList, STATUS, STATUS_LIST_TYP, StatusList, statusFromToken } from './status-list';
 export { softwareKey, type SoftwareKey } from './keys';
 export { type Pkcs11KeyConfig, pkcs11PublicJwk, pkcs11Signer, type Pkcs11Signer } from './pkcs11';
+export { FORMATS, type FormatId, supportedFormat, type SupportedFormat } from './formats';
+export { CIVORA_CLAIMS_CONTEXT, CIVORA_CLAIMS_CONTEXT_PATH, toVcdm2, VCDM2_BASE_CONTEXT, vcdm2TypeName } from './vcdm2';

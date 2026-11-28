@@ -118,6 +118,11 @@ export class WalletRepository {
     return r.rows.map(type);
   }
 
+  async typeByVct(vct: string): Promise<CredentialTypeRow | null> {
+    const r = await this.pool.query('select * from wallet.credential_type where vct = $1', [vct]);
+    return r.rows[0] ? type(r.rows[0]) : null;
+  }
+
   async typeById(id: string): Promise<CredentialTypeRow | null> {
     const r = await this.pool.query('select * from wallet.credential_type where id = $1', [id]);
     return r.rows[0] ? type(r.rows[0]) : null;
@@ -226,6 +231,39 @@ export class WalletRepository {
     } : null;
   }
 
+  // ---------------------------------------------------------------- revocation on request (P4-F5; doc phase-4/07)
+
+  /** The credentials issued to this person (row-level security), newest first: type, issuer, status, dates. */
+  async issuedTo(personId: string): Promise<IssuedView[]> {
+    return this.asPerson(personId, async (c) => (await c.query(`select ic.id, ct.vct, i.slug as issuer, ic.status, ic.status_reason, ic.issued_at, ic.expires_at, ic.status_changed_at
+        from wallet.issued_credential ic join wallet.credential_type ct on ct.id = ic.credential_type_id join wallet.issuer i on i.id = ic.issuer_id
+       order by ic.issued_at desc`)).rows.map(issuedView));
+  }
+
+  /** The holder revokes one of their credentials; another person's is 'unknown'; revoking twice is a 'conflict'. */
+  async holderRevoke(personId: string, issuedId: string, reason: string): Promise<'revoked' | 'unknown' | 'conflict' | 'invalid'> {
+    try {
+      await this.asPerson(personId, (c) => c.query('select wallet.holder_revoke($1, $2)', [issuedId, reason]));
+      return 'revoked';
+    } catch (e) {
+      return statusError(e);
+    }
+  }
+
+  async officerView(issuedId: string): Promise<(IssuedView & { history: unknown[] }) | null> {
+    const r = (await this.pool.query('select * from wallet.issued_credential_view($1)', [issuedId])).rows[0];
+    return r ? { ...issuedView(r), history: r.history } : null;
+  }
+
+  async officerSetStatus(issuedId: string, status: 'valid' | 'suspended' | 'revoked', reason: string, officer: string): Promise<'done' | 'unknown' | 'conflict' | 'invalid'> {
+    try {
+      await this.pool.query('select wallet.officer_set_status($1, $2, $3, $4)', [issuedId, status, reason, officer]);
+      return 'done';
+    } catch (e) {
+      return statusError(e);
+    }
+  }
+
   async createPresentationRequest(clientId: string, tenantId: string | null, personId: string, nonce: string, state: string, vct: string, claims: string[], ttlSeconds: number):
     Promise<{ requestId: string; expiresAt: Date } | 'forbidden' | 'unknown'> {
     try {
@@ -287,4 +325,22 @@ export class WalletRepository {
   async close(): Promise<void> {
     await this.pool.end();
   }
+}
+
+export interface IssuedView {
+  id: string; vct: string; issuer: string; status: 'valid' | 'suspended' | 'revoked'; statusReason: string | null;
+  issuedAt: Date; expiresAt: Date; statusChangedAt: Date | null;
+}
+
+const issuedView = (r: Record<string, any>): IssuedView => ({
+  id: r.id, vct: r.vct, issuer: r.issuer, status: r.status, statusReason: r.status_reason, issuedAt: r.issued_at, expiresAt: r.expires_at, statusChangedAt: r.status_changed_at,
+});
+
+/** The schema's answers to a status change: not this person's or not found, already in that state or revoked, a reason that does not fit. */
+function statusError(e: unknown): 'unknown' | 'conflict' | 'invalid' {
+  const code = (e as { code?: string }).code;
+  if (code === '23503') return 'unknown';
+  if (code === '55000') return 'conflict';
+  if (code === '22023' || code === '22P02') return 'invalid';
+  throw e;
 }

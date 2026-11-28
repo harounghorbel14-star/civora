@@ -5,7 +5,7 @@
 | Specification items | P4-D5 expiry reminders, P4-F6 renewal deep-links to the official service (dependency: Phase 5's catalogue) |
 | Built | 27 Nov 2026 (week 5) |
 | Code | `services/core/src/modules/wallet/reminders.ts`; migration `1765152000000_wallet-reminders.sql`; `PersonContacts` in identity-access's public API (`person-contacts.ts`) |
-| Tests | `reminders.test.ts` (messages, languages, links, failures; 3); `wallet.db.test.ts` "expiry reminders" (thresholds on PostgreSQL as the least-privilege role) |
+| Tests | `reminders.test.ts` (messages, languages, links, failures; 4 since 28 Nov); `wallet.db.test.ts` "expiry reminders" (thresholds on PostgreSQL as the least-privilege role) |
 
 ## 1. How it works
 
@@ -21,8 +21,9 @@
 - The message (ar, fr or en) names the credential type and the expiry date, with the days left. **No claim of the
   credential**: the cell does not hold them.
 - **Renewal deep-link (P4-F6)**: when the type names a renewal service, the message links to
-  `<WALLET_APP_ORIGIN>/<lang>/services/<slug>`, the service's page in the catalogue (Phase 5). Without one, it tells
-  the person to contact the issuer.
+  `<WALLET_APP_ORIGIN>/<lang>/services/<slug>/`, the service's page in the catalogue (Phase 5), **if the catalogue
+  publishes that page** (28 Nov: checked through the catalogue's public API, [07 §4](07-revocation-rejections-and-fuzzing.md)).
+  Without one, it tells the person to contact the issuer.
 - A failed send is not recorded and is tried again at the next pass; a person without a reachable address is recorded
   as handled, so the lookup is not repeated every hour.
 

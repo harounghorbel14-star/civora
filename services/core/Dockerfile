@@ -3,6 +3,8 @@
 # Base images are pinned by tag here; CI pins them by digest (renovate keeps digests current).
 # Optional: behind a TLS-inspecting proxy (common in bank on-premises networks), pass its CA as a build secret:
 #   docker build --secret id=proxy_ca,src=/path/ca.crt ...   (never baked into the image)
+# Node 25 and later no longer bundle corepack: pnpm (the version of package.json's packageManager) comes from npm,
+# which checks the registry's integrity hash; npm itself is removed from the runtime image below.
 FROM node:26-alpine AS build
 WORKDIR /repo
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.base.json .npmrc ./
@@ -13,7 +15,7 @@ COPY apps/directory ./apps/directory
 COPY services/core ./services/core
 RUN --mount=type=secret,id=proxy_ca,required=false \
     export NODE_EXTRA_CA_CERTS=/run/secrets/proxy_ca; [ -f /run/secrets/proxy_ca ] || unset NODE_EXTRA_CA_CERTS; \
-    corepack enable && corepack prepare pnpm@10.28.0 --activate && \
+    npm install --global --ignore-scripts pnpm@10.28.0 && \
     pnpm install --frozen-lockfile --filter @civora/core... \
  && pnpm --filter @civora/core... run build \
  && pnpm --filter @civora/country-packs run verify \

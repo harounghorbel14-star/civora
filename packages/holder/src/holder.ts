@@ -1,5 +1,5 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID } from 'node:crypto';
-import { b64u, CredentialError, disclosuresOf, parse, peekJws, present, selectDisclosures, type Signer, softwareKey, statusFromToken, verifyCredential, type VerifiedCredential, verifyJws } from '@civora/credentials';
+import { b64u, CredentialError, disclosuresOf, parse, peekJws, present, selectDisclosures, type Signer, softwareKey, statusFromToken, supportedFormat, verifyCredential, type VerifiedCredential, verifyJws } from '@civora/credentials';
 import type { JWK } from 'jose';
 
 /**
@@ -145,7 +145,9 @@ export class Holder {
     const meta = await this.json(wellKnown(offer.issuer, 'openid-credential-issuer'));
     if (meta.status !== 200 || meta.body.credential_issuer !== offer.issuer) throw new CredentialError('issuer', 'issuer metadata missing or for another issuer');
     const config = meta.body.credential_configurations_supported?.[configId];
-    if (!config || config.format !== 'dc+sd-jwt' || typeof config.vct !== 'string') throw new CredentialError('issuer', 'unsupported credential configuration');
+    if (!config) throw new CredentialError('issuer', 'unsupported credential configuration');
+    supportedFormat(config.format); // planned formats (mso_mdoc) are refused with a message that says so (P4-A4)
+    if (typeof config.vct !== 'string') throw new CredentialError('issuer', 'unsupported credential configuration');
     const as = await this.json(wellKnown(offer.issuer, 'oauth-authorization-server'));
     const tokenEndpoint = as.body.token_endpoint;
     if (as.status !== 200 || as.body.issuer !== offer.issuer || typeof tokenEndpoint !== 'string') throw new CredentialError('issuer', 'no authorization server metadata');
@@ -308,7 +310,8 @@ export class PresentationRequests {
     if (!Array.isArray(creds) || creds.length !== 1) throw new CredentialError('request', 'exactly one credential query is supported');
     const cq = creds[0] as { id?: unknown; format?: unknown; meta?: { vct_values?: unknown }; claims?: { path?: unknown }[] };
     const vct = cq.meta?.vct_values;
-    if (typeof cq.id !== 'string' || cq.format !== 'dc+sd-jwt' || !Array.isArray(vct) || !vct.every((x) => typeof x === 'string')) throw new CredentialError('request', 'unsupported credential query');
+    if (typeof cq.id !== 'string' || !Array.isArray(vct) || !vct.every((x) => typeof x === 'string')) throw new CredentialError('request', 'unsupported credential query');
+    supportedFormat(cq.format);
     if (!Array.isArray(cq.claims) || cq.claims.length < 1) throw new CredentialError('request', 'the verifier must name the claims it needs');
     const claims = cq.claims.map((c) => {
       if (!Array.isArray(c.path) || !c.path.every((x) => typeof x === 'string')) throw new CredentialError('request', 'claim paths are lists of names');

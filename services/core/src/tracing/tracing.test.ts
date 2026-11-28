@@ -88,11 +88,14 @@ describe('exported traces contain no request data (e2e)', () => {
       headers: { 'accept-language': 'ar', 'x-customer-email': 'person@synthetic.invalid', 'user-agent': 'synthetic-agent/1.0' },
     });
     await fetch(`http://127.0.0.1:${appPort}/v1/unknown/99123456`);
-    for (let i = 0; i < 50 && !bodies.join('').includes('/v1/meta/locales'); i++) await new Promise((r) => setTimeout(r, 100));
+    // A route with a parameter, turned away by its own guard (no token): the template is still recorded, not the id.
+    await fetch(`http://127.0.0.1:${appPort}/v1/oid4vp/requests/7d3f1a2b-4c5d-4e6f-8a9b-0c1d2e3f4a5b`);
+    for (let i = 0; i < 50 && !(bodies.join('').includes('/v1/meta/locales') && bodies.join('').includes('/v1/oid4vp/requests/:id')); i++) await new Promise((r) => setTimeout(r, 100));
     const all = bodies.join('\n');
     assert.ok(all.includes('civora-core'), 'service.name exported');
     assert.ok(all.includes('/v1/meta/locales'), 'route template exported');
-    for (const secret of ['99123456', '21601234567', 'synthetic.invalid', 'synthetic-agent', '127.0.0.1', 'cin=', 'phone=']) {
+    assert.ok(all.includes('/v1/oid4vp/requests/:id'), 'the template of a parameterised route, even when its guard refuses');
+    for (const secret of ['7d3f1a2b-4c5d-4e6f-8a9b-0c1d2e3f4a5b', '99123456', '21601234567', 'synthetic.invalid', 'synthetic-agent', '127.0.0.1', 'cin=', 'phone=']) {
       assert.ok(!all.includes(secret), `exported spans must not contain "${secret}"`);
     }
     assert.ok(!/"\/health"/.test(all), 'health checks are not traced');

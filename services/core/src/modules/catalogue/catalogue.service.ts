@@ -97,6 +97,11 @@ export class Catalogue {
     };
   }
 
+  /** Whether /<lang>/services/<slug>/ is a published page (the wallet's renewal links, P4-F6). */
+  servicePagePublished(slug: string): Promise<boolean> {
+    return /^[a-z0-9][a-z0-9-]{1,62}$/.test(slug) ? this.repo.isPublishedSlug(slug) : Promise.resolve(false);
+  }
+
   list(category?: string): Promise<PublishedService[]> {
     return this.repo.list(category);
   }

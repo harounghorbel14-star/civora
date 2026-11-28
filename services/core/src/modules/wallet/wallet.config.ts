@@ -66,3 +66,16 @@ export class IssuerSigners {
     return signer;
   }
 }
+
+/**
+ * The institution whose staff (role credential-officer) may suspend, reinstate and revoke issued credentials
+ * (P4-F5; doc phase-4/07): the cell operator, as the demo issuers are its own (Q4-1). Required outside dev and test.
+ */
+export function loadOfficerTenant(env: NodeJS.ProcessEnv = process.env): string | null {
+  const t = (env.WALLET_OFFICER_TENANT ?? '').trim() || null;
+  // Only a cell with the wallet on has officers to restrict; without the wallet the routes answer 503 anyway.
+  const walletOn = !!(env.WALLET_PUBLIC_URL ?? '').trim();
+  if (!t && walletOn && !['dev', 'test'].includes(env.CIVORA_ENV ?? 'dev')) throw new Error('WALLET_OFFICER_TENANT is required when the wallet is on, outside dev and test');
+  if (t && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(t)) throw new Error('WALLET_OFFICER_TENANT must be the issuing institution\'s tenant id (a UUID)');
+  return t;
+}

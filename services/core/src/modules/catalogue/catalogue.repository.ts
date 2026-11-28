@@ -67,6 +67,11 @@ export class CatalogueRepository {
     return rows.map(published);
   }
 
+  /** Whether a service page is published at this address (the slug), for links from other modules. */
+  async isPublishedSlug(slug: string): Promise<boolean> {
+    return (await this.q("select 1 from catalogue.published_version where slug = $1 and state = 'published'", [slug])).length === 1;
+  }
+
   async byCode(code: string, version?: number): Promise<PublishedService | null> {
     const rows = version === undefined
       ? await this.q("select * from catalogue.published_version where (code = $1 or slug = $1) and state = 'published'", [code])

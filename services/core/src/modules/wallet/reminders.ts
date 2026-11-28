@@ -5,7 +5,8 @@ import type { MessagingChannel } from '../integrations/public-api';
  * Expiry reminders (P4-D5) with a renewal deep-link (P4-F6; doc phase-4/06). For each wallet entry, every reminder
  * threshold of its type (days before expiry; 30 and 7 for types of other issuers) is sent once, in the person's
  * language, to the e-mail address of their citizen account. The link opens the renewal service's page in the
- * catalogue (Phase 5) when the type names one. The message names the type and the date only: no claim of the
+ * catalogue (Phase 5, /<lang>/services/<slug>/) when the type names one and that page is published: a link is never
+ * sent to a page that does not exist (the message then says to contact the issuer). The message names the type and the date only: no claim of the
  * credential (the cell does not hold them).
  */
 export interface DueReminder {
@@ -50,6 +51,8 @@ export class ExpiryReminders {
     messaging: MessagingChannel;
     /** Origin of the citizen web app (the catalogue's service pages, Phase 5). */
     appOrigin: string;
+    /** Whether the catalogue publishes a page at this slug (catalogue public API); false when the cell has none. */
+    servicePage: (slug: string) => Promise<boolean>;
     log(entry: Record<string, unknown>): void;
     now?: () => number;
   }) {}
@@ -57,6 +60,7 @@ export class ExpiryReminders {
   /** One pass: sends what is due (at most `limit`); a failed send is retried on the next pass. */
   async runOnce(limit = 200): Promise<{ sent: number; noContact: number; failed: number }> {
     const out = { sent: 0, noContact: 0, failed: 0 };
+    const pages = new Map<string, boolean>(); // one look-up per slug and pass
     for (const r of await this.d.due(limit)) {
       try {
         const contact = await this.d.contacts.contactOf(r.personId);
@@ -72,7 +76,8 @@ export class ExpiryReminders {
         const days = Math.max(1, Math.ceil((r.expiresAt.getTime() - now) / 86_400_000));
         const date = new Intl.DateTimeFormat(lang === 'ar' ? 'ar-TN' : lang === 'fr' ? 'fr-TN' : 'en-GB', { dateStyle: 'long', timeZone: 'Africa/Tunis' }).format(r.expiresAt);
         const type = r.display?.[lang] ?? t.fallbackType;
-        const link = r.renewalServiceSlug ? `${this.d.appOrigin}/${lang}/services/${encodeURIComponent(r.renewalServiceSlug)}` : null;
+        const link = r.renewalServiceSlug && (await this.pagePublished(r.renewalServiceSlug, pages))
+          ? `${this.d.appOrigin}/${lang}/services/${encodeURIComponent(r.renewalServiceSlug)}/` : null;
         const text = `${t.body.replace('{type}', type).replace('{date}', date).replace('{days}', String(days))}\n\n${link ? t.renew.replace('{link}', link) : t.ask}`;
         await this.d.messaging.send({ to: contact.email, subject: t.subject, text, purpose: 'wallet-expiry-reminder', correlationId: r.entryId });
         await this.d.mark(r.entryId, r.threshold);
@@ -84,5 +89,20 @@ export class ExpiryReminders {
     }
     if (out.sent || out.noContact || out.failed) this.d.log({ event: 'wallet.reminders', ...out });
     return out;
+  }
+
+  /** A renewal page that is not published (or cannot be checked) is logged and left out of the message. */
+  private async pagePublished(slug: string, cache: Map<string, boolean>): Promise<boolean> {
+    let ok = cache.get(slug);
+    if (ok === undefined) {
+      try {
+        ok = await this.d.servicePage(slug);
+      } catch {
+        ok = false;
+      }
+      cache.set(slug, ok);
+      if (!ok) this.d.log({ event: 'wallet.reminder', outcome: 'renewal-page-not-published', slug });
+    }
+    return ok;
   }
 }

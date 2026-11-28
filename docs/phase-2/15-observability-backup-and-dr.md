@@ -29,7 +29,7 @@ flowchart LR
 |---|---|---|
 | Metrics | Counters and histograms; labels limited to service, route template, status class, tenant id. **No user ids, no free text** | 13 months |
 | Logs | Fixed JSON fields: `ts`, `level`, `service`, `context`, `msg`, `requestId`, `tenantId`. **Never** request bodies, headers, tokens, identifiers or content. The skeleton logger already writes only fixed fields | 30 days hot, 1 year archive (in-country) |
-| Traces | Span names from route templates; attribute allow-list in the collector drops everything else | 14 days |
+| Traces | Span names from route templates (recorded by the core's own global guard, `src/tracing/route-template.ts`, since NestJS 12 is not covered by the OpenTelemetry NestJS instrumentation: 28 Nov 2026); attribute allow-list in the collector drops everything else | 14 days |
 | Audit | **Not** an observability signal. It goes to `pg-consent-audit` (hash chain), never to Loki | ≥ 5 years |
 
 **Personal-data guard.**

@@ -111,6 +111,9 @@ export class Verification {
     const iss = payload.iss;
     const issuer = typeof iss === 'string' ? await this.d.repo.issuerByUrl(iss) : null;
     if (!issuer || issuer.status !== 'active') throw new CredentialError('issuer-untrusted', 'the issuer is not trusted by this cell');
+    // Each credential type has one issuer (wallet.credential_type.issuer_id): another trusted issuer cannot mint it.
+    const type = typeof payload.vct === 'string' ? await this.d.repo.typeByVct(payload.vct) : null;
+    if (!type || type.issuerId !== issuer.id) throw new CredentialError('issuer-untrusted', 'this issuer does not issue this credential type');
     if (header.kid !== issuer.kid) throw new CredentialError('signature', 'unknown issuer key');
     return issuer.publicJwk;
   }

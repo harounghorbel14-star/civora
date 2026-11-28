@@ -1322,6 +1322,25 @@
         ],
         "type": "object"
       },
+      "ReasonDto": {
+        "properties": {
+          "reason": {
+            "enum": [
+              "holder-request",
+              "lost-device",
+              "data-changed",
+              "issued-in-error",
+              "under-review",
+              "review-cleared"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "type": "object"
+      },
       "RecoveryAcceptedDto": {
         "properties": {
           "status": {
@@ -2094,6 +2113,74 @@
         ]
       }
     },
+    "/v1/admin/wallet/issued/{action}": {
+      "post": {
+        "operationId": "OfficerRevocationController_act",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "action",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReasonDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "No valid access token, or no recent sign-in (WWW-Authenticate: error=\"insufficient_user_authentication\", max_age)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "{id}:suspend (under-review, lost-device, data-changed), {id}:reinstate (review-cleared), {id}:revoke (final)",
+        "tags": [
+          "wallet"
+        ]
+      }
+    },
+    "/v1/admin/wallet/issued/{id}": {
+      "get": {
+        "operationId": "OfficerRevocationController_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "An issued credential: type, issuer, status, dates, history (no claim values, not the subject)",
+        "tags": [
+          "wallet"
+        ]
+      }
+    },
     "/v1/catalogue/keys": {
       "get": {
         "operationId": "CatalogueController_keys",
@@ -2106,6 +2193,21 @@
         "summary": "The public keys that sign catalogue content (integrity checks)",
         "tags": [
           "catalogue"
+        ]
+      }
+    },
+    "/v1/contexts/civora-claims-v1.jsonld": {
+      "get": {
+        "operationId": "ContextsController_context",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "JSON-LD context of the CIVORA credential claims (schema.org terms), for the W3C VC Data Model 2.0 view",
+        "tags": [
+          "wallet"
         ]
       }
     },
@@ -4260,6 +4362,65 @@
           }
         ],
         "summary": "Remove a wallet entry (and its backup)",
+        "tags": [
+          "wallet"
+        ]
+      }
+    },
+    "/v1/wallet/issued": {
+      "get": {
+        "operationId": "HolderRevocationController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Credentials issued to the signed-in person: type, issuer, status, dates (no claim values)",
+        "tags": [
+          "wallet"
+        ]
+      }
+    },
+    "/v1/wallet/issued/{action}": {
+      "post": {
+        "operationId": "HolderRevocationController_revoke",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "action",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReasonDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "No valid access token, or no recent sign-in (WWW-Authenticate: error=\"insufficient_user_authentication\", max_age)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "{id}:revoke — revoke one of your credentials (reason holder-request or lost-device); final",
         "tags": [
           "wallet"
         ]

@@ -25,8 +25,8 @@ export interface WalletCell {
   app: INestApplication;
   base: string;
   admin: Client;
-  /** A citizen token, or a staff token with tenant_id (and roles). */
-  sign(sub: string, staff?: { tenantId: string; roles?: string[] }): Promise<string>;
+  /** A citizen token, or a staff token with tenant_id (and roles); extra claims (auth_time, acr for step-up). */
+  sign(sub: string, staff?: { tenantId: string; roles?: string[] }, extra?: Record<string, unknown>): Promise<string>;
   /** Makes a key on the token by the ceremony script; returns its public JWK. */
   ceremony(keyId: string, kid: string): Record<string, string>;
   close(): Promise<void>;
@@ -68,8 +68,8 @@ export async function startWalletCell(adminUrl: string, register: (admin: Client
   const { publicKey, privateKey } = await generateKeyPair('ES256');
   const jwksDir = mkdtempSync(join(tmpdir(), 'jwks-'));
   writeFileSync(join(jwksDir, 'jwks.json'), JSON.stringify({ keys: [{ ...(await exportJWK(publicKey)), kid: 'e2e', alg: 'ES256', use: 'sig' }] }));
-  const sign = (sub: string, staff?: { tenantId: string; roles?: string[] }) =>
-    new SignJWT({ typ: 'Bearer', ...(staff ? { tenant_id: staff.tenantId, realm_access: { roles: staff.roles ?? [] } } : {}) })
+  const sign = (sub: string, staff?: { tenantId: string; roles?: string[] }, extra: Record<string, unknown> = {}) =>
+    new SignJWT({ typ: 'Bearer', ...extra, ...(staff ? { tenant_id: staff.tenantId, realm_access: { roles: staff.roles ?? [] } } : {}) })
       .setProtectedHeader({ alg: 'ES256', kid: 'e2e' }).setIssuer(staff ? STAFF : CITIZENS).setAudience('civora-core').setSubject(sub)
       .setIssuedAt().setExpirationTime('5m').sign(privateKey);
   Object.assign(process.env, {
