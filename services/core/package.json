@@ -49,7 +49,7 @@
   "devDependencies": {
     "@civora/directory": "workspace:*",
     "@civora/holder": "workspace:*",
-    "@seriousme/openapi-schema-validator": "2.11.0",
+    "@seriousme/openapi-schema-validator": "2.12.0",
     "@types/express": "5.0.6",
     "@types/node": "26.6.10",
     "@types/pg": "8.23.1",
