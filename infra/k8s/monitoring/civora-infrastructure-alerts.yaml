@@ -1,6 +1,7 @@
 # Infrastructure alerts (docs/phase-2/15-observability-backup-and-dr.md §15.2: Database, Backup, Readiness,
 # Certificates). Application alerts (API availability burn, latency, queue age, security, regulatory deadlines)
-# need application metrics and remain Phase 3 work, as §15.2 states. Unit tests: tests/ (promtool), run by
+# need application metrics and remain Phase 3 work, as §15.2 states; the services directory's integrity and freshness
+# alerts (Phase 5, docs/phase-5/04) are the first application group. Unit tests: tests/ (promtool), run by
 # infra/scripts/test-alert-rules.sh in CI. Severity: page = on-call now; ticket = next working day.
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
@@ -127,3 +128,35 @@ spec:
           labels: { severity: ticket }
           annotations:
             summary: "Certificate {{ $labels.namespace }}/{{ $labels.name }} expires in less than 21 days."
+    # Services directory (Phase 5, doc phase-5/04): the integrity monitor in civora-core. Every core replica runs it and
+    # exports the same gauges, hence `max by (namespace)`.
+    - name: civora-services-directory
+      rules:
+        - alert: CivoraCatalogueIntegrityFailure
+          expr: max by (namespace) (civora_catalogue_integrity_failures) > 0
+          labels: { severity: page }
+          annotations:
+            summary: "Published directory content in {{ $labels.namespace }} no longer matches what was approved and signed: pages may show unapproved text."
+            runbook: "docs/phase-5/04-integrity-and-freshness.md §3"
+        - alert: CivoraCatalogueIntegrityNotRunning
+          expr: time() - max by (namespace) (civora_catalogue_integrity_last_run_timestamp_seconds) > 3 * 3600
+          for: 15m
+          labels: { severity: ticket }
+          annotations:
+            summary: "The directory integrity monitor in {{ $labels.namespace }} has not completed a run for 3 hours."
+            runbook: "docs/phase-5/04-integrity-and-freshness.md §3"
+        - alert: CivoraCatalogueVerificationOverdue
+          # P5-AC2: the median "last verified" age of published services stays under 90 days.
+          expr: max by (namespace) (civora_catalogue_last_verified_median_age_days) >= 90
+          for: 1h
+          labels: { severity: ticket }
+          annotations:
+            summary: "The median last-verified age of published procedures in {{ $labels.namespace }} is 90 days or more (P5-AC2): editors must re-verify against the official sources."
+            runbook: "docs/phase-5/04-integrity-and-freshness.md §4"
+        - alert: CivoraCatalogueStaleServices
+          expr: max by (namespace) (civora_catalogue_stale_services) > 0
+          for: 1d
+          labels: { severity: ticket }
+          annotations:
+            summary: "Some published procedures in {{ $labels.namespace }} were last verified more than 90 days ago."
+            runbook: "docs/phase-5/04-integrity-and-freshness.md §4"

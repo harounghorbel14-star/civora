@@ -9,7 +9,8 @@ import type { INestApplication } from '@nestjs/common';
 import { exportJWK, generateKeyPair, SignJWT } from 'jose';
 import { Client } from 'pg';
 import { buildSite, coreFetcher, loadSnapshot } from '@civora/directory';
-import { verifyContent } from './catalogue.service';
+import { type Catalogue, verifyContent } from './catalogue.service';
+import { CATALOGUE } from './tokens';
 
 // The cell's own time zone (UTC+1): dates must reach pages unshifted (catalogueTypes in catalogue.module.ts).
 // Test files run in their own process, so this changes nothing elsewhere.
@@ -77,7 +78,7 @@ describe('services directory, end to end (Phase 5)', { skip }, () => {
     Object.assign(process.env, {
       CIVORA_ENV: 'test', DATABASE_URL: core, CATALOGUE_DATABASE_URL: pub, OIDC_ISSUER_STAFF: STAFF, OIDC_ISSUER_CITIZENS: CITIZENS, OIDC_LOCAL_JWKS_FILE: join(jwks, 'jwks.json'),
       CATALOGUE_HSM_MODULE: MODULE, CATALOGUE_SIGNING_TOKEN: 'civora-content', CATALOGUE_SIGNING_KEY_ID: '0c', CATALOGUE_SIGNING_KID: 'catalogue-content-1',
-      CATALOGUE_EDITOR_TENANT: OPERATOR, SOFTHSM2_CONF: hsmEnv.SOFTHSM2_CONF, CIVORA_HSM_PIN: hsmEnv.CIVORA_HSM_PIN,
+      CATALOGUE_EDITOR_TENANT: OPERATOR, SOFTHSM2_CONF: hsmEnv.SOFTHSM2_CONF, CIVORA_HSM_PIN: hsmEnv.CIVORA_HSM_PIN, CATALOGUE_INTEGRITY_SECONDS: '0',
     });
     const { createApp } = await import('../../app.factory');
     app = await createApp({ logger: process.env.E2E_LOG ? undefined : false });
@@ -175,6 +176,27 @@ describe('services directory, end to end (Phase 5)', { skip }, () => {
     assert.equal((await http('POST', '/v1/feedback/content-errors', undefined, { service_code: 'TN-NOPE-1', version: 1, message: 'no such service here' })).status, 404);
   });
 
+  it('error reports (P5-F4): only the operator\'s editors list and decide them; a version never published is refused', async () => {
+    assert.equal((await http('POST', '/v1/feedback/content-errors', undefined, { service_code: 'TN-TST-002', version: 9, message: 'A version that was never published.' })).status, 404);
+    assert.equal((await http('GET', '/v1/admin/content-errors', await sign(`citizen-${randomUUID()}`))).status, 403);
+    assert.equal((await http('GET', '/v1/admin/content-errors', await sign(`staff-${randomUUID()}`, { tenant: randomUUID(), roles: ['catalogue-editor'] }))).status, 403);
+    assert.equal((await http('GET', '/v1/admin/content-errors')).status, 401);
+    assert.equal((await http('GET', '/v1/admin/content-errors?status=closed', await editor())).status, 400);
+    const open = await http('GET', '/v1/admin/content-errors', await editor());
+    assert.equal(open.status, 200, JSON.stringify(open.body));
+    const report = (open.body as { id: string; code: string; version: number; message: string }[]).find((r) => r.code === 'TN-TST-002' && r.version === 2);
+    assert.ok(report && report.message.includes('montant'), 'the report sent earlier in this run');
+    assert.deepEqual(Object.keys(report!).sort(), ['code', 'created_at', 'handled_at', 'id', 'message', 'note', 'slug', 'status', 'version'], 'nothing about the reader');
+    assert.equal((await http('POST', `/v1/admin/content-errors/${report!.id}:accept`, await editor(), { note: 'x' })).status, 400, 'a note of 3 characters at least');
+    const ok = await http('POST', `/v1/admin/content-errors/${report!.id}:accept`, await editor(), { note: 'Corrected in the next version.' });
+    assert.equal(ok.status, 200, JSON.stringify(ok.body));
+    assert.equal((await http('POST', `/v1/admin/content-errors/${report!.id}:reject`, await editor())).status, 409, 'decided once');
+    assert.equal((await http('POST', `/v1/admin/content-errors/${randomUUID()}:reject`, await editor())).status, 404);
+    assert.equal((await http('POST', `/v1/admin/content-errors/${report!.id}:maybe`, await editor())).status, 404);
+    const accepted = (await http('GET', '/v1/admin/content-errors?status=accepted', await editor())).body as { id: string; note: string }[];
+    assert.deepEqual(accepted.map((r) => [r.id, r.note]), [[report!.id, 'Corrected in the next version.']]);
+  });
+
   it('offices (P5-F2): editors register them from a source; the list carries the source and the exact date, in the cell\'s time zone', async () => {
     const office = { code: 'tunis-e2e-office', name: ar('مكتب اختبار', 'Bureau de test'), institution: ar('بلدية', 'Municipalité'), governorate: 'Tunis',
       address: ar('عنوان تجريبي', 'Adresse de test'), latitude: 36.8, longitude: 10.18, hours: ar('8:00–17:00', '8 h – 17 h'), source_id: sourceId, last_verified_on: '2026-11-22' };
@@ -206,5 +228,29 @@ describe('services directory, end to end (Phase 5)', { skip }, () => {
     assert.ok(files.has('ar/services/test-extract/v/1/index.html') && files.has('fr/offices/index.html'));
     assert.match(files.get('fr/offices/index.html')!, /Bureau de test/);
     assert.match(fr, new RegExp(`Dernière vérification le ${new Intl.DateTimeFormat('fr-TN', { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(`${page.last_verified_on}T12:00:00Z`))}`));
+  });
+
+  it('integrity monitor (P5-SEC3): the signed versions verify in the HSM key; a row changed in the database is found and reported', async () => {
+    const monitor = app.get<Catalogue>(CATALOGUE).integrity(() => undefined);
+    const clean = await monitor.runOnce();
+    assert.deepEqual([clean.checked, clean.signatures, clean.failures.length, clean.published], [2, 2, 0, 1]);
+    assert.equal(clean.medianAgeDays, 0, 'verified today');
+    // Behind the editorial workflow's back: the owner changes the published fee directly.
+    const u = new URL(adminUrl as string);
+    u.pathname = `/${dbs[1]}`;
+    const owner = new Client({ connectionString: u.toString() });
+    await owner.connect();
+    try {
+      await owner.query("update catalogue.requirement set amount_tnd = 20 where service_id = $1 and version = 2 and kind = 'fee'", [serviceId]);
+      const tampered = await monitor.runOnce();
+      assert.deepEqual(tampered.failures, [{ code: 'TN-TST-002', version: 2, reason: 'digest' }]);
+      const metrics = await (await fetch(`${base}/metrics`)).text();
+      assert.match(metrics, /^civora_catalogue_integrity_failures 1$/m);
+      assert.match(metrics, /^civora_catalogue_integrity_signatures_checked 1$/m, 'the untouched version still verified');
+    } finally {
+      await owner.query("update catalogue.requirement set amount_tnd = 2 where service_id = $1 and version = 2 and kind = 'fee'", [serviceId]);
+      await owner.end();
+    }
+    assert.equal((await monitor.runOnce()).failures.length, 0, 'restored');
   });
 });

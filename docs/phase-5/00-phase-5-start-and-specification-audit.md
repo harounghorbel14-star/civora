@@ -77,10 +77,10 @@
 | 3 | Public pages with static generation (D3, A2) in ar/fr/en; search with Arabic normalisation (D4, A3); office locator (F2) | accessibility checks; search tests in Arabic and French |
 | 4–5 | Curation of ≥ 60 procedures with citations (D5); link checking (T2); content QA checklist (T1); integrity monitoring (SEC3) | AC1, AC2 |
 
-## 5. Completion estimate (27 Nov 2026, after weeks 1–2, the deployment wiring, the public pages, search and error reports)
+## 5. Completion estimate (28 Nov 2026, after weeks 1–3 and the integrity monitor)
 
 Each of the 31 work items of §1 (objective, dependency, time, budget and risk lines excluded) scored by what is built
-**and tested**: 0, 25, 50, 75 or 100 %. **Phase 5: about 75 %** (23.25 of 31), counted the same way as Phases 3 and 4.
+**and tested**: 0, 25, 50, 75 or 100 %. **Phase 5: about 77 %** (23.75 of 31), counted the same way as Phases 3 and 4.
 The count flatters the phase: **neither acceptance criterion is met**, and its main deliverable is not started — no
 procedure has been curated yet (AC1 needs 60 with 100 % citation coverage; AC2 a median last-verified age under
 90 days). An engineering estimate, not an acceptance decision.
@@ -98,12 +98,12 @@ procedure has been curated yet (AC1 needs 60 with 100 % citation coverage; AC2 a
 | F1 service pages | 100% | steps, documents, fees, offices, hours, sources, last verified ([02 §3](02-public-pages.md)) |
 | F2 office locator | 75% | the offices page by governorate with map links, the editors' office API; no office is curated yet (Q5-3) |
 | F3 change history | 100% | — |
-| F4 report an error | 75% | API and the form, without scripts too ([03](03-search-and-error-reports.md)); the editors' list and handling of reports |
+| F4 report an error | 100% | the readers' form ([03](03-search-and-error-reports.md)) and the editors' list and decisions ([04 §5](04-integrity-and-freshness.md)); the screens come with the back office (D2) |
 | DB1–DB6 | 100% each | — |
 | API1–API4 | 100% each | — |
 | SEC1 editorial RBAC | 100% | — |
 | SEC2 signed content versions | 100% | — |
-| SEC3 integrity monitoring | 75% | anyone can check a page; every site build checks every signature and writes nothing otherwise; the scheduled monitor is week 4 |
+| SEC3 integrity monitoring | 100% | anyone can check a page; every site build checks every signature; the scheduled monitor with gauges and alerts ([04](04-integrity-and-freshness.md)) |
 | T1 content QA checklist | 0% | week 4 |
 | T2 link checking | 25% | every internal link checked at each build (tests); the official sources' links week 4 |
 | T3 accessibility | 50% | structure checked on every page (tests); screenshots checked by eye; an automated audit in a browser and a review with assistive-technology users next |

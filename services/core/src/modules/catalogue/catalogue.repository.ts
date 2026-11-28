@@ -118,6 +118,13 @@ export class CatalogueRepository {
     await this.q('select catalogue.submit($1, $2, $3)', [serviceId, version, actor]);
   }
 
+  /** Every published and superseded version with what was fixed at approval (integrity monitor, P5-SEC3). */
+  async signedVersions(): Promise<{ serviceId: string; code: string; version: number; state: string; digest: Buffer; signature: string; lastVerifiedOn: string }[]> {
+    const rows = await this.q('select service_id, code, version, state, content_digest, signature, last_verified_on from catalogue.published_version order by code, version');
+    return rows.map((r) => ({ serviceId: r.service_id, code: r.code, version: r.version, state: r.state, digest: r.content_digest as Buffer, signature: r.signature,
+      lastVerifiedOn: r.last_verified_on instanceof Date ? r.last_verified_on.toISOString().slice(0, 10) : String(r.last_verified_on) }));
+  }
+
   async canonical(serviceId: string, version: number): Promise<string | null> {
     return (await this.q<{ c: string | null }>('select catalogue.canonical_content($1, $2)::text as c', [serviceId, version]))[0]?.c ?? null;
   }
@@ -155,6 +162,15 @@ export class CatalogueRepository {
     hours: unknown; sourceId: string; lastVerifiedOn: string }): Promise<string> {
     return (await this.q<{ id: string }>('select catalogue.add_office($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) as id',
       [o.code, o.name, o.institution, o.governorate, o.address, o.latitude, o.longitude, o.hours ?? null, o.sourceId, o.lastVerifiedOn]))[0]!.id;
+  }
+
+  /** Readers' error reports, newest first (P5-F4): the code and version they are about, the message, the decision. */
+  async errorReports(status: 'open' | 'accepted' | 'rejected', limit: number): Promise<Record<string, unknown>[]> {
+    return this.q('select id, code, slug, version, message, status, created_at, handled_at, note from catalogue.list_error_reports($1, $2)', [status, limit]);
+  }
+
+  async decideErrorReport(id: string, actor: string, decision: 'accepted' | 'rejected', note: string | null): Promise<void> {
+    await this.q('select catalogue.decide_error_report($1, $2, $3, $4)', [id, actor, decision, note]);
   }
 
   async close(): Promise<void> {

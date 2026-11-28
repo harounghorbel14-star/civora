@@ -1,7 +1,11 @@
 import { createHash } from 'node:crypto';
-import { b64u, CredentialError, pkcs11Signer, type Pkcs11Signer, verifyJws } from '@civora/credentials';
+import { b64u, pkcs11Signer, type Pkcs11Signer } from '@civora/credentials';
 import type { JWK } from 'jose';
 import { CatalogueError, type CatalogueRepository, type PublishedService } from './catalogue.repository';
+import { CONTENT_TYP, verifyContent } from './content-signature';
+import { IntegrityMonitor } from './integrity';
+
+export { CONTENT_TYP, verifyContent };
 
 /**
  * The Government Services Directory (Phase 5; docs phase-5/00..02): published content for everyone, and the editorial
@@ -12,7 +16,6 @@ import { CatalogueError, type CatalogueRepository, type PublishedService } from 
  * cell's content key (doc 02); anyone can check a page against the public key served at /v1/catalogue/keys
  * (integrity monitoring, P5-SEC3).
  */
-export const CONTENT_TYP = 'civora-catalogue-content+jws';
 export const ROLES = { editor: 'catalogue-editor', approver: 'catalogue-approver' } as const;
 
 export interface CatalogueConfig {
@@ -130,6 +133,18 @@ export class Catalogue {
     return this.repo.addOffice(o);
   }
 
+  /** The readers' error reports, for the operator's editors (P5-F4). Nothing in them identifies the reader. */
+  async errorReports(e: Editor, status: 'open' | 'accepted' | 'rejected', limit = 50): Promise<Record<string, unknown>[]> {
+    this.require(e, ROLES.editor);
+    return this.repo.errorReports(status, limit);
+  }
+
+  /** An editor's decision on an open report: accepted (a new version will correct the page) or rejected; once only. */
+  async decideErrorReport(e: Editor, id: string, decision: 'accepted' | 'rejected', note: string | null): Promise<void> {
+    this.require(e, ROLES.editor);
+    await this.repo.decideErrorReport(id, e.personId, decision, note);
+  }
+
   offices(governorate?: string): Promise<Record<string, unknown>[]> {
     return this.repo.offices(governorate);
   }
@@ -184,23 +199,13 @@ export class Catalogue {
     return this.repo.reportError(code, version, message);
   }
 
+  /** The integrity monitor over this catalogue's database, with the content key when the cell has one (P5-SEC3). */
+  integrity(log: (entry: Record<string, unknown>) => void): IntegrityMonitor {
+    return new IntegrityMonitor(this.repo, async () => (this.cfg.hsm ? ((await this.keys()).keys[0] ?? null) : null), log);
+  }
+
   close(): Promise<void> {
     return this.repo.close();
   }
 }
 
-/**
- * Checks a published page against its signature (P5-SEC3): the canonical content is rebuilt by the caller (the
- * integrity monitor reads it from the database) and must verify under the content key.
- */
-export async function verifyContent(canonical: string, signature: string, key: JWK): Promise<boolean> {
-  const [h, empty, s] = signature.split('.');
-  if (empty !== '' || !h || !s) return false;
-  try {
-    await verifyJws(`${h}.${b64u(canonical)}.${s}`, key, CONTENT_TYP);
-    return true;
-  } catch (e) {
-    if (e instanceof CredentialError) return false;
-    throw e;
-  }
-}

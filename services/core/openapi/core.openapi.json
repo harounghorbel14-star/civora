@@ -457,6 +457,15 @@
         ],
         "type": "object"
       },
+      "DecisionDto": {
+        "properties": {
+          "note": {
+            "description": "The editor's note, 3 to 1000 characters (for instance the version that corrects the page)",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "EnrolRequest": {
         "properties": {
           "kind": {
@@ -1850,6 +1859,74 @@
         "summary": "Readiness probe",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/v1/admin/content-errors": {
+      "get": {
+        "operationId": "CatalogueReportsController_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Readers' error reports, newest first (editor): ?status=open|accepted|rejected",
+        "tags": [
+          "catalogue"
+        ]
+      }
+    },
+    "/v1/admin/content-errors/{decision}": {
+      "post": {
+        "operationId": "CatalogueReportsController_decision",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "decision",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionDto"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Decide a report (editor): {id}:accept (the page will be corrected in a new version) or {id}:reject",
+        "tags": [
+          "catalogue"
         ]
       }
     },
