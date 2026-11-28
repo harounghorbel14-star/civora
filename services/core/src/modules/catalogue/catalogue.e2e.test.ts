@@ -9,7 +9,8 @@ import type { INestApplication } from '@nestjs/common';
 import { exportJWK, generateKeyPair, SignJWT } from 'jose';
 import { Client } from 'pg';
 import { buildSite, coreFetcher, loadSnapshot } from '@civora/directory';
-import { verifyContent } from './catalogue.service';
+import { type Catalogue, verifyContent } from './catalogue.service';
+import { CATALOGUE } from './tokens';
 
 // The cell's own time zone (UTC+1): dates must reach pages unshifted (catalogueTypes in catalogue.module.ts).
 // Test files run in their own process, so this changes nothing elsewhere.
@@ -77,7 +78,7 @@ describe('services directory, end to end (Phase 5)', { skip }, () => {
     Object.assign(process.env, {
       CIVORA_ENV: 'test', DATABASE_URL: core, CATALOGUE_DATABASE_URL: pub, OIDC_ISSUER_STAFF: STAFF, OIDC_ISSUER_CITIZENS: CITIZENS, OIDC_LOCAL_JWKS_FILE: join(jwks, 'jwks.json'),
       CATALOGUE_HSM_MODULE: MODULE, CATALOGUE_SIGNING_TOKEN: 'civora-content', CATALOGUE_SIGNING_KEY_ID: '0c', CATALOGUE_SIGNING_KID: 'catalogue-content-1',
-      CATALOGUE_EDITOR_TENANT: OPERATOR, SOFTHSM2_CONF: hsmEnv.SOFTHSM2_CONF, CIVORA_HSM_PIN: hsmEnv.CIVORA_HSM_PIN,
+      CATALOGUE_EDITOR_TENANT: OPERATOR, SOFTHSM2_CONF: hsmEnv.SOFTHSM2_CONF, CIVORA_HSM_PIN: hsmEnv.CIVORA_HSM_PIN, CATALOGUE_INTEGRITY_SECONDS: '0',
     });
     const { createApp } = await import('../../app.factory');
     app = await createApp({ logger: process.env.E2E_LOG ? undefined : false });
@@ -227,5 +228,29 @@ describe('services directory, end to end (Phase 5)', { skip }, () => {
     assert.ok(files.has('ar/services/test-extract/v/1/index.html') && files.has('fr/offices/index.html'));
     assert.match(files.get('fr/offices/index.html')!, /Bureau de test/);
     assert.match(fr, new RegExp(`Dernière vérification le ${new Intl.DateTimeFormat('fr-TN', { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(`${page.last_verified_on}T12:00:00Z`))}`));
+  });
+
+  it('integrity monitor (P5-SEC3): the signed versions verify in the HSM key; a row changed in the database is found and reported', async () => {
+    const monitor = app.get<Catalogue>(CATALOGUE).integrity(() => undefined);
+    const clean = await monitor.runOnce();
+    assert.deepEqual([clean.checked, clean.signatures, clean.failures.length, clean.published], [2, 2, 0, 1]);
+    assert.equal(clean.medianAgeDays, 0, 'verified today');
+    // Behind the editorial workflow's back: the owner changes the published fee directly.
+    const u = new URL(adminUrl as string);
+    u.pathname = `/${dbs[1]}`;
+    const owner = new Client({ connectionString: u.toString() });
+    await owner.connect();
+    try {
+      await owner.query("update catalogue.requirement set amount_tnd = 20 where service_id = $1 and version = 2 and kind = 'fee'", [serviceId]);
+      const tampered = await monitor.runOnce();
+      assert.deepEqual(tampered.failures, [{ code: 'TN-TST-002', version: 2, reason: 'digest' }]);
+      const metrics = await (await fetch(`${base}/metrics`)).text();
+      assert.match(metrics, /^civora_catalogue_integrity_failures 1$/m);
+      assert.match(metrics, /^civora_catalogue_integrity_signatures_checked 1$/m, 'the untouched version still verified');
+    } finally {
+      await owner.query("update catalogue.requirement set amount_tnd = 2 where service_id = $1 and version = 2 and kind = 'fee'", [serviceId]);
+      await owner.end();
+    }
+    assert.equal((await monitor.runOnce()).failures.length, 0, 'restored');
   });
 });

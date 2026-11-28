@@ -1,4 +1,4 @@
-import { Inject, Module, type OnApplicationShutdown } from '@nestjs/common';
+import { Inject, Module, type OnApplicationBootstrap, type OnApplicationShutdown } from '@nestjs/common';
 import { Pool, types } from 'pg';
 import { readSecret } from '../../config/app-config';
 import { IdentityAccessModule } from '../identity-access/public-api';
@@ -35,10 +35,25 @@ export const catalogueTypes = {
     },
   ],
 })
-export class CatalogueModule implements OnApplicationShutdown {
+export class CatalogueModule implements OnApplicationBootstrap, OnApplicationShutdown {
+  private timer: NodeJS.Timeout | null = null;
+
   constructor(@Inject(CATALOGUE) private readonly catalogue: Catalogue | null) {}
 
+  /** Integrity monitoring (P5-SEC3) every CATALOGUE_INTEGRITY_SECONDS (default 3600; 0 turns it off, as the tests do). */
+  onApplicationBootstrap(): void {
+    const seconds = Number(process.env.CATALOGUE_INTEGRITY_SECONDS ?? 3600);
+    if (!this.catalogue || !Number.isFinite(seconds) || seconds <= 0) return;
+    const log = (entry: Record<string, unknown>) => process.stdout.write(JSON.stringify({ ts: new Date().toISOString(), service: 'civora-core', context: 'catalogue-integrity', ...entry }) + '\n');
+    const monitor = this.catalogue.integrity(log);
+    const run = () => { void monitor.runOnce().catch(() => log({ level: 'error', msg: 'catalogue integrity run failed' })); };
+    setTimeout(run, 30_000).unref();
+    this.timer = setInterval(run, Math.max(60, seconds) * 1000);
+    this.timer.unref();
+  }
+
   async onApplicationShutdown(): Promise<void> {
+    if (this.timer) clearInterval(this.timer);
     await this.catalogue?.close();
   }
 }
