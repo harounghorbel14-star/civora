@@ -222,7 +222,8 @@ import { ACCOUNT_RECOVERY, ACCOUNT_SECURITY, CONTACT_DETAILS, CONTACT_RECOVERY, 
   ],
   // Other modules (the wallet) put the guard on their routes (public-api.ts). Nest builds a guard in the module of the
   // controller that uses it, so the guard's own dependencies are exported with it; nothing else may use them there.
-  exports: [IdentityGuard, TOKEN_VERIFIER, IAM_REPOSITORY, ADAPTIVE_CONTROLS, PERSON_CONTACTS],
+  // StepUpGuard and STEP_UP_MAX_AGE: other modules' controllers use RequireStepUp (guards are built in the controller's module).
+  exports: [IdentityGuard, StepUpGuard, STEP_UP_MAX_AGE, TOKEN_VERIFIER, IAM_REPOSITORY, ADAPTIVE_CONTROLS, PERSON_CONTACTS],
 })
 export class IdentityAccessModule implements OnApplicationShutdown {
   constructor(@Inject(IAM_REPOSITORY) private readonly repo: IamRepository | null) {}

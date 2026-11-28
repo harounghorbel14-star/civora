@@ -1,6 +1,6 @@
 import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
-import { b64u, CredentialError, sha256b64u, signJws } from './jws';
+import { b64u, CredentialError, fromB64u, sha256b64u, signJws } from './jws';
 import { softwareKey } from './keys';
 import { disclosuresOf, issueSdJwt, parse, present, selectDisclosures, trimSlashes, verifySdJwt } from './sd-jwt';
 
@@ -107,5 +107,12 @@ describe('SD-JWT (RFC 9901)', () => {
     await rejects(verifySdJwt(issued.sdJwt, { issuerKey: key, typ: 'example+sd-jwt', now: 1_900_000_100 }), 'expired');
     await rejects(verifySdJwt(issued.sdJwt, { issuerKey: key, typ: 'example+sd-jwt', now: 1_849_999_000 }), 'not-yet-valid');
     assert.ok(await verifySdJwt(issued.sdJwt, { issuerKey: key, typ: 'example+sd-jwt', now: 1_899_999_000 }));
+  });
+  it('base64url is strict: the alphabet only, no padding, and one encoding per byte string (no signature malleability)', () => {
+    assert.deepEqual(fromB64u('AQI'), Buffer.from([1, 2]));
+    assert.throws(() => fromB64u('AQJ'), (e: unknown) => e instanceof CredentialError && e.code === 'malformed', 'unused low bits set: the same bytes, another encoding');
+    assert.throws(() => fromB64u('AQI='), CredentialError);
+    assert.throws(() => fromB64u('AQ+/'), CredentialError);
+    assert.throws(() => fromB64u('A'), CredentialError, 'a lone character encodes no byte');
   });
 });

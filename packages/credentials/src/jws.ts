@@ -17,9 +17,16 @@ export interface Signer {
 }
 
 export const b64u = (b: Uint8Array | string): string => Buffer.from(typeof b === 'string' ? Buffer.from(b, 'utf8') : b).toString('base64url');
+/**
+ * Strict base64url (RFC 4648 §5, no padding): the alphabet only, and canonical — the unused low bits of the last
+ * character must be zero, so each byte string has exactly one encoding. A lenient decoder accepts several encodings of
+ * the same signature (malleability); a verifier must not.
+ */
 export const fromB64u = (s: string): Buffer => {
   if (!/^[A-Za-z0-9_-]*$/.test(s)) throw new CredentialError('malformed', 'not base64url');
-  return Buffer.from(s, 'base64url');
+  const b = Buffer.from(s, 'base64url');
+  if (b.toString('base64url') !== s) throw new CredentialError('malformed', 'not canonical base64url');
+  return b;
 };
 export const sha256b64u = (s: string): string => createHash('sha256').update(s, 'ascii').digest('base64url');
 
@@ -55,6 +62,7 @@ export function peekJws(jws: string): { header: Record<string, unknown>; payload
 /** Verifies a compact JWS with a public JWK; the algorithm must be allowed and match the key. */
 export async function verifyJws(jws: string, jwk: JWK, expectedTyp?: string): Promise<{ header: Record<string, unknown>; payload: Record<string, unknown> }> {
   const { header, payload } = peekJws(jws);
+  fromB64u(jws.slice(jws.lastIndexOf('.') + 1)); // the signature segment is canonical too (one encoding per signature)
   if (!ALGORITHMS.includes(header.alg as Alg)) throw new CredentialError('alg', `algorithm ${String(header.alg)} not accepted`);
   if (expectedTyp !== undefined && header.typ !== expectedTyp) throw new CredentialError('typ', `typ must be ${expectedTyp}`);
   if (jwk.d) throw new CredentialError('key', 'a private key was given where a public key is expected');

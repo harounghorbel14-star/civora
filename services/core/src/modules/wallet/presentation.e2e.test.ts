@@ -128,6 +128,52 @@ describe('OpenID4VP verification, end to end (Phase 4 week 4)', { skip }, () => 
     assert.deepEqual(await outcome(q2.request_id), { status: 'rejected', reason: 'missing-claims' });
   });
 
+  it('revocation on request (P4-F5): the holder revokes after a fresh sign-in; the issuer\'s officers suspend and reinstate; the verifier sees each', async () => {
+    const w = wallet();
+    const held = await obtain(w.holder);
+    const answer = async () => { const q = await ask(); const req = await w.requests.read(q.authorization_request); await w.requests.answer(req, held.id); return outcome(q.request_id); };
+    const issued = (await cell.admin.query('select id from wallet.issued_credential where status_idx = $1 and status_list_id = $2',
+      [held.status!.idx, held.status!.uri.split('/').pop()])).rows[0].id as string;
+    const fresh = { auth_time: Math.floor(Date.now() / 1000), acr: '1' };
+
+    // The holder sees the credentials issued to them (no claim values); another citizen does not see them.
+    const mine = await http('GET', '/v1/wallet/issued', await cell.sign(citizen));
+    assert.equal(mine.status, 200, JSON.stringify(mine.body));
+    const entry = (mine.body as { id: string; status: string; vct: string }[]).find((e) => e.id === issued);
+    assert.ok(entry && entry.status === 'valid' && entry.vct === VCT);
+    assert.deepEqual(Object.keys(entry).sort(), ['expires_at', 'id', 'issued_at', 'issuer', 'status', 'status_changed_at', 'status_reason', 'vct']);
+    const stranger = `citizen-${randomUUID()}`;
+    assert.ok(!((await http('GET', '/v1/wallet/issued', await cell.sign(stranger))).body as { id: string }[]).some((e) => e.id === issued));
+
+    // Officers: the role and a recent sign-in are required; suspend, then reinstate; reasons must fit the action.
+    const officerToken = (roles: string[], extra = fresh) => cell.sign(`staff-${randomUUID()}`, { tenantId: TENANT, roles }, extra);
+    assert.equal((await http('GET', `/v1/admin/wallet/issued/${issued}`, await cell.sign(citizen))).status, 403);
+    assert.equal((await http('GET', `/v1/admin/wallet/issued/${issued}`, await officerToken([]))).status, 403);
+    const looked = await http('GET', `/v1/admin/wallet/issued/${issued}`, await officerToken(['credential-officer']));
+    assert.equal(looked.status, 200, JSON.stringify(looked.body));
+    assert.ok(!JSON.stringify(looked.body).includes(citizen), 'not the subject');
+    const stale = await fetch(`${cell.base}/v1/admin/wallet/issued/${issued}:suspend`, { method: 'POST', headers: { authorization: `Bearer ${await officerToken(['credential-officer'], {} as typeof fresh)}`, 'content-type': 'application/json' }, body: JSON.stringify({ reason: 'under-review' }) });
+    assert.equal(stale.status, 401);
+    assert.match(stale.headers.get('www-authenticate') ?? '', /insufficient_user_authentication/);
+    assert.equal((await http('POST', `/v1/admin/wallet/issued/${issued}:suspend`, await officerToken(['credential-officer']), { reason: 'review-cleared' })).status, 400, 'a reason that does not fit');
+    assert.equal((await http('POST', `/v1/admin/wallet/issued/${issued}:suspend`, await officerToken(['credential-officer']), { reason: 'under-review' })).status, 200);
+    assert.deepEqual(await answer(), { status: 'rejected', reason: 'suspended' });
+    assert.equal((await http('POST', `/v1/admin/wallet/issued/${issued}:reinstate`, await officerToken(['credential-officer']), { reason: 'review-cleared' })).status, 200);
+    assert.equal((await answer()).status, 'accepted');
+
+    // The holder: a fresh sign-in is required; another citizen's credential is unknown; revoked once, final.
+    assert.equal((await http('POST', `/v1/wallet/issued/${issued}:revoke`, await cell.sign(citizen), { reason: 'lost-device' })).status, 401);
+    assert.equal((await http('POST', `/v1/wallet/issued/${issued}:revoke`, await cell.sign(stranger, undefined, fresh), { reason: 'lost-device' })).status, 404);
+    assert.equal((await http('POST', `/v1/wallet/issued/${issued}:revoke`, await cell.sign(citizen, undefined, fresh), { reason: 'data-changed' })).status, 400, 'not a holder reason');
+    const rev = await http('POST', `/v1/wallet/issued/${issued}:revoke`, await cell.sign(citizen, undefined, fresh), { reason: 'lost-device' });
+    assert.equal(rev.status, 200, JSON.stringify(rev.body));
+    assert.deepEqual(await answer(), { status: 'rejected', reason: 'revoked' });
+    assert.equal((await http('POST', `/v1/wallet/issued/${issued}:revoke`, await cell.sign(citizen, undefined, fresh), { reason: 'lost-device' })).status, 409);
+    assert.equal((await http('POST', `/v1/admin/wallet/issued/${issued}:reinstate`, await officerToken(['credential-officer']), { reason: 'review-cleared' })).status, 409, 'revocation is final');
+    const history = (await http('GET', `/v1/admin/wallet/issued/${issued}`, await officerToken(['credential-officer']))).body.history as { action: string; by: string }[];
+    assert.deepEqual(history.map((h) => `${h.action}:${h.by}`), ['issued:issuer-system', 'suspended:staff', 'reinstated:staff', 'revoked:holder']);
+  });
+
   it('QR presentation (P4-API5): the verifier\'s device scans the holder\'s presentation for its own request', async () => {
     const w = wallet();
     const held = await obtain(w.holder);

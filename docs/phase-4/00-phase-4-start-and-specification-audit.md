@@ -6,7 +6,7 @@
 | Dependencies | "Dependencies: P3; P5 (renewal deep-links)" (Phase 0 §19). **P3:** about 97 % on 27 Nov ([Phase 3 progress](../phase-3/01-progress.md)); what remains (the mobile app and its Detox job, G5, the rest of G4, counter-assisted recovery in Phase 6) does not block the wallet's server side; the holder wallet needs the mobile app (see §4). **P5:** the renewal deep-links point at catalogue service codes; Phase 5 follows Phase 4 in the canonical order, so the deep-link mechanism is built here against the code format and completed when the catalogue exists |
 | Roadmap | The 15 phases are unchanged (canonical order 0 → 15). Phase 4 keeps its full original scope, deliverables and acceptance criteria (P1-D4) |
 | Data | Synthetic credentials only (ADR-025). Demo issuers are simulated; no real registry, ministry or document is used |
-| Status | **In progress** — weeks 1–3 built on 27 Nov 2026: credential library and wallet schema ([01](01-wallet-data-model.md)), issuer keys in the HSM and the key ceremony ([02](02-issuer-keys-and-ceremony.md)), OpenID4VCI issuance and status lists ([03](03-oid4vci-issuance.md)), holder library and wallet entries ([04](04-holder-library-and-wallet-entries.md)); week 4: the OpenID4VP verifier API ([05](05-oid4vp-verification.md)); week 5: expiry reminders with renewal links ([06](06-expiry-reminders.md)). Next: the verifier web app (week 5) |
+| Status | **In progress** — weeks 1–3 built on 27 Nov 2026: credential library and wallet schema ([01](01-wallet-data-model.md)), issuer keys in the HSM and the key ceremony ([02](02-issuer-keys-and-ceremony.md)), OpenID4VCI issuance and status lists ([03](03-oid4vci-issuance.md)), holder library and wallet entries ([04](04-holder-library-and-wallet-entries.md)); week 4: the OpenID4VP verifier API ([05](05-oid4vp-verification.md)); week 5: expiry reminders with renewal links ([06](06-expiry-reminders.md)); week 6: revocation on request, the rejection suite and fuzzing ([07](07-revocation-rejections-and-fuzzing.md)). Next: conformance (T1), the W3C VC 2.0 mapping (A3), the mDL design record (A4), the verifier web app |
 
 ## 1. Original Phase 4 specification (Phase 0 §19, word for word)
 
@@ -101,13 +101,13 @@ Sources: openid.net/specs (OpenID4VCI 1.0, OpenID4VP 1.0, HAIP 1.0), rfc-editor.
 | 6 | Negative suite and fuzzing of verifier inputs (T3, AC2); conformance tests where available (T1); interop with an external wallet or verifier (T2) | 100 % rejection of revoked, expired and tampered credentials |
 | 7 | Security review (SEC1–SEC4), records, traceability, readiness report | acceptance checklist |
 
-## 6. Completion estimate (27 Nov 2026, after weeks 1–4 and the reminders of week 5)
+## 6. Completion estimate (28 Nov 2026, after weeks 1–5 and the first part of week 6)
 
 Each of the 36 work items of §1 (objective, dependency, time, budget and risk lines excluded) scored by what is built
-**and tested**: 0, 25, 50, 75 or 100 %. **Phase 4: about 81 %** (29.25 of 36). Acceptance: **AC1 met** (issue → hold →
-present → verify → revoke end to end through the verifier API, doc 05); AC2 partly (revoked, suspended, wrong
-verifier, missing claims rejected through the API; expired and tampered rejected by the library; the full suite with
-fuzzing is week 6). An engineering estimate, not an acceptance decision.
+**and tested**: 0, 25, 50, 75 or 100 %. **Phase 4: about 87 %** (31.25 of 36). Acceptance: **AC1 met** (issue → hold →
+present → verify → revoke end to end through the verifier API, doc 05); **AC2 met in the test suite** (doc 07: every
+revoked, suspended, expired, not-yet-valid and tampered case refused through both deciding routes, and API fuzzing
+with no acceptance and no server error). An engineering estimate, not an acceptance decision.
 
 | Item | Done | What is missing |
 |---|---|---|
@@ -125,8 +125,8 @@ fuzzing is week 6). An engineering estimate, not an acceptance decision.
 | F2 selective disclosure | 100% | — |
 | F3 QR presentation | 75% | `POST /v1/verify` and the holder's presentation for a QR; the QR images in the apps |
 | F4 offline verification with grace | 75% | server grace until the list's `exp`; the verifier web app's offline mode (week 5) |
-| F5 revocation | 75% | issuer revocation, status lists, rejection at the verifier; an HTTP route for holders and staff to ask for it (week 5) |
-| F6 renewal deep-links | 50% | links to the renewal service's page are sent (doc 06); the pages are Phase 5's catalogue |
+| F5 revocation | 100% | — (holder and officer routes with step-up and fixed reasons, doc 07 §1) |
+| F6 renewal deep-links | 100% | — (the directory's page address, sent only when the catalogue publishes that page, doc 07 §4; which services have pages is Phase 5's content) |
 | DB1–DB5 | 100% each | — |
 | API1–API6 | 100% each | — |
 | SEC1 holder binding | 100% | — |
@@ -135,6 +135,6 @@ fuzzing is week 6). An engineering estimate, not an acceptance decision.
 | SEC4 no personal data in QR | 100% | offer and presentation QR codes checked by tests |
 | T1 conformance tests | 0% | week 6 |
 | T2 interoperability | 50% | an independent SD-JWT VC implementation as issuer, holder and verifier; an external wallet app week 6 |
-| T3 fuzzing of verifier inputs | 0% | week 6 |
+| T3 fuzzing of verifier inputs | 100% | — (library and verifier API, seeded, doc 07 §3) |
 | AC1 end to end | 100% | — |
-| AC2 100 % rejection | 75% | the full suite and fuzzing against the verifier API (week 6) |
+| AC2 100 % rejection | 100% | — (doc 07 §2) |

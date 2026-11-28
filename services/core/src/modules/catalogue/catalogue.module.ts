@@ -5,7 +5,8 @@ import { IdentityAccessModule } from '../identity-access/public-api';
 import { CatalogueAdminController, CatalogueController, CatalogueOfficesController, CatalogueReportsController, CatalogueSourcesController } from './catalogue.controller';
 import { CatalogueRepository } from './catalogue.repository';
 import { Catalogue, loadCatalogueConfig } from './catalogue.service';
-import { CATALOGUE } from './tokens';
+import type { ServicePages } from './public-api';
+import { CATALOGUE, SERVICE_PAGES } from './tokens';
 
 /**
  * SQL dates (last verified, read on) stay 'YYYY-MM-DD' strings. node-postgres would parse them as local midnight: in a
@@ -33,7 +34,14 @@ export const catalogueTypes = {
         return new Catalogue(new CatalogueRepository(new Pool({ connectionString: url, max: 5, connectionTimeoutMillis: 3000, idleTimeoutMillis: 10_000, types: catalogueTypes })), loadCatalogueConfig());
       },
     },
+    {
+      // For other modules (public API): null when this cell has no catalogue.
+      provide: SERVICE_PAGES,
+      inject: [CATALOGUE],
+      useFactory: (c: Catalogue | null): ServicePages | null => (c ? { published: (slug) => c.servicePagePublished(slug) } : null),
+    },
   ],
+  exports: [SERVICE_PAGES],
 })
 export class CatalogueModule implements OnApplicationBootstrap, OnApplicationShutdown {
   private timer: NodeJS.Timeout | null = null;

@@ -3,7 +3,8 @@ import { execFileSync } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { resolve } from 'node:path';
 import { after, before, describe, it } from 'node:test';
-import { Client } from 'pg';
+import { Client, Pool } from 'pg';
+import { CatalogueRepository } from './catalogue.repository';
 
 /**
  * Phase 5 week 1: the catalogue schema (P5-DB1..DB6) on its own database (the pg-public cluster in a cell), used as the
@@ -18,6 +19,7 @@ const ar = (a: string, f: string) => ({ ar: a, fr: f });
 describe('catalogue schema (Phase 5, P5-DB1..DB6)', { skip: !adminUrl && 'TEST_DATABASE_URL not set' }, () => {
   let dbName: string;
   let app: Client;
+  let appUrl = '';
   const author = randomUUID();
   const approver = randomUUID();
 
@@ -37,7 +39,8 @@ describe('catalogue schema (Phase 5, P5-DB1..DB6)', { skip: !adminUrl && 'TEST_D
       { cwd: root, env: { ...process.env, DATABASE_URL: u.toString() }, stdio: 'pipe' });
     u.username = 'civora_core_app';
     u.password = appPw;
-    app = new Client({ connectionString: u.toString() });
+    appUrl = u.toString();
+    app = new Client({ connectionString: appUrl });
     await app.connect();
   });
   after(async () => {
@@ -93,6 +96,15 @@ describe('catalogue schema (Phase 5, P5-DB1..DB6)', { skip: !adminUrl && 'TEST_D
     const pub = (await app.query("select code, version, state, approved_by, encode(content_digest, 'hex') as d from catalogue.published_version")).rows;
     assert.deepEqual(pub, [{ code: 'TN-TST-001', version: 1, state: 'published', approved_by: approver, d: digest.toString('hex') }]);
     assert.equal((await app.query('select count(*)::int as n from catalogue.published_requirement')).rows[0].n, 3);
+    // The page address other modules link to (the wallet's renewal links, P4-F6): published slugs only, as the app role.
+    const repo = new CatalogueRepository(new Pool({ connectionString: appUrl, max: 1 }));
+    try {
+      assert.equal(await repo.isPublishedSlug('test-service'), true);
+      assert.equal(await repo.isPublishedSlug('TN-TST-001'), false, 'the slug, not the code');
+      assert.equal(await repo.isPublishedSlug('no-such-service'), false);
+    } finally {
+      await repo.close();
+    }
   });
 
   it('a new version supersedes the published one; history kept (P5-F3); the editorial log records each decision', async () => {
