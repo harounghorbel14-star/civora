@@ -26,8 +26,8 @@ export default async function LangLayout({ children, params }: { children: React
     a11y = me?.status === 200 ? me.body.accessibility ?? {} : {};
   }
   const nav: [string, string][] = session
-    ? [['', 'nav.home'], ['profile', 'nav.profile'], ['security', 'nav.security'], ['identity', 'nav.identity'], ['mandates', 'nav.mandates'], ['status', 'nav.status']]
-    : [['', 'nav.home'], ['status', 'nav.status']];
+    ? [['', 'nav.home'], ['profile', 'nav.profile'], ['security', 'nav.security'], ['identity', 'nav.identity'], ['mandates', 'nav.mandates'], ['status', 'nav.status'], ['services/search', 'nav.services']]
+    : [['', 'nav.home'], ['status', 'nav.status'], ['services/search', 'nav.services']];
   return (
     <html lang={LOCALES[lang]} dir={dirOf(lang)}
       data-text-size={typeof a11y.textSize === 'string' ? a11y.textSize : 'default'}

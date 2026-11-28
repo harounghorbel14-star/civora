@@ -38,7 +38,15 @@ for v in local staging; do
   label="chart values-$v: server dry-run"
   run bash -c "helm template civora-core '$root/infra/helm/civora-core' --kube-version 1.33.4 -n $ns -f '$root/infra/helm/civora-core/values-$v.yaml' $digest_arg | psa_apply $ns"
 done
-label="infra/k8s/local/pg-core.yaml: server dry-run"; run bash -c "docker exec -i $name kubectl -n $ns apply --dry-run=server -f - < '$root/infra/k8s/local/pg-core.yaml'"
+# Services directory (Phase 5) turned on: its migration Job, the database URL file and the editors' institution.
+cat_args="--set catalogue.databaseSecret.name=civora-catalogue-db --set catalogue.migrations.databaseSecret.name=civora-catalogue-db-migrate"
+label="chart with the services directory (staging values): server dry-run"
+run bash -c "helm template civora-core '$root/infra/helm/civora-core' --kube-version 1.33.4 -n $ns -f '$root/infra/helm/civora-core/values-staging.yaml' --set image.digest=$fake_digest $cat_args --set catalogue.editorTenant=validation-only | psa_apply $ns"
+label="chart refuses the services directory without its migration owner, or (staging) without the editors' institution"
+run bash -c "! helm template x '$root/infra/helm/civora-core' --kube-version 1.33.4 -f '$root/infra/helm/civora-core/values-local.yaml' --set catalogue.databaseSecret.name=a >/dev/null 2>&1 && ! helm template x '$root/infra/helm/civora-core' --kube-version 1.33.4 -f '$root/infra/helm/civora-core/values-staging.yaml' --set image.digest=$fake_digest $cat_args >/dev/null 2>&1"
+for m in pg-core pg-public; do
+  label="infra/k8s/local/$m.yaml: server dry-run"; run bash -c "docker exec -i $name kubectl -n $ns apply --dry-run=server -f - < '$root/infra/k8s/local/$m.yaml'"
+done
 argocd_version=v3.4.13   # keep in step with infra/ansible/roles/argocd_bootstrap/defaults/main.yml
 label="Argo CD $argocd_version CRDs installed"
 run bash -c "for c in application appproject; do curl -fsSL https://raw.githubusercontent.com/argoproj/argo-cd/$argocd_version/manifests/crds/\$c-crd.yaml | docker exec -i $name kubectl apply --server-side -f - ; done && docker exec $name kubectl create ns argocd"

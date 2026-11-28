@@ -154,6 +154,44 @@ export class CatalogueSourcesController {
   }
 }
 
+class OfficeDto {
+  @ApiProperty({ example: 'tunis-civil-status-1', description: 'Lower case, digits and hyphens' }) code!: string;
+  @ApiProperty({ description: '{ ar, fr, en? }' }) name!: Record<string, string>;
+  @ApiProperty({ description: '{ ar, fr, en? }' }) institution!: Record<string, string>;
+  @ApiProperty({ example: 'Tunis' }) governorate!: string;
+  @ApiProperty({ description: '{ ar, fr, en? }' }) address!: Record<string, string>;
+  @ApiProperty({ required: false, description: 'With longitude, inside Tunisia' }) latitude?: number;
+  @ApiProperty({ required: false }) longitude?: number;
+  @ApiProperty({ required: false, description: 'Opening hours as the source states them: { ar, fr, en? }' }) hours?: Record<string, string>;
+  @ApiProperty({ description: 'The registered source that lists this office' }) source_id!: string;
+  @ApiProperty({ format: 'date' }) last_verified_on!: string;
+}
+
+/** Editors register offices, each from an official source (P5-F2). */
+@ApiTags('catalogue')
+@ApiBearerAuth()
+@UseGuards(IdentityGuard)
+@Controller('v1/admin/offices')
+export class CatalogueOfficesController {
+  constructor(@Inject(CATALOGUE) private readonly catalogue: Catalogue | null) {}
+
+  @Post()
+  @ApiOperation({ summary: 'Register an office (editor) as an official page lists it' })
+  @ApiBody({ type: OfficeDto })
+  async add(@Req() req: IdentifiedRequest, @Body() b: OfficeDto): Promise<unknown> {
+    if (!this.catalogue) throw new ServiceUnavailableException('The services directory is not available in this cell');
+    const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+    if (typeof b?.code !== 'string' || typeof b.governorate !== 'string' || typeof b.source_id !== 'string' || typeof b.last_verified_on !== 'string'
+      || !/^[0-9a-f-]{36}$/.test(b.source_id) || !/^\d{4}-\d{2}-\d{2}$/.test(b.last_verified_on)) {
+      throw new BadRequestException('code, governorate, source_id and last_verified_on are required');
+    }
+    try {
+      return { id: await this.catalogue.addOffice(editor(req), { code: b.code, name: b.name, institution: b.institution, governorate: b.governorate, address: b.address,
+        latitude: num(b.latitude), longitude: num(b.longitude), hours: b.hours ?? null, sourceId: b.source_id, lastVerifiedOn: b.last_verified_on }) };
+    } catch (e) { rethrow(e); }
+  }
+}
+
 /** P5-API3: the editorial back office (staff with the catalogue roles; four-eyes approval). */
 @ApiTags('catalogue')
 @ApiBearerAuth()

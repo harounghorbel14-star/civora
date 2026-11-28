@@ -16,20 +16,28 @@ export const CONTENT_TYP = 'civora-catalogue-content+jws';
 export const ROLES = { editor: 'catalogue-editor', approver: 'catalogue-approver' } as const;
 
 export interface CatalogueConfig {
-  hsm: { module: string; tokenLabel: string; keyId: string; kid: string; pinEnv: string };
-  /** Only staff of this institution (the cell operator) may edit; null = any staff tenant with the roles (dev). */
+  /** The cell's content-signing key in the HSM; null = no key in this cell: pages are served, approvals are refused. */
+  hsm: { module: string; tokenLabel: string; keyId: string; kid: string; pinEnv: string } | null;
+  /** Only staff of this institution (the cell operator) may edit; null only in dev and test (any staff tenant). */
   editorTenant: string | null;
 }
 
-export function loadCatalogueConfig(env: NodeJS.ProcessEnv = process.env): CatalogueConfig | null {
+/**
+ * The editorial settings. The editors' institution is required outside dev and test whether or not a signing key is
+ * configured: a cell without its key still takes drafts and sources, and they are for the cell operator's staff only.
+ * A signing key named in part (token, key id or kid missing) is a configuration error, not "no key".
+ */
+export function loadCatalogueConfig(env: NodeJS.ProcessEnv = process.env): CatalogueConfig {
+  const editorTenant = (env.CATALOGUE_EDITOR_TENANT ?? '').trim() || null;
+  if (!editorTenant && !['dev', 'test'].includes(env.CIVORA_ENV ?? 'dev')) throw new Error('CATALOGUE_EDITOR_TENANT is required outside dev and test');
   const module = (env.CATALOGUE_HSM_MODULE ?? env.WALLET_HSM_MODULE ?? '').trim();
   const tokenLabel = (env.CATALOGUE_SIGNING_TOKEN ?? '').trim();
   const keyId = (env.CATALOGUE_SIGNING_KEY_ID ?? '').trim().toLowerCase();
   const kid = (env.CATALOGUE_SIGNING_KID ?? '').trim();
-  if (!module || !tokenLabel || !keyId || !kid) return null;
+  const named = [tokenLabel, keyId, kid].filter(Boolean).length;
+  if (named === 0) return { hsm: null, editorTenant };
+  if (named < 3 || !module) throw new Error('the content-signing key needs CATALOGUE_SIGNING_TOKEN, CATALOGUE_SIGNING_KEY_ID, CATALOGUE_SIGNING_KID and an HSM module');
   if (!/^[0-9a-f]{2,64}$/.test(keyId)) throw new Error('CATALOGUE_SIGNING_KEY_ID is hex');
-  const editorTenant = (env.CATALOGUE_EDITOR_TENANT ?? '').trim() || null;
-  if (!editorTenant && !['dev', 'test'].includes(env.CIVORA_ENV ?? 'dev')) throw new Error('CATALOGUE_EDITOR_TENANT is required outside dev and test');
   return { hsm: { module, tokenLabel, keyId, kid, pinEnv: (env.CATALOGUE_HSM_PIN_ENV ?? 'CIVORA_HSM_PIN').trim() }, editorTenant };
 }
 
@@ -42,21 +50,30 @@ export interface Editor {
 export class Catalogue {
   private signer: Promise<Pkcs11Signer> | null = null;
 
-  constructor(private readonly repo: CatalogueRepository, private readonly cfg: CatalogueConfig | null) {}
+  constructor(private readonly repo: CatalogueRepository, private readonly cfg: CatalogueConfig) {}
+
+  private hsm(): NonNullable<CatalogueConfig['hsm']> {
+    if (!this.cfg.hsm) throw new CatalogueError('forbidden', 'content signing is not configured in this cell');
+    return this.cfg.hsm;
+  }
 
   private key(): Promise<Pkcs11Signer> {
-    if (!this.cfg) throw new CatalogueError('forbidden', 'content signing is not configured in this cell');
+    const hsm = this.hsm();
     if (!this.signer) {
-      this.signer = pkcs11Signer({ ...this.cfg.hsm });
+      this.signer = pkcs11Signer({ ...hsm });
       this.signer.catch(() => { this.signer = null; });
     }
     return this.signer;
   }
 
-  /** The content-signing public keys (JWKS), for anyone checking a page (P5-SEC3). */
+  /**
+   * The content-signing public keys (JWKS), for anyone checking a page (P5-SEC3). A cell without its key has signed
+   * nothing it could approve, and answers with an empty set rather than an error.
+   */
   async keys(): Promise<{ keys: JWK[] }> {
+    if (!this.cfg.hsm) return { keys: [] };
     const s = await this.key();
-    return { keys: [{ ...s.publicJwk, kid: this.cfg!.hsm.kid, alg: 'ES256', use: 'sig' }] };
+    return { keys: [{ ...s.publicJwk, kid: this.hsm().kid, alg: 'ES256', use: 'sig' }] };
   }
 
   /** A service page (P5-F1): the version, its parts with their sources, and the signature to check it with. */
@@ -107,6 +124,12 @@ export class Catalogue {
     return this.repo.addSource(src);
   }
 
+  /** Editors register the offices that procedures send people to, each from an official source (P5-F2). */
+  async addOffice(e: Editor, o: Parameters<CatalogueRepository['addOffice']>[0]): Promise<string> {
+    this.require(e, ROLES.editor);
+    return this.repo.addOffice(o);
+  }
+
   offices(governorate?: string): Promise<Record<string, unknown>[]> {
     return this.repo.offices(governorate);
   }
@@ -115,7 +138,7 @@ export class Catalogue {
 
   private require(e: Editor, role: string): void {
     if (!e.roles.includes(role)) throw new CatalogueError('forbidden', `the ${role} role is required`);
-    if (this.cfg?.editorTenant && e.tenantId !== this.cfg.editorTenant) throw new CatalogueError('forbidden', 'only the cell operator\'s staff edit the catalogue');
+    if (this.cfg.editorTenant !== null && e.tenantId !== this.cfg.editorTenant) throw new CatalogueError('forbidden', 'only the cell operator\'s staff edit the catalogue');
   }
 
   async create(e: Editor, code: string, slug: string, category: string, draft: unknown): Promise<string> {
@@ -144,7 +167,7 @@ export class Catalogue {
     const canonical = await this.repo.canonical(serviceId, version);
     if (!canonical) throw new CatalogueError('not-found', 'no such version');
     const signer = await this.key();
-    const header = b64u(JSON.stringify({ alg: 'ES256', kid: this.cfg!.hsm.kid, typ: CONTENT_TYP }));
+    const header = b64u(JSON.stringify({ alg: 'ES256', kid: this.hsm().kid, typ: CONTENT_TYP }));
     const sig = b64u(await signer.sign(Buffer.from(`${header}.${b64u(canonical)}`, 'ascii')));
     const digest = createHash('sha256').update(canonical, 'utf8').digest();
     const signature = `${header}..${sig}`;

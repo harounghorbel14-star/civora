@@ -144,3 +144,46 @@ checkov.io/skip2: CKV_K8S_15=Images are deployed by immutable digest; IfNotPrese
   secret: { secretName: {{ .Values.identity.provisionerSecret }}, defaultMode: 0440 }
 {{- end }}
 {{- end -}}
+
+{{/* Services directory (Phase 5): its database URL as a file, and the editors' institution. */}}
+{{- define "civora-core.catalogueCheck" -}}
+{{- with .Values.catalogue }}
+{{- if .databaseSecret.name }}
+{{- if not .migrations.databaseSecret.name }}
+{{- fail "catalogue.migrations.databaseSecret.name is required with catalogue.databaseSecret.name (the public migrations run as the pg-public owner)" }}
+{{- end }}
+{{- if and (has $.Values.environment (list "staging" "pilot" "prod")) (not .editorTenant) }}
+{{- fail (printf "catalogue.editorTenant is required when environment=%s (only the cell operator's staff edit the directory)" $.Values.environment) }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end -}}
+
+{{- define "civora-core.catalogueEnv" -}}
+{{- if .Values.catalogue.databaseSecret.name }}
+- name: CATALOGUE_DATABASE_URL_FILE
+  value: /var/run/secrets/civora-catalogue/database-url
+{{- if .Values.catalogue.editorTenant }}
+- name: CATALOGUE_EDITOR_TENANT
+  value: {{ .Values.catalogue.editorTenant | quote }}
+{{- end }}
+{{- end }}
+{{- end -}}
+
+{{- define "civora-core.catalogueMount" -}}
+{{- if .Values.catalogue.databaseSecret.name }}
+- { name: catalogue-db, mountPath: /var/run/secrets/civora-catalogue, readOnly: true }
+{{- end }}
+{{- end -}}
+
+{{- define "civora-core.catalogueVolume" -}}
+{{- if .Values.catalogue.databaseSecret.name }}
+- name: catalogue-db
+  secret:
+    secretName: {{ .Values.catalogue.databaseSecret.name }}
+    defaultMode: 0400
+    items:
+      - key: {{ .Values.catalogue.databaseSecret.key }}
+        path: database-url
+{{- end }}
+{{- end -}}

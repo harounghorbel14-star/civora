@@ -188,6 +188,17 @@ async function journey(browser, lang, caseIndex) {
   await waitFor(() => visible(st.page, '[data-testid=status-result]'), 10000);
   const result = await st.page.locator('[data-testid=status-result]').textContent().catch(() => '');
   check(`[${lang}] a wrong code is refused; the right one shows the case status in ${lang}`, !!wrong && result.includes(kase.reference) && LANG[lang].script.test(result), result);
+  // Scripts off: the form is a plain post to the server action, and must still work (it answered 500 before 27 Nov).
+  const nojs = await browser.newContext({ javaScriptEnabled: false, locale: lang === 'ar' ? 'ar-TN' : lang === 'fr' ? 'fr-TN' : 'en-US' });
+  const np = await nojs.newPage();
+  await np.goto(`${WEB}/${lang}/status`);
+  await np.locator('[data-testid=status-reference]').fill(`SYN-RC-9-${String(95000 + caseIndex)}`);
+  const posted = np.waitForResponse((r) => r.request().method() === 'POST', { timeout: 10000 }).catch(() => null);
+  await np.locator('[data-testid=status-send]').click();
+  const post = await posted;
+  const sentNoJs = await waitFor(() => visible(np, '[data-testid=status-sent]'), 10000);
+  check(`[${lang}] status page with scripts off: the plain form post reaches the server action`, !!sentNoJs && post?.status() === 200, String(post?.status()));
+  await nojs.close();
   await st.context.close();
   return { x, who };
 }
@@ -296,8 +307,10 @@ async function signOutChecks(x, lang, who) {
     const res = await fetch(`${WEB}/${lang}/security`, { headers: await asBrowser(x), redirect: 'manual' });
     const csp = res.headers.get('content-security-policy') ?? '';
     const body = await res.text();
-    check('strict Content Security Policy: scripts by nonce only, no inline, no framing; no-referrer',
-      /script-src 'self' 'nonce-[^']+' 'strict-dynamic'/.test(csp) && !/unsafe-inline/.test(csp) && /frame-ancestors 'none'/.test(csp) && res.headers.get('referrer-policy') === 'no-referrer', csp);
+    // same-origin, not no-referrer: URLs (codes, states) never go to another site, and a plain form post keeps its Origin
+    // (no-referrer made browsers send Origin: null, which Next refuses; see the scripts-off check of the status page).
+    check('strict Content Security Policy: scripts by nonce only, no inline, no framing; referrer only to this site',
+      /script-src 'self' 'nonce-[^']+' 'strict-dynamic'/.test(csp) && !/unsafe-inline/.test(csp) && /frame-ancestors 'none'/.test(csp) && res.headers.get('referrer-policy') === 'same-origin', csp);
     const actionField = (body.match(/name="(\$ACTION_ID_[0-9a-f]+)"/) ?? [])[1];
     const form = new FormData();
     if (actionField) form.append(actionField, '');

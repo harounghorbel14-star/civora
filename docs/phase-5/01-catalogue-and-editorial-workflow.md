@@ -4,9 +4,9 @@
 |---|---|
 | Specification items | P5-D1 data model, P5-D2 editorial back office with four-eyes approval (API), P5-D4 search, P5-A1 `pg-public`, P5-A3 Postgres FTS with Arabic normalisation, P5-F1 service pages, P5-F2 offices, P5-F3 change history, P5-F4 report an error, P5-DB1…DB6, P5-API1…API4, P5-SEC1 editorial RBAC, P5-SEC2 signed content versions, P5-SEC3 integrity checks (the check; the scheduled monitor is week 4) |
 | Built | 27 Nov 2026 (weeks 1–2) |
-| Code | `services/core/migrations-public/1765238400000_catalogue.sql` (own migrations, own table `schema_migrations_public`, for the pg-public cluster); `services/core/src/modules/catalogue/` |
-| Tests | `catalogue.db.test.ts` (6, PostgreSQL as the least-privilege role); `catalogue.e2e.test.ts` (4: the application, both databases, the content key in SoftHSM); `migrations.integration.test.ts` (public migrations up, down, up) |
-| Not yet | the public pages (D3, A2: static generation in the web app, week 3), the office locator page, the curated procedures (D5, weeks 4–5), the dev-cell and Kubernetes wiring of the pg-public migrations and `CATALOGUE_DATABASE_URL` (next) |
+| Code | `services/core/migrations-public/1765238400000_catalogue.sql` (own migrations, own table `schema_migrations_public`, for the pg-public cluster); `services/core/src/modules/catalogue/`; deployment (§8): `infra/compose/` (dev cell), `infra/helm/civora-core/` (chart), `infra/k8s/local/pg-public.yaml` and `infra/scripts/deploy-from-scratch.sh` (k3s rehearsal) |
+| Tests | `catalogue.db.test.ts` (6, PostgreSQL as the least-privilege role); `catalogue.e2e.test.ts` (4: the application, both databases, the content key in SoftHSM); `catalogue.config.test.ts` (3: the editorial settings); `migrations.integration.test.ts` (public migrations up, down, up); smoke tests in the dev cell and the k3s rehearsal (§8) |
+| Not yet | the public pages (D3, A2: static generation in the web app, week 3), the office locator page, the curated procedures (D5, weeks 4–5); in a staging cell, the pg-public database nodes and their router (with the rest of staging, once a provider is chosen) |
 
 ## 1. Data model (P5-DB1 … DB6)
 
@@ -40,12 +40,19 @@ Staff tokens with the realm roles `catalogue-editor` (create, draft, submit, reg
 (request changes, approve, publish), and the cell operator's institution (`CATALOGUE_EDITOR_TENANT`; required outside
 dev and test). Citizens, staff of other institutions and staff without the role are refused (403); no token, 401.
 
+The institution rule does not depend on the content key. A cell without its key (no HSM yet) still takes drafts and
+sources, so outside dev and test the core does not start without `CATALOGUE_EDITOR_TENANT`, and the chart does not
+render without `catalogue.editorTenant`. (Found on 27 Nov 2026 while wiring the deployment: the first version skipped the
+rule whenever no key was configured. Fixed before any cell ran it; `catalogue.config.test.ts` covers it.) A key named
+in part — token, key id or `kid` missing, or no HSM module — stops the core at start-up instead of turning signing off.
+
 ## 4. Signatures and integrity (P5-SEC2, SEC3)
 
 The signature is a detached JWS (RFC 7515 appendix F) — `header..signature`, ES256, `typ civora-catalogue-content+jws`
 — over the canonical content. Anyone can check a page: `GET /v1/services/{code}/versions/{v}/content` gives the exact
 signed bytes and the signature, `GET /v1/catalogue/keys` the public key; the page's `integrity.content_digest` is the
-SHA-256 of those bytes. The content key is made by the same ceremony as the wallet's keys (Phase 4 doc 02).
+SHA-256 of those bytes. The content key is made by the same ceremony as the wallet's keys (Phase 4 doc 02). A cell
+without its key answers `GET /v1/catalogue/keys` with an empty key set, and refuses approvals (403).
 
 ## 5. Search (P5-D4, A3)
 
@@ -59,10 +66,11 @@ accents folded. "الهوية" finds "للهويّة"; "resume" finds "Résumé"
 | Route | Who |
 |---|---|
 | `GET /v1/services` (`?category=`, `?q=`), `GET /v1/services/{code}`, `GET /v1/services/{code}/versions`, `GET /v1/services/{code}/versions/{v}`, `GET /v1/services/{code}/versions/{v}/content`, `GET /v1/catalogue/keys` | public |
-| `GET /v1/offices` (`?governorate=`) | public |
+| `GET /v1/offices` (`?governorate=`): each office with its id and the source that lists it | public |
 | `POST /v1/admin/services`, `PUT /v1/admin/services/{id}/versions/{v}`, `POST /v1/admin/services/{id}/versions/{v}:submit` | editor |
 | `POST /v1/admin/services/{id}/versions/{v}:approve`, `:request-changes`, `:publish` | approver (not the author) |
 | `POST /v1/admin/sources` | editor |
+| `POST /v1/admin/offices` (added in week 3, [02 §7](02-public-pages.md)) | editor |
 | `POST /v1/feedback/content-errors` | public (the gateway limits requests per client) |
 
 ## 7. Results (27 Nov 2026)
@@ -72,3 +80,27 @@ accents folded. "الهوية" finds "للهويّة"; "resume" finds "Résumé"
 | Database: sources (a legal text without its JORT reference and an http URL refused); a draft citing an unknown source, a part with no source, a draft with no steps refused; submission locks the draft; the author cannot approve; a digest that is not the content's refused; publication; drafts not readable by the application role; a second version supersedes the first; search in Arabic and French; error reports without personal data, not readable back by the application role | 6 of 6 pass |
 | End to end: RBAC (citizen, other institution, no role, no token); editor drafts with a registered source and submits; the author holding the approver role is refused; another approver approves (signature made in SoftHSM); not visible before publication; the page carries steps, documents, fees, sources and last verified, translation review `pending`; the signature verifies with the published key and fails on altered content; a second version with changes requested then approved supersedes the first; history; search in Arabic and French; error report | 4 of 4 pass |
 | Migrations: public migrations up, down, up on their own table | pass |
+
+## 8. Deployment (P5-A1)
+
+The catalogue keeps its own cluster in every environment: its migrations run as that cluster's owner, and the
+application reaches it as `civora_core_app`, an account that owns nothing and does not bypass row-level security.
+
+| Where | What runs | Checked by |
+|---|---|---|
+| Dev cell (`infra/compose`) | `pg-public` with the application's account (`postgres/public-app-role.sh`: at first start, and again from `dev-cell-up.sh` for volumes older than Phase 5); `core-migrate-public` (waits for the server, then the public migrations); the core with `CATALOGUE_DATABASE_URL` | `dev-cell-up.sh` smoke tests: published services answer 200 from pg-public; the schema and its migrations table are on pg-public and not on pg-core; the account reads published content and is refused drafts |
+| Kubernetes (`infra/helm/civora-core`) | `catalogue.databaseSecret` (the application's URL, mounted as a file: `CATALOGUE_DATABASE_URL_FILE`); a pre-install/pre-upgrade Job for the public migrations as the owner (`catalogue.migrations.databaseSecret`), after the core's; `catalogue.editorTenant`; egress to pg-public (`networkPolicy.catalogueDatabasePodSelector` / `catalogueDatabaseCidrs`, or the same router selector) | the chart refuses to render without the owner's secret, and in staging, pilot and production without the editors' institution; server dry-run under restricted Pod Security and Checkov on the rendered Job (`validate-manifests.sh`, CI) |
+| k3s rehearsal (`deploy-from-scratch.sh`) | `pg-public` pod (`infra/k8s/local/pg-public.yaml`), the account, both secrets; the chart with the directory on | smoke tests: published services answer 200 through the network policy; migrated on pg-public only; the account's grants; the upgrade re-runs both migration Jobs |
+
+The chart sets no content-signing key: the HSM and its client in the image wait for decision Q4-2 (Phase 4 doc 02).
+Until then a cell serves what is published and takes drafts, and approvals answer 403. Staging adds its pg-public
+database nodes and a second `pg-router` release for them when the provider is chosen (Phase 1 E-07).
+
+The same change fixed the chart's network policy, which allowed Keycloak (token keys, admin API) only when a
+telemetry endpoint was set: a cell without telemetry could not have verified tokens.
+
+Checked on 27 Nov 2026 before pushing: the account script on a fresh PostgreSQL 16 and run a second time; the image's
+public-migration command; the core image against that database (published services and an Arabic search answer 200;
+the key set is empty; drafts refused to the account); the chart rendered and linted in each configuration. The dev
+cell, the k3s rehearsal and the server dry-run run on GitHub (CI and nightly); their results are recorded in §7 once
+they have run.

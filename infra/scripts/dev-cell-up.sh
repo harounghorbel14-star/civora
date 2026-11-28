@@ -27,7 +27,7 @@ if [[ ! -f .env ]]; then
   chmod 600 .env
 fi
 # Keys added after a developer's .env was created are appended, never overwritten.
-for key in PG_CORE_APP_PASSWORD; do
+for key in PG_CORE_APP_PASSWORD PG_PUBLIC_APP_PASSWORD; do
   grep -q "^$key=" .env || echo "$key=$(head -c 24 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 24)" >> .env
 done
 set -a; . ./.env; set +a
@@ -76,6 +76,8 @@ if [[ "${SKIP_BUILD:-0}" != "1" ]]; then
   docker build ${PROXY_CA:+--secret id=proxy_ca,src=$PROXY_CA} -f "$here/../services/core/Dockerfile" -t civora-core:dev "$here/.."
 fi
 docker compose up -d --wait --wait-timeout 600
+# The catalogue's account on pg-public (Phase 5): made at first start; made here for volumes older than Phase 5.
+docker compose exec -T pg-public sh /docker-entrypoint-initdb.d/20-app-role.sh >/dev/null
 
 # Synthetic staff users get a random password from .env (none is committed).
 kc() { docker compose exec -T -e KCPW="$KEYCLOAK_ADMIN_PASSWORD" -e UPW="$SYNTHETIC_USER_PASSWORD" keycloak sh -c "$1"; }
@@ -139,6 +141,13 @@ check "redis auth required"                  "docker compose exec -T redis redis
 check "object store rejects anonymous"       "! curl -fsS localhost:8333/"
 check "openbao unsealed"                     "curl -fsS localhost:8200/v1/sys/health | grep -q '\"sealed\":false'"
 check "grafana requires login"               "test \"\$(curl -s -o /dev/null -w '%{http_code}' localhost:3001/api/dashboards/home)\" = 401"
+# Services directory (Phase 5, doc phase-5/01) on its own cluster, read through the least-privilege account.
+check "catalogue: published services answer 200 (from pg-public)" "curl -fsS localhost:3000/v1/services | grep -q '^\['"
+check "catalogue schema on pg-public only, migrated on its own table" \
+  "docker compose exec -T pg-public psql -U civora_public -d civora_public -Atc \"select count(*) from pg_namespace where nspname = 'catalogue'\" | grep -qx 1 && docker compose exec -T pg-public psql -U civora_public -d civora_public -Atc 'select count(*) > 0 from schema_migrations_public' | grep -qx t && docker compose exec -T pg-core psql -U civora_core -d civora_core -Atc \"select count(*) from pg_namespace where nspname = 'catalogue'\" | grep -qx 0"
+app_public() { docker compose exec -T -e PGPASSWORD="$PG_PUBLIC_APP_PASSWORD" pg-public psql -h 127.0.0.1 -U civora_core_app -d civora_public -v ON_ERROR_STOP=1 -Atc "$1"; }
+check "catalogue: the application account reads published content, not drafts" \
+  "app_public 'select count(*) from catalogue.published_version' && ! app_public 'select 1 from catalogue.service_version limit 1'"
 check "pg-consent-audit separate cluster"    "docker compose exec -T pg-consent-audit psql -U civora_audit -d civora_audit -Atc 'select 1'"
 # Tracing: a request carrying a synthetic CIN in its query string must reach Tempo, without the CIN (ADR-011).
 curl -fsS -o /dev/null "localhost:3000/v1/meta/locales?cin=99123456" || true

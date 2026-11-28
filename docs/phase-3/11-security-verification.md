@@ -396,7 +396,7 @@ Status key: Met; Met, deviation documented (§3); Partial; Gap (§4); Not applic
 | V3.4.2 | L1 | CORS fixed or allow-listed | Met | no CORS grants (N18) |
 | V3.4.3 | L2 | Content Security Policy | Met | nonce and `strict-dynamic` (tested) |
 | V3.4.4 | L2 | nosniff everywhere | Met | next.config |
-| V3.4.5 | L2 | Referrer policy | Met | `no-referrer` |
+| V3.4.5 | L2 | Referrer policy | Met | `same-origin` since 27 Nov 2026 (was `no-referrer`, which made browsers send `Origin: null` on plain form posts and broke forms without scripts; Phase 5 doc 03 §4). No URL is sent to another site |
 | V3.4.6 | L2 | frame-ancestors | Met | `none` (N17) |
 | V3.4.7 | L3 | CSP violation reporting | Met | `report-uri`/`report-to` to `/csp-report`, origins only in the log (N21, new) |
 | V3.4.8 | L3 | Cross-Origin-Opener-Policy | Met | `same-origin` |

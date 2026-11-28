@@ -7,6 +7,9 @@ FROM node:22-alpine AS build
 WORKDIR /repo
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.base.json .npmrc ./
 COPY packages ./packages
+# The public-directory generator: a development dependency of the core (its end-to-end test builds the site from the
+# running core). Built here only; `pnpm deploy --prod` below leaves it out of the image.
+COPY apps/directory ./apps/directory
 COPY services/core ./services/core
 RUN --mount=type=secret,id=proxy_ca,required=false \
     export NODE_EXTRA_CA_CERTS=/run/secrets/proxy_ca; [ -f /run/secrets/proxy_ca ] || unset NODE_EXTRA_CA_CERTS; \
@@ -15,7 +18,7 @@ RUN --mount=type=secret,id=proxy_ca,required=false \
  && pnpm --filter @civora/core... run build \
  && pnpm --filter @civora/country-packs run verify \
  && pnpm deploy --filter @civora/core --prod --legacy /out \
- && test -f /out/dist/src/main.js && test -d /out/migrations \
+ && test -f /out/dist/src/main.js && test -d /out/migrations && test -d /out/migrations-public \
  && find /out/node_modules/.pnpm -type d \( -name test -o -name tests -o -name __tests__ \) -prune -exec rm -rf {} +
 
 FROM node:22-alpine AS runtime

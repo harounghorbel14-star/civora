@@ -80,6 +80,19 @@ export async function coreCall<T = unknown>(
 }
 
 /** Public endpoints of the core (no session), e.g. the customer status page. */
+/** A public GET on civora-core (no session): the services directory's search (doc phase-5/03). */
+export async function publicCoreGet<T = unknown>(cfg: WebConfig, path: string, correlationId?: string, fetchFn: typeof fetch = fetch): Promise<CoreResult<T>> {
+  const res = await fetchFn(cfg.coreUrl + path, {
+    headers: { accept: 'application/json', ...(correlationId ? { 'x-request-id': correlationId } : {}) },
+    signal: AbortSignal.timeout(15_000),
+    cache: 'no-store',
+  });
+  const text = await res.text();
+  let parsed: unknown;
+  try { parsed = text ? JSON.parse(text) : undefined; } catch { parsed = text; }
+  return { status: res.status, body: parsed as T };
+}
+
 export async function publicCoreCall<T = unknown>(cfg: WebConfig, path: string, body: unknown, correlationId?: string, fetchFn: typeof fetch = fetch): Promise<CoreResult<T>> {
   const res = await fetchFn(cfg.coreUrl + path, {
     method: 'POST',

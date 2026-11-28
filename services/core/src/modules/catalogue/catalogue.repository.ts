@@ -93,7 +93,12 @@ export class CatalogueRepository {
 
   /** P5-API2 / P5-F2: offices, optionally by governorate. */
   async offices(governorate?: string): Promise<Record<string, unknown>[]> {
-    return this.q('select code, name, institution, governorate, address, latitude, longitude, hours, last_verified_on from catalogue.office where ($1::text is null or governorate = $1) order by governorate, code', [governorate ?? null]);
+    // Each office with the official source it is listed from (P5-F2: every fact cited); its id is what drafts cite.
+    return this.q(`select o.id, o.code, o.name, o.institution, o.governorate, o.address, o.latitude, o.longitude, o.hours, o.last_verified_on,
+        jsonb_build_object('id', s.id, 'kind', s.kind, 'title', s.title, 'publisher', s.publisher, 'url', s.url, 'jort_reference', s.jort_reference,
+                           'language', s.language, 'accessed_on', s.accessed_on) as source
+      from catalogue.office o join catalogue.source_ref s on s.id = o.source_ref_id
+      where ($1::text is null or o.governorate = $1) order by o.governorate, o.code`, [governorate ?? null]);
   }
 
   async search(query: string, limit = 20): Promise<{ code: string; slug: string; rank: number }[]> {
@@ -143,6 +148,13 @@ export class CatalogueRepository {
 
   async addSource(s: { kind: string; title: string; publisher: string; url: string; jortReference: string | null; language: string; accessedOn: string }): Promise<string> {
     return (await this.q<{ id: string }>('select catalogue.add_source($1, $2, $3, $4, $5, $6, $7) as id', [s.kind, s.title, s.publisher, s.url, s.jortReference, s.language, s.accessedOn]))[0]!.id;
+  }
+
+  /** An office as an official page lists it (P5-F2, P5-DB5); the database checks the source and the coordinates. */
+  async addOffice(o: { code: string; name: unknown; institution: unknown; governorate: string; address: unknown; latitude: number | null; longitude: number | null;
+    hours: unknown; sourceId: string; lastVerifiedOn: string }): Promise<string> {
+    return (await this.q<{ id: string }>('select catalogue.add_office($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) as id',
+      [o.code, o.name, o.institution, o.governorate, o.address, o.latitude, o.longitude, o.hours ?? null, o.sourceId, o.lastVerifiedOn]))[0]!.id;
   }
 
   async close(): Promise<void> {
